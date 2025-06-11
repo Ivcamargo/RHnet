@@ -147,11 +147,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate geolocation
       const distance = calculateDistance(latitude, longitude, department.latitude, department.longitude);
-      if (distance > department.radius) {
+      const radius = department.radius || 100; // Default to 100m if null
+      if (distance > radius) {
         return res.status(400).json({ 
           message: "Outside allowed location", 
           distance: Math.round(distance),
-          maxDistance: department.radius 
+          maxDistance: radius 
         });
       }
 
@@ -207,11 +208,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate geolocation
       const distance = calculateDistance(latitude, longitude, department.latitude, department.longitude);
-      if (distance > department.radius) {
+      const radius = department.radius || 100; // Default to 100m if null
+      if (distance > radius) {
         return res.status(400).json({ 
           message: "Outside allowed location", 
           distance: Math.round(distance),
-          maxDistance: department.radius 
+          maxDistance: radius 
         });
       }
 
@@ -321,6 +323,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid face profile data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to save face profile" });
+    }
+  });
+
+  // User management routes (admin only)
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getAllUsers();
+      
+      // Get departments for each user
+      const usersWithDepartments = await Promise.all(
+        users.map(async (user) => {
+          let department = null;
+          if (user.departmentId) {
+            department = await storage.getDepartment(user.departmentId);
+          }
+          return { ...user, department };
+        })
+      );
+      
+      res.json(usersWithDepartments);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const userId = req.params.id;
+      const { role, departmentId, isActive } = req.body;
+      
+      const updateData: any = {};
+      if (role !== undefined) updateData.role = role;
+      if (departmentId !== undefined) updateData.departmentId = departmentId;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      // Get department info
+      let department = null;
+      if (updatedUser.departmentId) {
+        department = await storage.getDepartment(updatedUser.departmentId);
+      }
+      
+      res.json({ ...updatedUser, department });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
     }
   });
 

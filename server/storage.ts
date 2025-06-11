@@ -22,6 +22,8 @@ export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUser(id: string, user: Partial<UpsertUser>): Promise<User>;
   
   // Department operations
   getDepartments(): Promise<Department[]>;
@@ -80,6 +82,19 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.firstName, users.lastName);
+  }
+
+  async updateUser(id: string, userData: Partial<UpsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...userData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   // Department operations
   async getDepartments(): Promise<Department[]> {
     return await db.select().from(departments).where(eq(departments.isActive, true));
@@ -129,17 +144,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeEntriesByUser(userId: string, startDate?: string, endDate?: string): Promise<TimeEntry[]> {
-    let query = db.select().from(timeEntries).where(eq(timeEntries.userId, userId));
+    let conditions = [eq(timeEntries.userId, userId)];
     
     if (startDate && endDate) {
-      query = query.where(and(
-        eq(timeEntries.userId, userId),
-        gte(timeEntries.date, startDate),
-        lte(timeEntries.date, endDate)
-      ));
+      conditions.push(gte(timeEntries.date, startDate));
+      conditions.push(lte(timeEntries.date, endDate));
     }
     
-    return await query.orderBy(desc(timeEntries.date));
+    return await db
+      .select()
+      .from(timeEntries)
+      .where(and(...conditions))
+      .orderBy(desc(timeEntries.date));
   }
 
   async getTimeEntriesByDateRange(startDate: string, endDate: string): Promise<TimeEntry[]> {
