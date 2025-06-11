@@ -314,7 +314,7 @@ interface EditUserFormProps {
 
 function EditUserForm({ employee, departments, onSave, onCancel, isLoading }: EditUserFormProps) {
   const [role, setRole] = useState(employee.role);
-  const [departmentId, setDepartmentId] = useState(employee.departmentId?.toString() || '');
+  const [departmentId, setDepartmentId] = useState(employee.departmentId?.toString() || 'none');
   const [isActive, setIsActive] = useState(employee.isActive);
 
   const handleSave = () => {
@@ -323,7 +323,7 @@ function EditUserForm({ employee, departments, onSave, onCancel, isLoading }: Ed
       isActive,
     };
     
-    if (departmentId) {
+    if (departmentId && departmentId !== 'none') {
       data.departmentId = parseInt(departmentId);
     } else {
       data.departmentId = null;
@@ -355,7 +355,7 @@ function EditUserForm({ employee, departments, onSave, onCancel, isLoading }: Ed
               <SelectValue placeholder="Selecione o departamento" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Nenhum departamento</SelectItem>
+              <SelectItem value="none">Nenhum departamento</SelectItem>
               {departments.map((dept: any) => (
                 <SelectItem key={dept.id} value={dept.id.toString()}>
                   {dept.name}
