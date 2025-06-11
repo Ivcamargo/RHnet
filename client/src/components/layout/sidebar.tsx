@@ -1,17 +1,34 @@
 import { Link, useLocation } from "wouter";
 import { Clock, Home, Building, BarChart3, Users, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
-  { name: "Departamentos", href: "/departments", icon: Building },
-  { name: "Relatórios", href: "/reports", icon: BarChart3 },
-  { name: "Funcionários", href: "/employees", icon: Users },
-];
+import { useQuery } from "@tanstack/react-query";
 
 export default function Sidebar() {
   const [location] = useLocation();
+  
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isAdmin = user?.role === 'admin';
+
+  // Base navigation for all users
+  const baseNavigation = [
+    { name: "Dashboard", href: "/", icon: Home },
+    { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
+    { name: "Relatórios", href: "/reports", icon: BarChart3 },
+    { name: "Funcionários", href: "/employees", icon: Users },
+  ];
+
+  // Admin-only navigation items
+  const adminNavigation = [
+    { name: "Departamentos", href: "/departments", icon: Building },
+  ];
+
+  // Combine navigation based on user role
+  const navigation = isAdmin 
+    ? [...baseNavigation.slice(0, 2), ...adminNavigation, ...baseNavigation.slice(2)]
+    : baseNavigation;
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
