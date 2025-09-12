@@ -40,6 +40,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Database health check endpoint (no auth required for operational monitoring)
+  app.get('/api/db-health', async (req, res) => {
+    try {
+      // Test database connectivity with a simple query
+      const testResult = await storage.getCompanies();
+      
+      // If we get here, database is working
+      res.status(200).json({
+        status: 'healthy',
+        database: 'connected',
+        timestamp: new Date().toISOString(),
+        version: 'postgresql'
+      });
+    } catch (error) {
+      console.error("Database health check failed:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        errorType: error instanceof Error ? error.constructor.name : "Unknown",
+        timestamp: new Date().toISOString()
+      });
+      
+      res.status(500).json({
+        status: 'unhealthy',
+        database: 'disconnected',
+        error: error instanceof Error ? error.message : "Database connection failed",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -55,7 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         department = await storage.getDepartment(user.departmentId);
       }
       
-      res.json({ ...user, department });
+      // Get company info if user has one
+      let company = null;
+      if (user.companyId) {
+        company = await storage.getCompany(user.companyId);
+      }
+      
+      res.json({ ...user, department, company });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

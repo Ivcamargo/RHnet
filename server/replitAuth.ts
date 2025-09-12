@@ -53,45 +53,63 @@ function updateUserSession(
 
 async function upsertUser(
   claims: any,
-) {
-  // CRITICAL SECURITY FIX: Only assign default company to NEW users
-  // Check if user already exists to preserve existing companyId
-  const existingUser = await storage.getUser(claims["sub"]);
-  
-  if (existingUser) {
-    // User exists - update profile info but preserve companyId and role
-    await storage.upsertUser({
-      id: claims["sub"],
-      companyId: existingUser.companyId, // PRESERVE existing companyId
-      email: claims["email"],
-      firstName: claims["first_name"],
-      lastName: claims["last_name"],
-      profileImageUrl: claims["profile_image_url"],
-      role: existingUser.role, // PRESERVE existing role
-      departmentId: existingUser.departmentId, // PRESERVE existing departmentId
-    });
-  } else {
-    // NEW user - assign to default company
-    let defaultCompany = await storage.getCompanies().then(companies => 
-      companies.find(c => c.name === "Empresa Padrão")
-    );
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // CRITICAL SECURITY FIX: Only assign default company to NEW users
+    // Check if user already exists to preserve existing companyId
+    const existingUser = await storage.getUser(claims["sub"]);
     
-    if (!defaultCompany) {
-      defaultCompany = await storage.createCompany({
-        name: "Empresa Padrão",
-        address: "Endereço não definido",
-        cnpj: "00000000000000"
+    if (existingUser) {
+      // User exists - update profile info but preserve companyId and role
+      await storage.upsertUser({
+        id: claims["sub"],
+        companyId: existingUser.companyId, // PRESERVE existing companyId
+        email: claims["email"],
+        firstName: claims["first_name"],
+        lastName: claims["last_name"],
+        profileImageUrl: claims["profile_image_url"],
+        role: existingUser.role, // PRESERVE existing role
+        departmentId: existingUser.departmentId, // PRESERVE existing departmentId
+      });
+    } else {
+      // NEW user - assign to default company
+      let defaultCompany = await storage.getCompanies().then(companies => 
+        companies.find(c => c.name === "Empresa Padrão")
+      );
+      
+      if (!defaultCompany) {
+        defaultCompany = await storage.createCompany({
+          name: "Empresa Padrão",
+          address: "Endereço não definido",
+          cnpj: "00000000000000"
+        });
+      }
+
+      await storage.upsertUser({
+        id: claims["sub"],
+        companyId: defaultCompany.id,
+        email: claims["email"],
+        firstName: claims["first_name"],
+        lastName: claims["last_name"],
+        profileImageUrl: claims["profile_image_url"],
       });
     }
-
-    await storage.upsertUser({
-      id: claims["sub"],
-      companyId: defaultCompany.id,
-      email: claims["email"],
-      firstName: claims["first_name"],
-      lastName: claims["last_name"],
-      profileImageUrl: claims["profile_image_url"],
+    
+    return { success: true };
+  } catch (error) {
+    // Log error without exposing database credentials
+    console.error("Database error during user upsert:", {
+      userId: claims["sub"],
+      userEmail: claims["email"],
+      error: error instanceof Error ? error.message : "Unknown error",
+      errorType: error instanceof Error ? error.constructor.name : "Unknown",
+      timestamp: new Date().toISOString()
     });
+    
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Database connection failed"
+    };
   }
 }
 
@@ -107,10 +125,34 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const user = {};
+      updateUserSession(user, tokens);
+      
+      // CRITICAL: Handle database errors gracefully to prevent server crashes
+      const upsertResult = await upsertUser(tokens.claims());
+      
+      if (!upsertResult.success) {
+        console.error("Authentication failed due to database error:", {
+          error: upsertResult.error,
+          userId: tokens.claims()["sub"],
+          timestamp: new Date().toISOString()
+        });
+        
+        // Return authentication error instead of crashing
+        return verified(new Error("Database authentication failed: " + upsertResult.error), false);
+      }
+      
+      verified(null, user);
+    } catch (error) {
+      console.error("Unexpected error in authentication verify:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
+      });
+      
+      // Ensure we don't crash the server
+      verified(new Error("Authentication system error"), false);
+    }
   };
 
   for (const domain of process.env

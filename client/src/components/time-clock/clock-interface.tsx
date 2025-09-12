@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, MapPin, Camera } from "lucide-react";
+import { Clock, MapPin, Camera, Building, Users } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -8,13 +8,42 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import FacialRecognition from "./facial-recognition";
 
+// Types for API responses
+interface ClockStatus {
+  isClocked: boolean;
+  activeEntry: any | null;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  companyId: number;
+  departmentId: number | null;
+  department?: {
+    name: string;
+    shiftStart: string;
+    shiftEnd: string;
+  } | null;
+  company?: {
+    id: number;
+    name: string;
+  } | null;
+}
+
 export default function ClockInterface() {
   const [isFaceRecognitionActive, setIsFaceRecognitionActive] = useState(false);
   const { toast } = useToast();
   const { location, error: locationError } = useGeolocation();
 
-  const { data: clockStatus, isLoading } = useQuery({
+  const { data: clockStatus, isLoading } = useQuery<ClockStatus>({
     queryKey: ["/api/time-clock/status"],
+  });
+
+  // Fetch user data including department and company info
+  const { data: userData } = useQuery<UserData>({
+    queryKey: ["/api/auth/user"],
   });
 
   const clockInMutation = useMutation({
@@ -175,6 +204,51 @@ export default function ClockInterface() {
 
   return (
     <div className="space-y-6">
+      {/* Company and User Information */}
+      {userData && (
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+          <div className="flex items-center space-x-2">
+            <Building className="h-5 w-5 text-blue-600" />
+            <div>
+              <h3 className="font-semibold text-lg" data-testid="company-name">
+                {userData.company?.name || "Carregando empresa..."}
+              </h3>
+              {userData.department && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Users className="h-4 w-4" />
+                  <span data-testid="department-name">{userData.department.name}</span>
+                  <span className="text-gray-400">•</span>
+                  <span data-testid="shift-hours">
+                    Turno: {userData.department.shiftStart} às {userData.department.shiftEnd}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400" data-testid="user-name">
+                Funcionário: {userData.name}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500" data-testid="user-role">
+                {userData.role === 'admin' ? 'Administrador' : 'Funcionário'}
+              </p>
+            </div>
+            
+            <div className="text-right">
+              <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                clockStatus?.isClocked 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+              }`} data-testid="clock-status">
+                {clockStatus?.isClocked ? 'Ponto Batido' : 'Não Batido'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Facial Recognition Area */}
       <FacialRecognition
         isActive={isFaceRecognitionActive}
