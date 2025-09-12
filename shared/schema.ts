@@ -10,6 +10,8 @@ import {
   decimal,
   boolean,
   real,
+  date,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -25,6 +27,39 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Companies table
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  cnpj: varchar("cnpj").unique(),
+  address: text("address"),
+  phone: varchar("phone"),
+  email: varchar("email"),
+  logoUrl: varchar("logo_url"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Holidays table
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(),
+  date: date("date").notNull(),
+  type: varchar("type").default("national"), // national, regional, company
+  isRecurring: boolean("is_recurring").default(false),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
 // User storage table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
@@ -33,15 +68,26 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("employee"), // employee, admin
+  companyId: integer("company_id").notNull(),
   departmentId: integer("department_id"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  departmentReference: foreignKey({
+    columns: [table.departmentId],
+    foreignColumns: [departments.id],
+  }),
+}));
 
 // Departments table
 export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
   shiftStart: varchar("shift_start").notNull(), // "08:00"
@@ -52,7 +98,12 @@ export const departments = pgTable("departments", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
 
 // Time entries table
 export const timeEntries = pgTable("time_entries", {
@@ -97,6 +148,29 @@ export const faceProfiles = pgTable("face_profiles", {
 // Schema types and validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+
+export const insertHolidaySchema = createInsertSchema(holidays).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
+export type Holiday = typeof holidays.$inferSelect;
 
 export const insertDepartmentSchema = createInsertSchema(departments).omit({
   id: true,

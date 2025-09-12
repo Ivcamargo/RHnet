@@ -7,6 +7,8 @@ import {
   clockInSchema, 
   clockOutSchema, 
   insertFaceProfileSchema,
+  insertCompanySchema,
+  insertHolidaySchema,
   type ClockInRequest,
   type ClockOutRequest
 } from "@shared/schema";
@@ -61,9 +63,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Department routes
-  app.get('/api/departments', isAuthenticated, async (req, res) => {
+  app.get('/api/departments', isAuthenticated, async (req: any, res) => {
     try {
-      const departments = await storage.getDepartments();
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+      
+      const departments = await storage.getDepartmentsByCompany(user.companyId);
       res.json(departments);
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -77,8 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
 
       const departmentData = insertDepartmentSchema.parse(req.body);
+      // Force companyId to be the user's company - security critical
+      departmentData.companyId = user.companyId;
       const department = await storage.createDepartment(departmentData);
       res.json(department);
     } catch (error) {
@@ -90,12 +102,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/departments/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/departments/:id', isAuthenticated, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+      
       const id = parseInt(req.params.id);
       const department = await storage.getDepartment(id);
       if (!department) {
         return res.status(404).json({ message: "Department not found" });
+      }
+      
+      // CRITICAL SECURITY: Verify department belongs to user's company
+      if (department.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: department not accessible" });
       }
       
       const stats = await storage.getDepartmentStats(id);
@@ -103,6 +125,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching department:", error);
       res.status(500).json({ message: "Failed to fetch department" });
+    }
+  });
+
+  // Company routes
+  app.get('/api/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      // CRITICAL SECURITY: Admin can only see their own company
+      const company = await storage.getCompany(user.companyId);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      res.json([company]); // Return as array to maintain API compatibility
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  app.post('/api/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const companyData = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany(companyData);
+      res.json(company);
+    } catch (error) {
+      console.error("Error creating company:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid company data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create company" });
+    }
+  });
+
+  app.get('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      // CRITICAL SECURITY: Admin can only access their own company
+      if (id !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: company not accessible" });
+      }
+      
+      const company = await storage.getCompany(id);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      console.error("Error fetching company:", error);
+      res.status(500).json({ message: "Failed to fetch company" });
+    }
+  });
+
+  app.put('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      // CRITICAL SECURITY: Admin can only update their own company
+      if (id !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: company not accessible" });
+      }
+      
+      const companyData = insertCompanySchema.partial().parse(req.body);
+      const company = await storage.updateCompany(id, companyData);
+      res.json(company);
+    } catch (error) {
+      console.error("Error updating company:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid company data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update company" });
+    }
+  });
+
+  // Holiday routes
+  app.get('/api/holidays', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+      
+      const holidays = await storage.getHolidays(user.companyId);
+      res.json(holidays);
+    } catch (error) {
+      console.error("Error fetching holidays:", error);
+      res.status(500).json({ message: "Failed to fetch holidays" });
+    }
+  });
+
+  app.post('/api/holidays', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const holidayData = insertHolidaySchema.parse(req.body);
+      // Force companyId to be the user's company - security critical
+      holidayData.companyId = user.companyId;
+      const holiday = await storage.createHoliday(holidayData);
+      res.json(holiday);
+    } catch (error) {
+      console.error("Error creating holiday:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid holiday data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create holiday" });
+    }
+  });
+
+  app.put('/api/holidays/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      // CRITICAL SECURITY: Verify holiday belongs to user's company
+      const existingHoliday = await storage.getHoliday(id);
+      if (!existingHoliday || existingHoliday.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: holiday not accessible" });
+      }
+      
+      const holidayData = insertHolidaySchema.partial().parse(req.body);
+      // Prevent companyId modification
+      delete holidayData.companyId;
+      const holiday = await storage.updateHoliday(id, holidayData);
+      res.json(holiday);
+    } catch (error) {
+      console.error("Error updating holiday:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid holiday data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update holiday" });
+    }
+  });
+
+  app.delete('/api/holidays/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      // CRITICAL SECURITY: Verify holiday belongs to user's company
+      const existingHoliday = await storage.getHoliday(id);
+      if (!existingHoliday || existingHoliday.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: holiday not accessible" });
+      }
+      
+      await storage.deleteHoliday(id);
+      res.json({ message: "Holiday deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting holiday:", error);
+      res.status(500).json({ message: "Failed to delete holiday" });
+    }
+  });
+
+  app.get('/api/holidays/check/:date', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const { date } = req.params;
+      const isHoliday = await storage.isHoliday(date, user.companyId);
+      res.json({ isHoliday, date });
+    } catch (error) {
+      console.error("Error checking holiday:", error);
+      res.status(500).json({ message: "Failed to check holiday" });
     }
   });
 

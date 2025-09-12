@@ -4,6 +4,8 @@ import {
   timeEntries,
   breakEntries,
   faceProfiles,
+  companies,
+  holidays,
   type User,
   type UpsertUser,
   type Department,
@@ -14,6 +16,10 @@ import {
   type InsertBreakEntry,
   type FaceProfile,
   type InsertFaceProfile,
+  type Company,
+  type InsertCompany,
+  type Holiday,
+  type InsertHoliday,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
@@ -27,6 +33,7 @@ export interface IStorage {
   
   // Department operations
   getDepartments(): Promise<Department[]>;
+  getDepartmentsByCompany(companyId: number): Promise<Department[]>;
   getDepartment(id: number): Promise<Department | undefined>;
   createDepartment(department: InsertDepartment): Promise<Department>;
   updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department>;
@@ -47,6 +54,20 @@ export interface IStorage {
   getFaceProfile(userId: string): Promise<FaceProfile | undefined>;
   createFaceProfile(faceProfile: InsertFaceProfile): Promise<FaceProfile>;
   updateFaceProfile(userId: string, faceProfile: Partial<InsertFaceProfile>): Promise<FaceProfile>;
+  
+  // Company operations
+  getCompanies(): Promise<Company[]>;
+  getCompany(id: number): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: number, company: Partial<InsertCompany>): Promise<Company>;
+  
+  // Holiday operations
+  getHolidays(companyId: number): Promise<Holiday[]>;
+  getHoliday(id: number): Promise<Holiday | undefined>;
+  createHoliday(holiday: InsertHoliday): Promise<Holiday>;
+  updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday>;
+  deleteHoliday(id: number): Promise<void>;
+  isHoliday(date: string, companyId: number): Promise<boolean>;
   
   // Statistics and reports
   getUserMonthlyStats(userId: string, year: number, month: number): Promise<{
@@ -98,6 +119,15 @@ export class DatabaseStorage implements IStorage {
   // Department operations
   async getDepartments(): Promise<Department[]> {
     return await db.select().from(departments).where(eq(departments.isActive, true));
+  }
+
+  async getDepartmentsByCompany(companyId: number): Promise<Department[]> {
+    return await db.select().from(departments).where(
+      and(
+        eq(departments.companyId, companyId),
+        eq(departments.isActive, true)
+      )
+    );
   }
 
   async getDepartment(id: number): Promise<Department | undefined> {
@@ -244,6 +274,107 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.departmentId, departmentId));
     
     return stats || { totalEmployees: 0, activeEmployees: 0 };
+  }
+
+  // Company operations
+  async getCompanies(): Promise<Company[]> {
+    return await db.select().from(companies).where(eq(companies.isActive, true));
+  }
+
+  async getCompany(id: number): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company;
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const [newCompany] = await db.insert(companies).values(company).returning();
+    return newCompany;
+  }
+
+  async updateCompany(id: number, company: Partial<InsertCompany>): Promise<Company> {
+    const [updatedCompany] = await db
+      .update(companies)
+      .set({ ...company, updatedAt: new Date() })
+      .where(eq(companies.id, id))
+      .returning();
+    return updatedCompany;
+  }
+
+  // Holiday operations
+  async getHolidays(companyId: number): Promise<Holiday[]> {
+    return await db.select().from(holidays).where(
+      and(
+        eq(holidays.companyId, companyId),
+        eq(holidays.isActive, true)
+      )
+    );
+  }
+
+  async getHoliday(id: number): Promise<Holiday | undefined> {
+    const [holiday] = await db.select().from(holidays).where(eq(holidays.id, id));
+    return holiday;
+  }
+
+  async createHoliday(holiday: InsertHoliday): Promise<Holiday> {
+    const [newHoliday] = await db.insert(holidays).values(holiday).returning();
+    return newHoliday;
+  }
+
+  async updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday> {
+    const [updatedHoliday] = await db
+      .update(holidays)
+      .set({ ...holiday, updatedAt: new Date() })
+      .where(eq(holidays.id, id))
+      .returning();
+    return updatedHoliday;
+  }
+
+  async deleteHoliday(id: number): Promise<void> {
+    await db.update(holidays).set({ isActive: false }).where(eq(holidays.id, id));
+  }
+
+  async isHoliday(date: string, companyId: number): Promise<boolean> {
+    // Check for exact date match
+    const [exactHoliday] = await db
+      .select()
+      .from(holidays)
+      .where(
+        and(
+          eq(holidays.companyId, companyId),
+          eq(holidays.date, date),
+          eq(holidays.isActive, true)
+        )
+      );
+    
+    if (exactHoliday) {
+      return true;
+    }
+    
+    // Check for recurring holidays (same month and day)
+    if (date) {
+      const [, month, day] = date.split('-').map(Number);
+      const recurringHolidays = await db
+        .select()
+        .from(holidays)
+        .where(
+          and(
+            eq(holidays.companyId, companyId),
+            eq(holidays.isRecurring, true),
+            eq(holidays.isActive, true)
+          )
+        );
+      
+      for (const holiday of recurringHolidays) {
+        if (holiday.date) {
+          const [, holidayMonth, holidayDay] = holiday.date.split('-').map(Number);
+          if (month === holidayMonth && day === holidayDay) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
   }
 }
 
