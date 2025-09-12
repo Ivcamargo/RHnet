@@ -337,6 +337,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management routes
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getUsersByCompany(user.companyId);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/users/:id/company', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!currentUser?.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      }
+
+      const userId = req.params.id;
+      const { companyId } = req.body;
+      
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID is required" });
+      }
+
+      // CRITICAL SECURITY: Admin can only move users within their own company
+      if (companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied: cannot move users to different company" });
+      }
+
+      // CRITICAL SECURITY: Verify target user belongs to admin's company
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (targetUser.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied: user not in your company" });
+      }
+
+      // Verify company exists (redundant but safe)
+      const company = await storage.getCompany(companyId);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      await storage.updateUserCompany(userId, companyId);
+      res.json({ message: "User company updated successfully" });
+    } catch (error) {
+      console.error("Error updating user company:", error);
+      res.status(500).json({ message: "Failed to update user company" });
+    }
+  });
+
+
   // Time clock routes
   app.get('/api/time-clock/status', isAuthenticated, async (req: any, res) => {
     try {

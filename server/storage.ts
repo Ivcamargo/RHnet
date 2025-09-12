@@ -29,7 +29,9 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  getUsersByCompany(companyId: number): Promise<User[]>;
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User>;
+  updateUserCompany(userId: string, companyId: number): Promise<void>;
   
   // Department operations
   getDepartments(): Promise<Department[]>;
@@ -375,6 +377,26 @@ export class DatabaseStorage implements IStorage {
     }
     
     return false;
+  }
+
+  // User management methods
+  async getUsersByCompany(companyId: number): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.companyId, companyId),
+          eq(users.isActive, true)
+        )
+      );
+  }
+
+  async updateUserCompany(userId: string, companyId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ companyId, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 }
 

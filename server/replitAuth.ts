@@ -24,16 +24,13 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  
+  // Use memory store for now to avoid PostgreSQL session store connection issues
+  // TODO: Fix PostgreSQL session store configuration for production
+  console.log("Using memory store for sessions (temporary solution)");
+  
   return session({
     secret: process.env.SESSION_SECRET!,
-    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -57,13 +54,45 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
+  // CRITICAL SECURITY FIX: Only assign default company to NEW users
+  // Check if user already exists to preserve existing companyId
+  const existingUser = await storage.getUser(claims["sub"]);
+  
+  if (existingUser) {
+    // User exists - update profile info but preserve companyId and role
+    await storage.upsertUser({
+      id: claims["sub"],
+      companyId: existingUser.companyId, // PRESERVE existing companyId
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      profileImageUrl: claims["profile_image_url"],
+      role: existingUser.role, // PRESERVE existing role
+      departmentId: existingUser.departmentId, // PRESERVE existing departmentId
+    });
+  } else {
+    // NEW user - assign to default company
+    let defaultCompany = await storage.getCompanies().then(companies => 
+      companies.find(c => c.name === "Empresa Padrão")
+    );
+    
+    if (!defaultCompany) {
+      defaultCompany = await storage.createCompany({
+        name: "Empresa Padrão",
+        address: "Endereço não definido",
+        cnpj: "00000000000000"
+      });
+    }
+
+    await storage.upsertUser({
+      id: claims["sub"],
+      companyId: defaultCompany.id,
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      profileImageUrl: claims["profile_image_url"],
+    });
+  }
 }
 
 export async function setupAuth(app: Express) {
