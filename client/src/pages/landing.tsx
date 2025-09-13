@@ -20,6 +20,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
+import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
 
 export default function Landing() {
   const handleLogin = () => {
@@ -38,6 +39,19 @@ export default function Landing() {
           backgroundSize: '400px 400px',
           opacity: 0.375,
           filter: 'brightness(1.5)'
+        }}
+      ></div>
+      
+      {/* People Using App Background */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: `url(${peopleUsingApp})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'bottom right',
+          backgroundSize: '600px auto',
+          opacity: 0.12,
+          filter: 'brightness(1.2)'
         }}
       ></div>
       {/* Header */}
