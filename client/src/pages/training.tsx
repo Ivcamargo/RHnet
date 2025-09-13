@@ -1,17 +1,33 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GraduationCap, Play, Award, Clock, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { GraduationCap, Play, Award, Clock, CheckCircle, Plus } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Course, EmployeeCourse, Certificate } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
+import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCourse } from "@shared/schema";
 
 export default function Training() {
   const queryClient = useQueryClient();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch user info
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+  });
 
   // Fetch courses, employee progress, and certificates
   const { data: courses = [], isLoading: coursesLoading } = useQuery<Course[]>({
@@ -26,6 +42,17 @@ export default function Training() {
     queryKey: ["/api/certificates"],
   });
 
+  // Form for creating courses
+  const form = useForm<InsertCourse>({
+    resolver: zodResolver(insertCourseSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      duration: 0,
+      isRequired: false,
+    },
+  });
+
   // Mutations for course actions
   const startCourseMutation = useMutation({
     mutationFn: (courseId: number) => apiRequest(`/api/employee-courses/start`, {
@@ -35,6 +62,28 @@ export default function Training() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-courses"] });
     }
+  });
+
+  const createCourseMutation = useMutation({
+    mutationFn: async (data: InsertCourse) => {
+      await apiRequest("POST", "/api/courses", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      setIsCreateOpen(false);
+      form.reset();
+      toast({
+        title: "Sucesso",
+        description: "Curso criado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Calculate stats
@@ -64,6 +113,12 @@ export default function Training() {
   const handleStartCourse = (courseId: number) => {
     startCourseMutation.mutate(courseId);
   };
+
+  const onSubmitCourse = (data: InsertCourse) => {
+    createCourseMutation.mutate(data);
+  };
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -201,10 +256,109 @@ export default function Training() {
             {/* Available Courses */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Play className="h-5 w-5 mr-2" />
-                  Cursos Disponíveis
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Play className="h-5 w-5 mr-2" />
+                    Cursos Disponíveis
+                  </CardTitle>
+                  {isAdmin && (
+                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="point-primary">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Novo Curso
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[600px]">
+                        <DialogHeader>
+                          <DialogTitle>Criar Novo Curso</DialogTitle>
+                        </DialogHeader>
+                        <Form {...form}>
+                          <form onSubmit={form.handleSubmit(onSubmitCourse)} className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="title"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Título do Curso</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ex: Treinamento de Segurança no Trabalho" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Descrição</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Descrição do curso..." {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="duration"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Duração (em minutos)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      placeholder="Ex: 120" 
+                                      {...field}
+                                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="isRequired"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">
+                                      Curso Obrigatório
+                                    </FormLabel>
+                                    <div className="text-sm text-muted-foreground">
+                                      Marque se este curso é obrigatório para todos os funcionários
+                                    </div>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <div className="flex gap-2">
+                              <Button type="submit" disabled={createCourseMutation.isPending} className="point-primary">
+                                {createCourseMutation.isPending ? "Criando..." : "Criar"}
+                              </Button>
+                              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                                Cancelar
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {coursesLoading ? (

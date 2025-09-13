@@ -25,12 +25,12 @@ export default function Employees() {
 
   const { data: allUsers, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/admin/users"],
-    enabled: user?.role === 'admin',
+    enabled: user?.role === 'admin' || user?.role === 'superadmin',
   });
 
   const { data: departments } = useQuery({
     queryKey: ["/api/departments"],
-    enabled: user?.role === 'admin',
+    enabled: user?.role === 'admin' || user?.role === 'superadmin',
   });
 
   const updateUserMutation = useMutation({
@@ -55,7 +55,7 @@ export default function Employees() {
     },
   });
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   const handleEditUser = (employee: any) => {
     setSelectedEmployee(employee);

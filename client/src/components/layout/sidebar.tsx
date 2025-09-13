@@ -28,7 +28,7 @@ export default function Sidebar() {
     queryKey: ["/api/auth/user"],
   });
 
-  const isAdmin = user && 'role' in user && user.role === 'admin';
+  const isAdmin = user && 'role' in user && (user.role === 'admin' || user.role === 'superadmin');
   const isSuperAdmin = user && 'role' in user && user.role === 'superadmin';
 
   // Base navigation for all users - prioritizing HR and messaging features

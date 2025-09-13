@@ -68,7 +68,7 @@ export default function Departments() {
     createMutation.mutate(data);
   };
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
