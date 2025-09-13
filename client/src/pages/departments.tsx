@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Building, MapPin, Users, Plus } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
+import { LocationMap } from "@/components/ui/location-map";
 
 export default function Departments() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -35,12 +36,17 @@ export default function Departments() {
       description: "",
       shiftStart: "08:00",
       shiftEnd: "17:00",
-      latitude: 0,
-      longitude: 0,
+      latitude: -23.5505,
+      longitude: -46.6333,
       radius: 100,
       isActive: true,
     },
   });
+
+  const handleLocationChange = (lat: number, lng: number) => {
+    form.setValue('latitude', lat);
+    form.setValue('longitude', lng);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertDepartment) => {
@@ -152,6 +158,14 @@ export default function Departments() {
                         />
                       </div>
                       
+                      <LocationMap
+                        latitude={form.watch('latitude')}
+                        longitude={form.watch('longitude')}
+                        radius={form.watch('radius')}
+                        onLocationChange={handleLocationChange}
+                        className="mb-4"
+                      />
+                      
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -164,8 +178,10 @@ export default function Departments() {
                                   type="number" 
                                   step="any" 
                                   placeholder="Ex: -23.5505"
+                                  readOnly
+                                  className="bg-gray-50"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                  data-testid="input-latitude"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -184,8 +200,10 @@ export default function Departments() {
                                   type="number" 
                                   step="any" 
                                   placeholder="Ex: -46.6333"
+                                  readOnly
+                                  className="bg-gray-50"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                  data-testid="input-longitude"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -206,6 +224,7 @@ export default function Departments() {
                                 placeholder="100"
                                 {...field}
                                 onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                data-testid="input-radius"
                               />
                             </FormControl>
                             <FormMessage />
