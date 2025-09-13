@@ -37,7 +37,7 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: '400px 400px',
-          opacity: 0.375,
+          opacity: 0.675,
           filter: 'brightness(1.5)'
         }}
       ></div>
@@ -50,7 +50,7 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'bottom right',
           backgroundSize: '600px auto',
-          opacity: 0.12,
+          opacity: 0.22,
           filter: 'brightness(1.2)'
         }}
       ></div>
