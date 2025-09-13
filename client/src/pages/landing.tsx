@@ -45,8 +45,8 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <img src={rhnetLogo} alt="RHNet" className="h-10 w-10 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-blue-800">RHNet Sistema de gestão de recursos humanos</h1>
+              <img src={rhnetLogo} alt="RHNet" className="h-14 w-14 mr-3 rounded-lg" />
+              <h1 className="text-2xl font-bold text-blue-800">Sistema de gestão de recursos humanos</h1>
             </div>
             <Button 
               onClick={handleLogin} 
@@ -275,8 +275,8 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-              <img src={rhnetLogo} alt="RHNet" className="h-8 w-8 mr-3 rounded" />
-              <span className="text-xl font-bold text-blue-800">RHNet Sistema de gestão de recursos humanos</span>
+              <img src={rhnetLogo} alt="RHNet" className="h-11 w-11 mr-3 rounded" />
+              <span className="text-xl font-bold text-blue-800">Sistema de gestão de recursos humanos</span>
             </div>
             <div className="text-gray-600">
               <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
