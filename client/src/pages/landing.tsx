@@ -148,61 +148,61 @@ export default function Landing() {
 
         {/* Advanced Features Grid */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-white mb-12">
+          <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
             Funcionalidades Avançadas
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="pb-3">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
-                  <Clock className="h-6 w-6 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200 shadow-md hover:shadow-lg transition-all">
+              <CardHeader className="pb-4">
+                <div className="w-14 h-14 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+                  <Clock className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-white text-lg">Controle de Ponto Eletrônico</CardTitle>
+                <CardTitle className="text-blue-800 text-lg leading-tight">Controle de Ponto Eletrônico</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   Registro digital com validação de localização e reconhecimento facial.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="pb-3">
-                <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-3">
-                  <MapPin className="h-6 w-6 text-white" />
+            <Card className="bg-white/70 backdrop-blur-sm border-red-200 shadow-md hover:shadow-lg transition-all">
+              <CardHeader className="pb-4">
+                <div className="w-14 h-14 bg-red-600 rounded-lg flex items-center justify-center mb-4">
+                  <MapPin className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-white text-lg">Geolocalização Avançada</CardTitle>
+                <CardTitle className="text-red-800 text-lg leading-tight">Geolocalização Avançada</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   Cercas virtuais personalizadas e validação automática de presença.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="pb-3">
-                <div className="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center mb-3">
-                  <Camera className="h-6 w-6 text-white" />
+            <Card className="bg-white/70 backdrop-blur-sm border-yellow-200 shadow-md hover:shadow-lg transition-all">
+              <CardHeader className="pb-4">
+                <div className="w-14 h-14 bg-yellow-600 rounded-lg flex items-center justify-center mb-4">
+                  <Camera className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-white text-lg">Reconhecimento Facial</CardTitle>
+                <CardTitle className="text-yellow-800 text-lg leading-tight">Reconhecimento Facial</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   Autenticação biométrica para máxima segurança nos registros.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader className="pb-3">
-                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mb-3">
-                  <BarChart3 className="h-6 w-6 text-white" />
+            <Card className="bg-white/70 backdrop-blur-sm border-green-200 shadow-md hover:shadow-lg transition-all">
+              <CardHeader className="pb-4">
+                <div className="w-14 h-14 bg-green-600 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-white text-lg">Relatórios Abrangentes</CardTitle>
+                <CardTitle className="text-green-800 text-lg leading-tight">Relatórios Abrangentes</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   Análises detalhadas e dashboards com métricas em tempo real.
                 </p>
               </CardContent>
@@ -213,32 +213,32 @@ export default function Landing() {
 
         {/* Security & Compliance */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-white mb-12">
+          <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
             Segurança e Conformidade
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-white/70 backdrop-blur-sm border-red-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <Lock className="h-12 w-12 text-red-500 mb-4" />
-                <CardTitle className="text-white">Segurança Avançada</CardTitle>
+                <CardTitle className="text-red-800">Segurança Avançada</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-gray-300 space-y-2">
+                <ul className="text-gray-600 space-y-2">
                   <li>• Criptografia de dados</li>
                   <li>• Autenticação multifator</li>
                   <li>• Sessões seguras</li>
-                  <li>• Auditoria completa</li>
+                  <li>• Auditoria</li>
                 </ul>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-white/70 backdrop-blur-sm border-blue-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <Shield className="h-12 w-12 text-blue-500 mb-4" />
-                <CardTitle className="text-white">Proteção de Dados</CardTitle>
+                <CardTitle className="text-blue-800">Proteção de Dados</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-gray-300 space-y-2">
+                <ul className="text-gray-600 space-y-2">
                   <li>• Conformidade LGPD</li>
                   <li>• Backup automático</li>
                   <li>• Controle de acesso</li>
@@ -247,13 +247,13 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-white/70 backdrop-blur-sm border-green-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <UserCheck className="h-12 w-12 text-green-500 mb-4" />
-                <CardTitle className="text-white">Controles de Acesso</CardTitle>
+                <CardTitle className="text-green-800">Controles de Acesso</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-gray-300 space-y-2">
+                <ul className="text-gray-600 space-y-2">
                   <li>• Roles hierárquicos</li>
                   <li>• Permissões granulares</li>
                   <li>• Isolamento por empresa</li>
