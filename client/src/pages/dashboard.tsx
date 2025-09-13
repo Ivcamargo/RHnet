@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
+import logoImage from "@assets/generated_images/RHNet_company_logo_design_27776a18.png";
 
 interface HRDashboardData {
   unreadMessages: number;
@@ -86,7 +87,7 @@ export default function Dashboard() {
     },
   });
 
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
   });
 
@@ -107,7 +108,7 @@ export default function Dashboard() {
       },
       {
         id: 2,
-        subject: "Novo curso disponível: Segurança do Trabalho",
+        subject: "Novo programa de capacitação disponível",
         senderName: "RH - João Santos", 
         createdAt: "2025-01-13T09:15:00Z",
         isRead: false,
@@ -115,7 +116,7 @@ export default function Dashboard() {
       },
       {
         id: 3,
-        subject: "Confirmação de férias aprovadas",
+        subject: "Comunicado: Política de trabalho remoto",
         senderName: "RH - Ana Costa",
         createdAt: "2025-01-12T16:45:00Z",
         isRead: true,
@@ -123,13 +124,13 @@ export default function Dashboard() {
       }
     ],
     pendingTasks: [
-      { id: 1, title: "Enviar comprovante de residência", type: "document", dueDate: "2025-01-15" },
-      { id: 2, title: "Concluir curso de Primeiros Socorros", type: "course", dueDate: "2025-01-20" },
-      { id: 3, title: "Responder pesquisa de clima organizacional", type: "message", dueDate: "2025-01-18" }
+      { id: 1, title: "Enviar documentação pessoal atualizada", type: "document", dueDate: "2025-01-15" },
+      { id: 2, title: "Concluir programa de capacitação obrigatório", type: "course", dueDate: "2025-01-20" },
+      { id: 3, title: "Responder mensagem sobre benefícios", type: "message", dueDate: "2025-01-18" }
     ],
     courseProgress: [
-      { id: 1, title: "Segurança do Trabalho", progress: 75, status: "in_progress" },
-      { id: 2, title: "Comunicação Eficaz", progress: 30, status: "in_progress" }
+      { id: 1, title: "Gestão de Pessoas e Liderança", progress: 75, status: "in_progress" },
+      { id: 2, title: "Comunicação Corporativa Eficaz", progress: 30, status: "in_progress" }
     ]
   };
 
@@ -197,14 +198,34 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Welcome Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Bem-vindo ao RHNet
-            </h1>
-            <p className="text-muted-foreground">
-              Gerencie sua comunicação, documentos e capacitação de forma integrada
-            </p>
+          {/* Welcome Section with Logo Background */}
+          <div className="mb-8 relative">
+            <div 
+              className="absolute inset-0 opacity-5 bg-no-repeat bg-center bg-contain pointer-events-none"
+              style={{ backgroundImage: `url(${logoImage})` }}
+            />
+            <div className="relative z-10">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                Bem-vindo ao RHNet
+              </h1>
+              <p className="text-muted-foreground text-lg mb-4">
+                "A Rede do RH" - Sistema completo de gestão de recursos humanos
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <span className="text-muted-foreground">Mensageria Corporativa Integrada</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="text-muted-foreground">Gestão Completa de Documentos</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  <span className="text-muted-foreground">Capacitação e Certificação</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -263,8 +284,8 @@ export default function Dashboard() {
               <CardContent>
                 <div className="space-y-2">
                   <Button variant="outline" size="sm" className="w-full justify-start">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Bater Ponto
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Nova Mensagem
                   </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start">
                     <Upload className="h-4 w-4 mr-2" />
