@@ -895,7 +895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
-      if (currentUser?.role !== 'admin') {
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -922,7 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
-      if (currentUser?.role !== 'admin') {
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -946,6 +946,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Create new employee (admin only)
+  app.post('/api/admin/employees', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!currentUser?.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      }
+
+      const { email, firstName, lastName, role, departmentId } = req.body;
+      
+      // Validate required fields
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ message: "Email, first name, and last name are required" });
+      }
+      
+      // Validate role
+      if (role && !['employee', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be employee or admin" });
+      }
+      
+      // Validate department belongs to current user's company
+      if (departmentId && departmentId !== 'none') {
+        const department = await storage.getDepartment(parseInt(departmentId));
+        if (!department || department.companyId !== currentUser.companyId) {
+          return res.status(400).json({ message: "Invalid department or department not in your company" });
+        }
+      }
+      
+      // Check if user with this email already exists
+      const existingUsers = await storage.getAllUsers();
+      const existingUser = existingUsers.find(u => u.email === email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Generate a unique ID for the new user
+      const userId = `emp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create new user
+      const userData = {
+        id: userId,
+        email,
+        firstName,
+        lastName,
+        role: role || 'employee',
+        companyId: currentUser.companyId,
+        departmentId: departmentId && departmentId !== 'none' ? parseInt(departmentId) : undefined,
+        isActive: true,
+      };
+      
+      const newUser = await storage.upsertUser(userData);
+      
+      // Get department info if assigned
+      let department = null;
+      if (newUser.departmentId) {
+        department = await storage.getDepartment(newUser.departmentId);
+      }
+      
+      res.status(201).json({ ...newUser, department });
+    } catch (error) {
+      console.error("Error creating employee:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid employee data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create employee" });
     }
   });
 

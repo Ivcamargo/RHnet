@@ -4,19 +4,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Users, Mail, Building, Shield, Settings, UserCheck } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 
+// Schema for adding new employee
+const addEmployeeSchema = z.object({
+  email: z.string().email("Email inválido"),
+  firstName: z.string().min(1, "Nome é obrigatório"),
+  lastName: z.string().min(1, "Sobrenome é obrigatório"),
+  role: z.enum(["employee", "admin"]).default("employee"),
+  departmentId: z.string().optional(),
+});
+
+type AddEmployeeForm = z.infer<typeof addEmployeeSchema>;
+
 export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -33,6 +50,18 @@ export default function Employees() {
     enabled: user?.role === 'admin' || user?.role === 'superadmin',
   });
 
+  // Form for adding employees
+  const addForm = useForm<AddEmployeeForm>({
+    resolver: zodResolver(addEmployeeSchema),
+    defaultValues: {
+      email: "",
+      firstName: "",
+      lastName: "",
+      role: "employee",
+      departmentId: "",
+    },
+  });
+
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
       await apiRequest("PUT", `/api/admin/users/${userId}`, data);
@@ -44,6 +73,28 @@ export default function Employees() {
       toast({
         title: "Sucesso",
         description: "Usuário atualizado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addEmployeeMutation = useMutation({
+    mutationFn: async (data: AddEmployeeForm) => {
+      await apiRequest("POST", "/api/admin/employees", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsAddDialogOpen(false);
+      addForm.reset();
+      toast({
+        title: "Sucesso",
+        description: "Funcionário adicionado com sucesso",
       });
     },
     onError: (error: Error) => {
@@ -69,6 +120,10 @@ export default function Employees() {
       userId: selectedEmployee.id,
       data: formData,
     });
+  };
+
+  const onSubmitAddEmployee = (data: AddEmployeeForm) => {
+    addEmployeeMutation.mutate(data);
   };
 
   if (!isAdmin) {
@@ -201,9 +256,151 @@ export default function Employees() {
         <TopBar title="Gestão de Funcionários" />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Gestão de Funcionários</h1>
-            <p className="text-gray-600">Visualize e gerencie os funcionários da empresa</p>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gestão de Funcionários</h1>
+              <p className="text-gray-600">Visualize e gerencie os funcionários da empresa</p>
+            </div>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="point-primary">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Funcionário
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Adicionar Novo Funcionário</DialogTitle>
+                </DialogHeader>
+                <Form {...addForm}>
+                  <form onSubmit={addForm.handleSubmit(onSubmitAddEmployee)} className="space-y-4">
+                    <FormField
+                      control={addForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email"
+                              placeholder="funcionario@empresa.com" 
+                              data-testid="input-employee-email"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={addForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="João" 
+                                data-testid="input-employee-firstname"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={addForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Sobrenome</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Silva" 
+                                data-testid="input-employee-lastname"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={addForm.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Função</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-employee-role">
+                                <SelectValue placeholder="Selecione a função" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="employee">Funcionário</SelectItem>
+                              <SelectItem value="admin">Administrador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={addForm.control}
+                      name="departmentId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Departamento (Opcional)</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-employee-department">
+                                <SelectValue placeholder="Selecione o departamento" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Nenhum departamento</SelectItem>
+                              {departments?.map((dept: any) => (
+                                <SelectItem key={dept.id} value={dept.id.toString()}>
+                                  {dept.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={addEmployeeMutation.isPending} 
+                        className="point-primary"
+                        data-testid="button-submit-employee"
+                      >
+                        {addEmployeeMutation.isPending ? "Adicionando..." : "Adicionar"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setIsAddDialogOpen(false)}
+                        data-testid="button-cancel-employee"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {usersLoading ? (
