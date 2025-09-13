@@ -960,17 +960,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Admin must be assigned to a company" });
       }
 
-      const { email, firstName, lastName, role, departmentId } = req.body;
-      
-      // Validate required fields
-      if (!email || !firstName || !lastName) {
-        return res.status(400).json({ message: "Email, first name, and last name are required" });
+      // Validate request body using Zod schema
+      const createEmployeeSchema = z.object({
+        email: z.string().email("Invalid email format"),
+        firstName: z.string().min(1, "First name is required"),
+        lastName: z.string().min(1, "Last name is required"),
+        role: z.enum(['employee', 'admin']).optional().default('employee'),
+        departmentId: z.string().optional(),
+      });
+
+      const validationResult = createEmployeeSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid employee data", 
+          errors: validationResult.error.errors 
+        });
       }
-      
-      // Validate role
-      if (role && !['employee', 'admin'].includes(role)) {
-        return res.status(400).json({ message: "Invalid role. Must be employee or admin" });
-      }
+
+      const { email, firstName, lastName, role, departmentId } = validationResult.data;
       
       // Validate department belongs to current user's company
       if (departmentId && departmentId !== 'none') {

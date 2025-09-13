@@ -263,7 +263,7 @@ export default function Employees() {
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="point-primary">
+                <Button className="point-primary" data-testid="button-add-employee">
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar Funcionário
                 </Button>
@@ -283,7 +283,8 @@ export default function Employees() {
                           <FormControl>
                             <Input 
                               type="email"
-                              placeholder="funcionario@empresa.com" 
+                              placeholder="funcionario@empresa.com"
+                              data-testid="input-employee-email" 
                               data-testid="input-employee-email"
                               {...field} 
                             />
@@ -303,7 +304,7 @@ export default function Employees() {
                             <FormControl>
                               <Input 
                                 placeholder="João" 
-                                data-testid="input-employee-firstname"
+                                data-testid="input-employee-first-name"
                                 {...field} 
                               />
                             </FormControl>
@@ -321,7 +322,7 @@ export default function Employees() {
                             <FormControl>
                               <Input 
                                 placeholder="Silva" 
-                                data-testid="input-employee-lastname"
+                                data-testid="input-employee-last-name"
                                 {...field} 
                               />
                             </FormControl>
