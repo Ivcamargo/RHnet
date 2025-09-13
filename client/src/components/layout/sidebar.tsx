@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Clock, Home, Building, BarChart3, Users, Settings, LogOut, Menu, X } from "lucide-react";
+import { Clock, Home, Building, BarChart3, Users, Settings, LogOut, Menu, X, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,7 +13,8 @@ export default function Sidebar() {
     queryKey: ["/api/auth/user"],
   });
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user && 'role' in user && user.role === 'admin';
+  const isSuperAdmin = user && 'role' in user && user.role === 'superadmin';
 
   // Base navigation for all users
   const baseNavigation = [
@@ -26,12 +27,28 @@ export default function Sidebar() {
   // Admin-only navigation items
   const adminNavigation = [
     { name: "Departamentos", href: "/departments", icon: Building },
+    { name: "Feriados", href: "/holidays", icon: Settings },
+  ];
+
+  // Superadmin-only navigation items
+  const superAdminNavigation = [
+    { name: "Gerenciar Sistema", href: "/superadmin", icon: Shield },
   ];
 
   // Combine navigation based on user role
-  const navigation = isAdmin 
-    ? [...baseNavigation.slice(0, 2), ...adminNavigation, ...baseNavigation.slice(2)]
-    : baseNavigation;
+  let navigation = baseNavigation;
+  
+  if (isSuperAdmin) {
+    // Superadmin gets system management but not company-specific items
+    navigation = [
+      baseNavigation[0], // Dashboard
+      ...superAdminNavigation,
+      baseNavigation[2], // Reports
+      baseNavigation[3], // Employees
+    ];
+  } else if (isAdmin) {
+    navigation = [...baseNavigation.slice(0, 2), ...adminNavigation, ...baseNavigation.slice(2)];
+  }
 
   const handleLogout = () => {
     window.location.href = "/api/logout";

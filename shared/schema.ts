@@ -67,8 +67,8 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").default("employee"), // employee, admin
-  companyId: integer("company_id").notNull(),
+  role: varchar("role").default("employee"), // employee, admin, superadmin
+  companyId: integer("company_id"), // Nullable for superadmins
   departmentId: integer("department_id"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -77,11 +77,11 @@ export const users = pgTable("users", {
   companyReference: foreignKey({
     columns: [table.companyId],
     foreignColumns: [companies.id],
-  }),
+  }).onDelete('set null'),
   departmentReference: foreignKey({
     columns: [table.departmentId],
     foreignColumns: [departments.id],
-  }),
+  }).onDelete('set null'),
 }));
 
 // Departments table

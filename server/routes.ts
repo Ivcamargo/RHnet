@@ -163,6 +163,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Superadmin routes - Full system access
+  app.get('/api/superadmin/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+      
+      const companies = await storage.getCompanies();
+      res.json(companies);
+    } catch (error) {
+      console.error("Error fetching all companies:", error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  app.post('/api/superadmin/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+
+      const companyData = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany(companyData);
+      res.json(company);
+    } catch (error) {
+      console.error("Error creating company:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid company data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create company" });
+    }
+  });
+
+  app.get('/api/superadmin/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+      
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/superadmin/users/:id/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+
+      const userId = req.params.id;
+      const { role, companyId } = req.body;
+      
+      if (!['employee', 'admin', 'superadmin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be employee, admin, or superadmin" });
+      }
+
+      // If assigning admin or employee role, companyId is required
+      if (role !== 'superadmin' && !companyId) {
+        return res.status(400).json({ message: "Company ID is required for admin and employee roles" });
+      }
+
+      // If assigning superadmin role, companyId should be null
+      const updateData: any = { role };
+      if (role === 'superadmin') {
+        updateData.companyId = null;
+        updateData.departmentId = null;
+      } else {
+        updateData.companyId = companyId;
+      }
+
+      await storage.updateUser(userId, updateData);
+      res.json({ message: "User role updated successfully" });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  app.put('/api/superadmin/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const companyData = insertCompanySchema.partial().parse(req.body);
+      const company = await storage.updateCompany(id, companyData);
+      res.json(company);
+    } catch (error) {
+      console.error("Error updating company:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid company data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update company" });
+    }
+  });
+
+  app.get('/api/superadmin/companies/:id/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+
+      const companyId = parseInt(req.params.id);
+      const users = await storage.getUsersByCompany(companyId);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching company users:", error);
+      res.status(500).json({ message: "Failed to fetch company users" });
+    }
+  });
+
   // Company routes
   app.get('/api/companies', isAuthenticated, async (req: any, res) => {
     try {
@@ -378,6 +500,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
       }
 
       const users = await storage.getUsersByCompany(user.companyId);

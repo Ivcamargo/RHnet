@@ -12,6 +12,7 @@ import Departments from "@/pages/departments";
 import Reports from "@/pages/reports";
 import Employees from "@/pages/employees";
 import Holidays from "@/pages/holidays";
+import SuperAdmin from "@/pages/superadmin";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,6 +35,7 @@ function Router() {
           <Route path="/time-clock" component={TimeClock} />
           <Route path="/departments" component={Departments} />
           <Route path="/holidays" component={Holidays} />
+          <Route path="/superadmin" component={SuperAdmin} />
           <Route path="/reports" component={Reports} />
           <Route path="/employees" component={Employees} />
         </>
