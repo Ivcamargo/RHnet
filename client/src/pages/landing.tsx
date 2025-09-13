@@ -36,7 +36,7 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: '400px 400px',
-          opacity: 0.15,
+          opacity: 0.25,
           filter: 'brightness(1.5)'
         }}
       ></div>
@@ -45,7 +45,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <img src={rhnetLogo} alt="RHNet" className="h-14 w-14 mr-3 rounded-lg" />
+              <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
               <h1 className="text-2xl font-bold text-blue-800">Sistema de gestão de recursos humanos</h1>
             </div>
             <Button 
