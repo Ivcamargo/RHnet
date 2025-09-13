@@ -36,7 +36,7 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: '400px 400px',
-          opacity: 0.25,
+          opacity: 0.375,
           filter: 'brightness(1.5)'
         }}
       ></div>
