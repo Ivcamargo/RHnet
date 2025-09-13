@@ -167,6 +167,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Special route to claim superadmin access (only works if no superadmin exists)
+  app.post('/api/claim-superadmin', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check if any superadmin already exists
+      const allUsers = await storage.getAllUsers();
+      const existingSuperadmin = allUsers.find(user => user.role === 'superadmin');
+      
+      if (existingSuperadmin) {
+        return res.status(403).json({ 
+          message: "Superadmin já existe no sistema. Apenas um superadmin pode atribuir outros superadmins." 
+        });
+      }
+      
+      // No superadmin exists, allow this user to become superadmin
+      await storage.updateUser(userId, { 
+        role: 'superadmin',
+        companyId: null, // Superadmins don't belong to any specific company
+        departmentId: null
+      });
+      
+      res.json({ 
+        message: "Você agora é o superadmin do sistema!",
+        role: 'superadmin'
+      });
+    } catch (error) {
+      console.error("Error claiming superadmin:", error);
+      res.status(500).json({ message: "Erro ao reivindicar acesso de superadmin" });
+    }
+  });
+
   // Superadmin routes - Full system access
   app.get('/api/superadmin/companies', isAuthenticated, async (req: any, res) => {
     try {

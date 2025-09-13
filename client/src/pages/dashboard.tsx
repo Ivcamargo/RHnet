@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Calendar, Building, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Clock, Calendar, Building, MapPin, Shield, Crown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import ClockInterface from "@/components/time-clock/clock-interface";
@@ -21,6 +25,7 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { toast } = useToast();
 
   // Update clock every second
   useEffect(() => {
@@ -30,6 +35,37 @@ export default function Dashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Mutation to claim superadmin access
+  const claimSuperadminMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/claim-superadmin", {
+        method: "POST",
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Sucesso!",
+        description: data.message,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
@@ -93,6 +129,45 @@ export default function Dashboard() {
         <TopBar title="Dashboard" />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+          {/* Superadmin Claim Alert */}
+          {user && user.role !== 'superadmin' && (
+            <div className="mb-6">
+              <Alert className="border-amber-200 bg-amber-50">
+                <Crown className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium text-amber-800">
+                      Sistema sem Super Administrador
+                    </span>
+                    <p className="text-amber-700 mt-1">
+                      Seja o primeiro administrador do sistema e tenha controle total sobre empresas e usuários.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => claimSuperadminMutation.mutate()}
+                    disabled={claimSuperadminMutation.isPending}
+                    className="ml-4 border-amber-300 text-amber-700 hover:bg-amber-100"
+                    data-testid="button-claim-superadmin"
+                  >
+                    {claimSuperadminMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600 mr-2"></div>
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-4 w-4 mr-2" />
+                        Tornar-se Super Admin
+                      </>
+                    )}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           {/* Clock In/Out Section */}
           <div className="mb-8">
             <Card className="material-shadow">
