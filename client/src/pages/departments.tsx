@@ -40,6 +40,7 @@ export default function Departments() {
       longitude: -46.6333,
       radius: 100,
       isActive: true,
+      companyId: 1, // Backend will override this with user's actual company
     },
   });
 
@@ -71,10 +72,26 @@ export default function Departments() {
   });
 
   const onSubmit = (data: InsertDepartment) => {
+    console.log("Form data:", data);
+    console.log("Form errors:", form.formState.errors);
     createMutation.mutate(data);
   };
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Form submit triggered");
+    console.log("Form state valid:", form.formState.isValid);
+    console.log("Form errors before submit:", form.formState.errors);
+    console.log("Form values:", form.getValues());
+    form.handleSubmit(
+      onSubmit,
+      (errors) => {
+        console.log("Form validation failed:", errors);
+      }
+    )(e);
+  };
+
+  const isAdmin = (user as any)?.role === 'admin' || (user as any)?.role === 'superadmin';
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
@@ -94,12 +111,12 @@ export default function Departments() {
                     Novo Departamento
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Criar Novo Departamento</DialogTitle>
                   </DialogHeader>
                   <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={handleFormSubmit} className="space-y-4">
                       <FormField
                         control={form.control}
                         name="name"
@@ -121,7 +138,7 @@ export default function Departments() {
                           <FormItem>
                             <FormLabel>Descrição</FormLabel>
                             <FormControl>
-                              <Textarea placeholder="Descrição do departamento..." {...field} />
+                              <Textarea placeholder="Descrição do departamento..." {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -161,7 +178,7 @@ export default function Departments() {
                       <LocationMap
                         latitude={form.watch('latitude')}
                         longitude={form.watch('longitude')}
-                        radius={form.watch('radius')}
+                        radius={form.watch('radius') || 100}
                         onLocationChange={handleLocationChange}
                         className="mb-4"
                       />
@@ -262,7 +279,7 @@ export default function Departments() {
                 </Card>
               ))}
             </div>
-          ) : departments?.length === 0 ? (
+          ) : !departments || departments.length === 0 ? (
             <div className="text-center py-12">
               <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum departamento encontrado</h3>
@@ -272,7 +289,7 @@ export default function Departments() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {departments?.map((department: any) => (
+              {departments?.map && departments.map((department: any) => (
                 <Card key={department.id} className="material-shadow hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center space-x-3">

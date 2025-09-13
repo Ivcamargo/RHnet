@@ -57,7 +57,7 @@ export function LocationMap({ latitude, longitude, radius, onLocationChange, cla
     }
   };
 
-  const center = latitude && longitude ? [latitude, longitude] : [-23.5505, -46.6333]; // Default to São Paulo
+  const center: [number, number] = latitude && longitude ? [latitude, longitude] : [-23.5505, -46.6333]; // Default to São Paulo
 
   return (
     <Card className={`p-4 ${className || ''}`}>
