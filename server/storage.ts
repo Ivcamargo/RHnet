@@ -653,25 +653,32 @@ export class DatabaseStorage implements IStorage {
 
   // Document operations
   async getDocuments(companyId: number, userId?: string): Promise<Document[]> {
-    const query = db.select().from(documents).where(
-      and(
-        eq(documents.companyId, companyId),
-        eq(documents.isActive, true)
-      )
-    );
-    
     if (userId) {
       // Filter documents assigned to user or general documents
-      return await query.where(
-        and(
-          eq(documents.companyId, companyId),
-          eq(documents.isActive, true),
-          sql`(${documents.assignedTo} = ${userId} OR ${documents.assignedTo} IS NULL)`
+      return await db
+        .select()
+        .from(documents)
+        .where(
+          and(
+            eq(documents.companyId, companyId),
+            eq(documents.isActive, true),
+            sql`(${documents.assignedTo} = ${userId} OR ${documents.assignedTo} IS NULL)`
+          )
         )
-      ).orderBy(desc(documents.createdAt));
+        .orderBy(desc(documents.createdAt));
     }
     
-    return await query.orderBy(desc(documents.createdAt));
+    // Return all company documents if no user specified
+    return await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.companyId, companyId),
+          eq(documents.isActive, true)
+        )
+      )
+      .orderBy(desc(documents.createdAt));
   }
 
   async getDocument(id: number): Promise<Document | undefined> {

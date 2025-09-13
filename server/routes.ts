@@ -15,6 +15,9 @@ import {
   insertCourseSchema,
   insertEmployeeCourseSchema,
   insertCertificateSchema,
+  updateDocumentSchema,
+  updateCourseSchema,
+  updateEmployeeCourseSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -1174,10 +1177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/documents/:id', isAuthenticated, async (req: any, res) => {
     try {
       const documentId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       const document = await storage.getDocument(documentId);
       
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Security check: User can only access documents from their company
+      if (document.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Additional check: If document is assigned to specific user, verify access
+      if (document.assignedTo && document.assignedTo !== userId && user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Document not assigned to you" });
       }
 
       res.json(document);
@@ -1228,13 +1248,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Document not found" });
       }
 
+      // Security checks: Same company and ownership/admin
+      if (document.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       if (document.uploadedBy !== userId && user.role !== 'admin' && user.role !== 'superadmin') {
         return res.status(403).json({ message: "Permission denied" });
       }
 
-      const updatedDocument = await storage.updateDocument(documentId, req.body);
+      // Validate update payload with Zod schema
+      const updateData = updateDocumentSchema.parse(req.body);
+
+      const updatedDocument = await storage.updateDocument(documentId, updateData);
       res.json(updatedDocument);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
       console.error("Error updating document:", error);
       res.status(500).json({ message: "Failed to update document" });
     }
@@ -1293,10 +1324,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/courses/:id', isAuthenticated, async (req: any, res) => {
     try {
       const courseId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       const course = await storage.getCourse(courseId);
       
       if (!course) {
         return res.status(404).json({ message: "Course not found" });
+      }
+
+      // Security check: User can only access courses from their company
+      if (course.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
       }
 
       res.json(course);

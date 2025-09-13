@@ -536,6 +536,22 @@ export const insertJobTrainingTrackSchema = createInsertSchema(jobTrainingTracks
   createdAt: true,
 });
 
+// Update schemas (partial versions for PUT requests)
+export const updateDocumentSchema = insertDocumentSchema.partial().omit({
+  companyId: true,
+  uploadedBy: true,
+});
+
+export const updateCourseSchema = insertCourseSchema.partial().omit({
+  companyId: true,
+});
+
+export const updateEmployeeCourseSchema = insertEmployeeCourseSchema.partial().omit({
+  userId: true,
+  courseId: true,
+  companyId: true,
+});
+
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
