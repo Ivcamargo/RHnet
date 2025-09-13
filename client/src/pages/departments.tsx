@@ -72,23 +72,12 @@ export default function Departments() {
   });
 
   const onSubmit = (data: InsertDepartment) => {
-    console.log("Form data:", data);
-    console.log("Form errors:", form.formState.errors);
     createMutation.mutate(data);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submit triggered");
-    console.log("Form state valid:", form.formState.isValid);
-    console.log("Form errors before submit:", form.formState.errors);
-    console.log("Form values:", form.getValues());
-    form.handleSubmit(
-      onSubmit,
-      (errors) => {
-        console.log("Form validation failed:", errors);
-      }
-    )(e);
+    form.handleSubmit(onSubmit)(e);
   };
 
   const isAdmin = (user as any)?.role === 'admin' || (user as any)?.role === 'superadmin';
