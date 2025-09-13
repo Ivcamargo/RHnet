@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Users, Shield } from "lucide-react";
-import rhnetLogo from "@assets/rhnet_1757765150620.png";
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 export default function Landing() {
   const handleLogin = () => {
