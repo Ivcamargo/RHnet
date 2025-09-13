@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Users, Shield } from "lucide-react";
+import rhnetLogo from "@assets/rhnet_1757765150620.png";
 
 export default function Landing() {
   const handleLogin = () => {
@@ -14,7 +15,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-primary mr-2" />
+              <img src={rhnetLogo} alt="RHNet" className="h-8 w-8 mr-2" />
               <h1 className="text-2xl font-bold text-gray-900">RHNet - A Rede do RH</h1>
             </div>
             <Button onClick={handleLogin} className="point-primary">
@@ -28,7 +29,7 @@ export default function Landing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Sistema de Controle de Ponto Eletrônico
+            RHNet - Sistema de Gestão de RH
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Controle de ponto moderno com geolocalização, reconhecimento facial e gestão inteligente de turnos para sua empresa.
@@ -110,7 +111,7 @@ export default function Landing() {
                     <span className="text-xs">✓</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">Precisão Total</h4>
+                    <h4 className="font-semibold text-gray-900">Precisão</h4>
                     <p className="text-gray-600">Registros precisos com validação de localização e biometria</p>
                   </div>
                 </li>
