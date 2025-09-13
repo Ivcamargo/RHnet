@@ -27,9 +27,21 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 dark:bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 dark:bg-gray-900 text-white relative">
+      {/* Logo Watermark */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: `url(${rhnetLogo})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center',
+          backgroundSize: '400px 400px',
+          opacity: 0.03,
+          filter: 'brightness(1.5)'
+        }}
+      ></div>
       {/* Header */}
-      <header className="bg-gray-800 dark:bg-gray-800 shadow-xl border-b border-gray-700">
+      <header className="bg-gray-800 dark:bg-gray-800 shadow-xl border-b border-gray-700 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
@@ -48,7 +60,7 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
         <div className="text-center mb-20">
           <Badge className="mb-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
             Sistema Completo de Gestão de RH
@@ -356,7 +368,7 @@ export default function Landing() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-800 border-t border-gray-700 py-12">
+      <footer className="bg-gray-800 border-t border-gray-700 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
