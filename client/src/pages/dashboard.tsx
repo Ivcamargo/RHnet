@@ -91,6 +91,11 @@ export default function Dashboard() {
     queryKey: ["/api/auth/user"],
   });
 
+  // Check if any superadmin exists in the system
+  const { data: superadminCheck } = useQuery<{ hasSuperadmin: boolean }>({
+    queryKey: ["/api/auth/has-superadmin"],
+  });
+
   // Mock data for HR dashboard - will be replaced with real API calls
   const hrData: HRDashboardData = {
     unreadMessages: 5,
@@ -159,8 +164,8 @@ export default function Dashboard() {
         <TopBar title="Gestão de RH" />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          {/* Superadmin Claim Alert */}
-          {user && user.role !== 'superadmin' && (
+          {/* Superadmin Claim Alert - Only show if no superadmin exists in the system */}
+          {user && superadminCheck && !superadminCheck.hasSuperadmin && (
             <div className="mb-6">
               <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
                 <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />

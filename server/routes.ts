@@ -135,6 +135,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if any superadmin exists in the system
+  app.get('/api/auth/has-superadmin', async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const hasSuperadmin = allUsers.some(user => user.role === 'superadmin');
+      res.json({ hasSuperadmin });
+    } catch (error) {
+      console.error("Error checking superadmin:", error);
+      res.status(500).json({ message: "Failed to check superadmin" });
+    }
+  });
+
   // Department routes
   app.get('/api/departments', isAuthenticated, async (req: any, res) => {
     try {
