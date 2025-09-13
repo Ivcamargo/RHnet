@@ -1,10 +1,10 @@
-# PointControl - Time Clock Management System
+# RHNet - "A Rede do RH"
 
 ## Overview
 
-PointControl is a modern electronic time clock system built for employee time tracking with advanced features including geolocation verification, facial recognition, and comprehensive reporting. The application provides both employee time-tracking capabilities and administrative management tools for departments, users, and time records.
+RHNet é um sistema completo de gestão de recursos humanos que integra controle de ponto eletrônico, mensageria corporativa, gestão de documentos e capacitação de funcionários. O sistema oferece uma solução unificada para comunicação entre RH e colaboradores, com funcionalidades avançadas de geolocalização, reconhecimento facial e relatórios abrangentes.
 
-The system is designed as a full-stack web application with a React frontend and Express.js backend, utilizing PostgreSQL for data persistence and integrating with Replit's authentication system.
+O sistema é projetado como uma aplicação web full-stack com frontend React e backend Express.js, utilizando PostgreSQL para persistência de dados e integração com sistema de autenticação Replit.
 
 ## User Preferences
 

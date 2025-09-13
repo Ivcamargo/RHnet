@@ -6,7 +6,6 @@ import {
   insertDepartmentSchema, 
   clockInSchema, 
   clockOutSchema, 
-  insertFaceProfileSchema,
   insertCompanySchema,
   insertHolidaySchema,
   type ClockInRequest,

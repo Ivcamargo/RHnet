@@ -60,7 +60,7 @@ export default function Sidebar() {
       <div className="flex items-center justify-center h-16 px-4 point-primary">
         <h1 className="text-xl font-bold text-white">
           <Clock className="inline-block h-6 w-6 mr-2" />
-          PointControl
+          RHNet
         </h1>
       </div>
       

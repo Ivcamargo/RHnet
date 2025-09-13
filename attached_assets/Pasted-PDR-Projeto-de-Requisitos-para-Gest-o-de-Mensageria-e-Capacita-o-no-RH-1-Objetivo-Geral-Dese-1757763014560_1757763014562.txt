@@ -1,0 +1,78 @@
+PDR – Projeto de Requisitos para Gestão de Mensageria e Capacitação no RH
+1. Objetivo Geral
+
+Desenvolver e implementar um módulo complementar ao sistema de RH, que permita:
+Funcionários com de dados documentos, endereço etc, dados para o RH.
+A comunicação segura e eficiente entre o RH e os colaboradores via mensageria.
+
+O envio e recebimento de documentos e arquivos por parte do RH e dos funcionários.
+
+A gestão de trilhas de capacitação por cargo, com controle de cursos realizados e em andamento.
+
+2. Escopo do Projeto
+2.1 Funcionalidades Principais
+
+Mensageria Corporativa RH <-> Funcionário
+
+Canal de mensagens internas com histórico e confirmação de leitura.
+
+Envio e recebimento de documentos (PDF, imagens, etc.).
+
+Notificações por e-mail e/ou app (se houver) sobre novas mensagens.
+
+Classificação de mensagens por categoria (ex.: documentação, aviso, feedback, etc.).
+
+Permissão de envio de mensagens em massa pelo RH.
+
+Gestão de Documentos
+
+Upload e armazenamento de documentos enviados pelo funcionário.
+
+Armazenamento de documentos enviados pelo RH (ex.: advertências, comunicados, contracheques, etc.).
+
+Validação de formatos aceitos (ex.: PDF, JPG, DOCX).
+
+Controle de versões e datas de envio.
+
+Histórico de documentos por funcionário.
+
+Permissão de download e visualização online dos documentos.
+
+Capacitação e Trilhas de Desenvolvimento
+
+Cadastro de cursos por área/cargo.
+
+Vinculação automática de cursos aos funcionários com base em seu cargo.
+
+Registro de cursos concluídos (manual ou via integração com plataforma EAD).
+
+Emissão de certificados e registro no histórico do funcionário.
+
+Alertas de cursos obrigatórios pendentes.
+
+Relatórios por colaborador, cargo, área ou status de conclusão.
+
+3. Requisitos Funcionais
+Código	Descrição
+RF01	O sistema deve permitir que o RH envie mensagens individuais ou em massa para os funcionários.
+RF02	O funcionário deve conseguir enviar mensagens e anexar documentos para o RH.
+RF03	O sistema deve permitir o envio de arquivos.
+RF04	O sistema deve registrar o histórico de mensagens por funcionário.
+RF05	O sistema deve listar os documentos anexados por ordem cronológica, por tipo e origem.
+RF06	O sistema deve permitir cadastrar cursos e vinculá-los a cargos.
+RF07	O sistema deve registrar os cursos concluídos por cada funcionário.
+RF08	O sistema deve enviar alertas automáticos sobre cursos pendentes.
+RF09	O sistema deve gerar relatórios de progresso por funcionário, cargo ou área.
+RF10	O sistema deve armazenar certificados anexados ao curso ou permitir sua geração automática.
+4. Requisitos Não Funcionais
+Código	Descrição
+RNF01	A interface deve ser responsiva e acessível via desktop e dispositivos móveis.
+RNF0	O sistema deve ter integração futura com plataforma EAD (ex.: Moodle, Udemy, etc.).
+Regras de Negócio
+Código	Descrição
+RN01	Funcionários só visualizam cursos vinculados ao seu cargo.
+RN02	RH pode alterar a trilha de cursos por cargo a qualquer momento.
+RN03	Documentos enviados pelo RH não podem ser excluídos pelos funcionários.
+RN04	Funcionários não podem visualizar mensagens de outros colegas.
+RN05	Um curso só é considerado concluído se validado pelo RH ou certificado anexado.
+
