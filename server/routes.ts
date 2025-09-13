@@ -11,10 +11,18 @@ import {
   insertMessageSchema,
   insertMessageCategorySchema,
   insertMessageRecipientSchema,
+  insertDocumentSchema,
+  insertCourseSchema,
+  insertEmployeeCourseSchema,
+  insertCertificateSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
-  type InsertMessageCategory
+  type InsertMessageCategory,
+  type InsertDocument,
+  type InsertCourse,
+  type InsertEmployeeCourse,
+  type InsertCertificate
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1139,6 +1147,339 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // DOCUMENTS API ROUTES
+  
+  // Get documents
+  app.get('/api/documents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const documents = await storage.getDocuments(user.companyId, userId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      res.status(500).json({ message: "Failed to fetch documents" });
+    }
+  });
+
+  // Get document by ID
+  app.get('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const documentId = parseInt(req.params.id);
+      const document = await storage.getDocument(documentId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      res.json(document);
+    } catch (error) {
+      console.error("Error fetching document:", error);
+      res.status(500).json({ message: "Failed to fetch document" });
+    }
+  });
+
+  // Create document
+  app.post('/api/documents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const documentData: InsertDocument = insertDocumentSchema.parse({
+        ...req.body,
+        companyId: user.companyId,
+        uploadedBy: userId
+      });
+
+      const document = await storage.createDocument(documentData);
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error creating document:", error);
+      res.status(500).json({ message: "Failed to create document" });
+    }
+  });
+
+  // Update document
+  app.put('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const documentId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user has permission to update document
+      const document = await storage.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      if (document.uploadedBy !== userId && user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      const updatedDocument = await storage.updateDocument(documentId, req.body);
+      res.json(updatedDocument);
+    } catch (error) {
+      console.error("Error updating document:", error);
+      res.status(500).json({ message: "Failed to update document" });
+    }
+  });
+
+  // Delete document
+  app.delete('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const documentId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if user has permission to delete document
+      const document = await storage.getDocument(documentId);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      if (document.uploadedBy !== userId && user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+
+      await storage.deleteDocument(documentId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  // COURSES API ROUTES
+  
+  // Get courses
+  app.get('/api/courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const courses = await storage.getCourses(user.companyId);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  // Get course by ID
+  app.get('/api/courses/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const course = await storage.getCourse(courseId);
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course:", error);
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  // Create course (admin only)
+  app.post('/api/courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can create courses" });
+      }
+
+      const courseData: InsertCourse = insertCourseSchema.parse({
+        ...req.body,
+        companyId: user.companyId
+      });
+
+      const course = await storage.createCourse(courseData);
+      res.status(201).json(course);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+
+  // EMPLOYEE COURSES API ROUTES
+  
+  // Get employee courses (progress)
+  app.get('/api/employee-courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const employeeCourses = await storage.getEmployeeCourses(userId, user.companyId);
+      res.json(employeeCourses);
+    } catch (error) {
+      console.error("Error fetching employee courses:", error);
+      res.status(500).json({ message: "Failed to fetch employee courses" });
+    }
+  });
+
+  // Start a course
+  app.post('/api/employee-courses/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { courseId } = req.body;
+      
+      if (!courseId) {
+        return res.status(400).json({ message: "Course ID is required" });
+      }
+
+      const employeeCourse = await storage.startCourse(userId, courseId, user.companyId);
+      res.status(201).json(employeeCourse);
+    } catch (error) {
+      console.error("Error starting course:", error);
+      res.status(500).json({ message: "Failed to start course" });
+    }
+  });
+
+  // Update course progress
+  app.put('/api/employee-courses/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { courseId, progress } = req.body;
+      
+      if (!courseId || progress === undefined) {
+        return res.status(400).json({ message: "Course ID and progress are required" });
+      }
+
+      const employeeCourse = await storage.updateCourseProgress(userId, courseId, progress);
+      res.json(employeeCourse);
+    } catch (error) {
+      console.error("Error updating course progress:", error);
+      res.status(500).json({ message: "Failed to update course progress" });
+    }
+  });
+
+  // Complete a course
+  app.post('/api/employee-courses/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { courseId, score } = req.body;
+      
+      if (!courseId) {
+        return res.status(400).json({ message: "Course ID is required" });
+      }
+
+      const employeeCourse = await storage.completeCourse(userId, courseId, score);
+      res.json(employeeCourse);
+    } catch (error) {
+      console.error("Error completing course:", error);
+      res.status(500).json({ message: "Failed to complete course" });
+    }
+  });
+
+  // CERTIFICATES API ROUTES
+  
+  // Get user certificates
+  app.get('/api/certificates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const certificates = await storage.getCertificates(userId, user.companyId);
+      res.json(certificates);
+    } catch (error) {
+      console.error("Error fetching certificates:", error);
+      res.status(500).json({ message: "Failed to fetch certificates" });
+    }
+  });
+
+  // Create certificate (admin only)
+  app.post('/api/certificates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can create certificates" });
+      }
+
+      const certificateData: InsertCertificate = insertCertificateSchema.parse({
+        ...req.body,
+        companyId: user.companyId
+      });
+
+      const certificate = await storage.createCertificate(certificateData);
+      res.status(201).json(certificate);
+    } catch (error) {
+      console.error("Error creating certificate:", error);
+      res.status(500).json({ message: "Failed to create certificate" });
+    }
+  });
+
+  // Verify certificate (admin only)
+  app.put('/api/certificates/:id/verify', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const certificateId = parseInt(req.params.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can verify certificates" });
+      }
+
+      const certificate = await storage.verifyCertificate(certificateId, userId);
+      res.json(certificate);
+    } catch (error) {
+      console.error("Error verifying certificate:", error);
+      res.status(500).json({ message: "Failed to verify certificate" });
     }
   });
 

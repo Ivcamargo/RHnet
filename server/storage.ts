@@ -9,6 +9,10 @@ import {
   messages,
   messageCategories,
   messageRecipients,
+  documents,
+  courses,
+  employeeCourses,
+  certificates,
   type User,
   type UpsertUser,
   type Department,
@@ -24,6 +28,14 @@ import {
   type InsertMessageCategory,
   type MessageRecipient,
   type InsertMessageRecipient,
+  type Document,
+  type InsertDocument,
+  type Course,
+  type InsertCourse,
+  type EmployeeCourse,
+  type InsertEmployeeCourse,
+  type Certificate,
+  type InsertCertificate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
@@ -103,6 +115,38 @@ export interface IStorage {
   getMessageCategories(companyId: number): Promise<MessageCategory[]>;
   createMessageCategory(category: InsertMessageCategory): Promise<MessageCategory>;
   getCompanyEmployees(companyId: number): Promise<User[]>;
+  
+  // Document operations
+  getDocuments(companyId: number, userId?: string): Promise<Document[]>;
+  getDocument(id: number): Promise<Document | undefined>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document>;
+  deleteDocument(id: number): Promise<void>;
+  getDocumentsByCategory(companyId: number, category: string): Promise<Document[]>;
+  getDocumentsAssignedToUser(userId: string): Promise<Document[]>;
+  
+  // Course operations
+  getCourses(companyId: number): Promise<Course[]>;
+  getCourse(id: number): Promise<Course | undefined>;
+  createCourse(course: InsertCourse): Promise<Course>;
+  updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course>;
+  deleteCourse(id: number): Promise<void>;
+  getRequiredCourses(companyId: number): Promise<Course[]>;
+  
+  // Employee course operations
+  getEmployeeCourses(userId: string, companyId: number): Promise<EmployeeCourse[]>;
+  getEmployeeCourse(userId: string, courseId: number): Promise<EmployeeCourse | undefined>;
+  createEmployeeCourse(employeeCourse: InsertEmployeeCourse): Promise<EmployeeCourse>;
+  updateEmployeeCourse(id: number, employeeCourse: Partial<InsertEmployeeCourse>): Promise<EmployeeCourse>;
+  startCourse(userId: string, courseId: number, companyId: number): Promise<EmployeeCourse>;
+  updateCourseProgress(userId: string, courseId: number, progress: number): Promise<EmployeeCourse>;
+  completeCourse(userId: string, courseId: number, score?: number): Promise<EmployeeCourse>;
+  
+  // Certificate operations
+  getCertificates(userId: string, companyId: number): Promise<Certificate[]>;
+  getCertificate(id: number): Promise<Certificate | undefined>;
+  createCertificate(certificate: InsertCertificate): Promise<Certificate>;
+  verifyCertificate(id: number, verifiedBy: string): Promise<Certificate>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -605,6 +649,257 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ companyId, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  // Document operations
+  async getDocuments(companyId: number, userId?: string): Promise<Document[]> {
+    const query = db.select().from(documents).where(
+      and(
+        eq(documents.companyId, companyId),
+        eq(documents.isActive, true)
+      )
+    );
+    
+    if (userId) {
+      // Filter documents assigned to user or general documents
+      return await query.where(
+        and(
+          eq(documents.companyId, companyId),
+          eq(documents.isActive, true),
+          sql`(${documents.assignedTo} = ${userId} OR ${documents.assignedTo} IS NULL)`
+        )
+      ).orderBy(desc(documents.createdAt));
+    }
+    
+    return await query.orderBy(desc(documents.createdAt));
+  }
+
+  async getDocument(id: number): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document;
+  }
+
+  async createDocument(document: InsertDocument): Promise<Document> {
+    const [newDocument] = await db.insert(documents).values(document).returning();
+    return newDocument;
+  }
+
+  async updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document> {
+    const [updatedDocument] = await db
+      .update(documents)
+      .set({ ...document, updatedAt: new Date() })
+      .where(eq(documents.id, id))
+      .returning();
+    return updatedDocument;
+  }
+
+  async deleteDocument(id: number): Promise<void> {
+    await db.update(documents).set({ isActive: false }).where(eq(documents.id, id));
+  }
+
+  async getDocumentsByCategory(companyId: number, category: string): Promise<Document[]> {
+    return await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.companyId, companyId),
+          eq(documents.category, category),
+          eq(documents.isActive, true)
+        )
+      )
+      .orderBy(desc(documents.createdAt));
+  }
+
+  async getDocumentsAssignedToUser(userId: string): Promise<Document[]> {
+    return await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.assignedTo, userId),
+          eq(documents.isActive, true)
+        )
+      )
+      .orderBy(desc(documents.createdAt));
+  }
+
+  // Course operations
+  async getCourses(companyId: number): Promise<Course[]> {
+    return await db
+      .select()
+      .from(courses)
+      .where(
+        and(
+          eq(courses.companyId, companyId),
+          eq(courses.isActive, true)
+        )
+      )
+      .orderBy(courses.title);
+  }
+
+  async getCourse(id: number): Promise<Course | undefined> {
+    const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    return course;
+  }
+
+  async createCourse(course: InsertCourse): Promise<Course> {
+    const [newCourse] = await db.insert(courses).values(course).returning();
+    return newCourse;
+  }
+
+  async updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course> {
+    const [updatedCourse] = await db
+      .update(courses)
+      .set({ ...course, updatedAt: new Date() })
+      .where(eq(courses.id, id))
+      .returning();
+    return updatedCourse;
+  }
+
+  async deleteCourse(id: number): Promise<void> {
+    await db.update(courses).set({ isActive: false }).where(eq(courses.id, id));
+  }
+
+  async getRequiredCourses(companyId: number): Promise<Course[]> {
+    return await db
+      .select()
+      .from(courses)
+      .where(
+        and(
+          eq(courses.companyId, companyId),
+          eq(courses.isRequired, true),
+          eq(courses.isActive, true)
+        )
+      )
+      .orderBy(courses.title);
+  }
+
+  // Employee course operations
+  async getEmployeeCourses(userId: string, companyId: number): Promise<EmployeeCourse[]> {
+    return await db
+      .select()
+      .from(employeeCourses)
+      .where(
+        and(
+          eq(employeeCourses.userId, userId),
+          eq(employeeCourses.companyId, companyId)
+        )
+      )
+      .orderBy(desc(employeeCourses.createdAt));
+  }
+
+  async getEmployeeCourse(userId: string, courseId: number): Promise<EmployeeCourse | undefined> {
+    const [employeeCourse] = await db
+      .select()
+      .from(employeeCourses)
+      .where(
+        and(
+          eq(employeeCourses.userId, userId),
+          eq(employeeCourses.courseId, courseId)
+        )
+      );
+    return employeeCourse;
+  }
+
+  async createEmployeeCourse(employeeCourse: InsertEmployeeCourse): Promise<EmployeeCourse> {
+    const [newEmployeeCourse] = await db.insert(employeeCourses).values(employeeCourse).returning();
+    return newEmployeeCourse;
+  }
+
+  async updateEmployeeCourse(id: number, employeeCourse: Partial<InsertEmployeeCourse>): Promise<EmployeeCourse> {
+    const [updatedEmployeeCourse] = await db
+      .update(employeeCourses)
+      .set({ ...employeeCourse, updatedAt: new Date() })
+      .where(eq(employeeCourses.id, id))
+      .returning();
+    return updatedEmployeeCourse;
+  }
+
+  async startCourse(userId: string, courseId: number, companyId: number): Promise<EmployeeCourse> {
+    // Check if course enrollment already exists
+    const existing = await this.getEmployeeCourse(userId, courseId);
+    if (existing) {
+      // Update existing enrollment to started status
+      return await this.updateEmployeeCourse(existing.id, {
+        status: 'in_progress',
+        startedAt: new Date(),
+        progress: 0
+      });
+    }
+    
+    // Create new enrollment
+    return await this.createEmployeeCourse({
+      userId,
+      courseId,
+      companyId,
+      status: 'in_progress',
+      startedAt: new Date(),
+      progress: 0
+    });
+  }
+
+  async updateCourseProgress(userId: string, courseId: number, progress: number): Promise<EmployeeCourse> {
+    const employeeCourse = await this.getEmployeeCourse(userId, courseId);
+    if (!employeeCourse) {
+      throw new Error('Employee course enrollment not found');
+    }
+    
+    return await this.updateEmployeeCourse(employeeCourse.id, {
+      progress,
+      status: progress >= 100 ? 'completed' : 'in_progress'
+    });
+  }
+
+  async completeCourse(userId: string, courseId: number, score?: number): Promise<EmployeeCourse> {
+    const employeeCourse = await this.getEmployeeCourse(userId, courseId);
+    if (!employeeCourse) {
+      throw new Error('Employee course enrollment not found');
+    }
+    
+    return await this.updateEmployeeCourse(employeeCourse.id, {
+      status: 'completed',
+      progress: 100,
+      score,
+      completedAt: new Date()
+    });
+  }
+
+  // Certificate operations
+  async getCertificates(userId: string, companyId: number): Promise<Certificate[]> {
+    return await db
+      .select()
+      .from(certificates)
+      .where(
+        and(
+          eq(certificates.userId, userId),
+          eq(certificates.companyId, companyId)
+        )
+      )
+      .orderBy(desc(certificates.issuedDate));
+  }
+
+  async getCertificate(id: number): Promise<Certificate | undefined> {
+    const [certificate] = await db.select().from(certificates).where(eq(certificates.id, id));
+    return certificate;
+  }
+
+  async createCertificate(certificate: InsertCertificate): Promise<Certificate> {
+    const [newCertificate] = await db.insert(certificates).values(certificate).returning();
+    return newCertificate;
+  }
+
+  async verifyCertificate(id: number, verifiedBy: string): Promise<Certificate> {
+    const [verifiedCertificate] = await db
+      .update(certificates)
+      .set({
+        isVerified: true,
+        verifiedBy,
+        verifiedAt: new Date()
+      })
+      .where(eq(certificates.id, id))
+      .returning();
+    return verifiedCertificate;
   }
 }
 
