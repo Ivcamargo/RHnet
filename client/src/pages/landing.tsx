@@ -27,7 +27,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 dark:bg-gray-900 text-white relative">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800 relative">
       {/* Logo Watermark */}
       <div 
         className="fixed inset-0 pointer-events-none z-0"
@@ -36,17 +36,17 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: '400px 400px',
-          opacity: 0.03,
+          opacity: 0.08,
           filter: 'brightness(1.5)'
         }}
       ></div>
       {/* Header */}
-      <header className="bg-gray-800 dark:bg-gray-800 shadow-xl border-b border-gray-700 relative z-10">
+      <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-blue-200 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-10 w-10 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-white">RHNet - A Rede do RH</h1>
+              <h1 className="text-2xl font-bold text-blue-800">RHNet - A Rede do RH</h1>
             </div>
             <Button 
               onClick={handleLogin} 
@@ -63,13 +63,13 @@ export default function Landing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
         <div className="text-center mb-20">
           <Badge className="mb-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2">
-            Sistema Completo de Gestão de RH
+            Sistema de Gestão de RH
           </Badge>
-          <h2 className="text-5xl font-bold text-white mb-6">
+          <h2 className="text-5xl font-bold text-blue-900 mb-6">
             RHNet - "A Rede do RH"
           </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-            Sistema completo de gestão de recursos humanos que integra <strong>controle de ponto eletrônico</strong>, 
+          <p className="text-xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed">
+            Sistema de gestão de recursos humanos que integra <strong>controle de ponto eletrônico</strong>, 
             <strong> mensageria corporativa</strong>, <strong>gestão de documentos</strong> e 
             <strong> capacitação de funcionários</strong>. Uma solução unificada para comunicação entre RH e colaboradores, 
             com funcionalidades avançadas de geolocalização, reconhecimento facial e relatórios abrangentes.
@@ -95,49 +95,49 @@ export default function Landing() {
 
         {/* Core Features - Sistema Integrado */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-white mb-12">
+          <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
             Sistema Integrado de RH
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all">
+            <Card className="bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-white/90 transition-all shadow-lg">
               <CardHeader>
                 <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
                   <MessageSquare className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-white text-xl">Mensageria Corporativa Integrada</CardTitle>
+                <CardTitle className="text-blue-800 text-xl">Mensageria Corporativa Integrada</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 leading-relaxed">
-                  Sistema completo de comunicação entre RH e funcionários com mensagens instantâneas, 
-                  notificações push, e histórico completo de conversas.
+                <p className="text-gray-600 leading-relaxed">
+                  Sistema de comunicação entre RH e funcionários com mensagens instantâneas, 
+                  notificações push, e histórico de conversas.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all">
+            <Card className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-white/90 transition-all shadow-lg">
               <CardHeader>
                 <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mb-4">
                   <FileText className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-white text-xl">Gestão Completa de Documentos</CardTitle>
+                <CardTitle className="text-green-800 text-xl">Gestão de Documentos</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed">
                   Upload, armazenamento e compartilhamento seguro de documentos com controle de acesso, 
                   versionamento e notificações automáticas.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all">
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-white/90 transition-all shadow-lg">
               <CardHeader>
                 <div className="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
                   <GraduationCap className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-white text-xl">Capacitação e Certificação</CardTitle>
+                <CardTitle className="text-purple-800 text-xl">Capacitação e Certificação</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed">
                   Sistema de treinamento e capacitação com controle de progresso, certificações 
                   e acompanhamento do desenvolvimento profissional.
                 </p>
@@ -368,15 +368,15 @@ export default function Landing() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-800 border-t border-gray-700 py-12 relative z-10">
+      <footer className="bg-white/90 backdrop-blur-sm border-t border-blue-200 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img src={rhnetLogo} alt="RHNet" className="h-8 w-8 mr-3 rounded" />
-              <span className="text-xl font-bold text-white">RHNet - A Rede do RH</span>
+              <span className="text-xl font-bold text-blue-800">RHNet - A Rede do RH</span>
             </div>
-            <div className="text-gray-400">
-              <p>&copy; 2025 RHNet. Sistema completo de gestão de recursos humanos.</p>
+            <div className="text-gray-600">
+              <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
             </div>
           </div>
         </div>
