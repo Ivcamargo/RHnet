@@ -28,7 +28,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800 relative">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-blue-50 text-gray-800 relative">
       {/* Logo Watermark */}
       <div 
         className="fixed inset-0 pointer-events-none z-0"
@@ -49,22 +49,22 @@ export default function Landing() {
           backgroundImage: `url(${peopleUsingApp})`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
-          backgroundSize: '600px auto',
+          backgroundSize: 'cover',
           opacity: 0.29,
           filter: 'brightness(1.2)'
         }}
       ></div>
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-blue-200 relative z-10">
+      <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-blue-800">Sistema de gestão de recursos humanos</h1>
+              <h1 className="text-2xl font-bold text-orange-800">Sistema de gestão de recursos humanos</h1>
             </div>
             <Button 
               onClick={handleLogin} 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
               data-testid="button-login"
             >
               Fazer Login
@@ -86,16 +86,16 @@ export default function Landing() {
 
         {/* Core Features - Sistema Integrado */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
+          <h3 className="text-3xl font-bold text-center text-orange-900 mb-12">
             Principais Funcionalidades
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-white/90 transition-all shadow-lg">
+            <Card className="bg-white/80 backdrop-blur-sm border-orange-200 hover:bg-white/90 transition-all shadow-lg">
               <CardHeader>
-                <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-orange-600 rounded-lg flex items-center justify-center mb-4">
                   <MessageSquare className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-blue-800 text-xl">Mensageria Corporativa Integrada</CardTitle>
+                <CardTitle className="text-orange-800 text-xl">Mensageria Corporativa Integrada</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
@@ -139,16 +139,16 @@ export default function Landing() {
 
         {/* Advanced Features Grid */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
+          <h3 className="text-3xl font-bold text-center text-orange-900 mb-12">
             Funcionalidades Avançadas
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="bg-white/70 backdrop-blur-sm border-blue-200 shadow-md hover:shadow-lg transition-all">
+            <Card className="bg-white/70 backdrop-blur-sm border-orange-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader className="pb-4">
-                <div className="w-14 h-14 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-14 h-14 bg-orange-600 rounded-lg flex items-center justify-center mb-4">
                   <Clock className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-blue-800 text-lg leading-tight">Controle de Ponto Eletrônico</CardTitle>
+                <CardTitle className="text-orange-800 text-lg leading-tight">Controle de Ponto Eletrônico</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -204,7 +204,7 @@ export default function Landing() {
 
         {/* Security & Compliance */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
+          <h3 className="text-3xl font-bold text-center text-orange-900 mb-12">
             Segurança e Conformidade
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -223,10 +223,10 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/70 backdrop-blur-sm border-blue-200 shadow-md hover:shadow-lg transition-all">
+            <Card className="bg-white/70 backdrop-blur-sm border-orange-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
-                <Shield className="h-12 w-12 text-blue-500 mb-4" />
-                <CardTitle className="text-blue-800">Proteção de Dados</CardTitle>
+                <Shield className="h-12 w-12 text-orange-500 mb-4" />
+                <CardTitle className="text-orange-800">Proteção de Dados</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-gray-600 space-y-2">
@@ -256,11 +256,11 @@ export default function Landing() {
         </div>
 
         {/* Call to Action */}
-        <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-12">
+        <div className="text-center bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl p-12">
           <h3 className="text-3xl font-bold text-white mb-4">
             Pronto para revolucionar o RH da sua empresa?
           </h3>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
             Transforme a gestão de recursos humanos com nossa plataforma completa. 
             Sistema integrado, seguro e fácil de usar.
           </p>
@@ -268,7 +268,7 @@ export default function Landing() {
             <Button 
               onClick={handleLogin} 
               size="lg"
-              className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold"
+              className="bg-white text-orange-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold"
             >
               Acessar Sistema Agora
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -276,7 +276,7 @@ export default function Landing() {
             <Button 
               variant="outline"
               size="lg"
-              className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-3"
+              className="border-white text-white hover:bg-white hover:text-orange-600 text-lg px-8 py-3"
             >
               Solicitar Demonstração
             </Button>
@@ -285,12 +285,12 @@ export default function Landing() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white/90 backdrop-blur-sm border-t border-blue-200 py-12 relative z-10">
+      <footer className="bg-white/90 backdrop-blur-sm border-t border-orange-200 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img src={rhnetLogo} alt="RHNet" className="h-11 w-11 mr-3 rounded" />
-              <span className="text-xl font-bold text-blue-800">Sistema de gestão de recursos humanos</span>
+              <span className="text-xl font-bold text-orange-800">Sistema de gestão de recursos humanos</span>
             </div>
             <div className="text-gray-600">
               <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
