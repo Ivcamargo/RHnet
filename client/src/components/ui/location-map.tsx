@@ -1,9 +1,18 @@
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import { icon } from "leaflet";
+import { useState } from "react";
 import { Button } from "./button";
-import { MapPin, Navigation } from "lucide-react";
+import { Input } from "./input";
+import { MapPin, Navigation, Search, X } from "lucide-react";
 import { Card } from "./card";
 import "leaflet/dist/leaflet.css";
+
+interface SearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  place_id: string;
+}
 
 // Fix for default markers in react-leaflet
 const defaultIcon = icon({
@@ -34,6 +43,47 @@ function LocationPicker({ onLocationChange }: { onLocationChange: (lat: number, 
 }
 
 export function LocationMap({ latitude, longitude, radius, onLocationChange, className }: LocationMapProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [map, setMap] = useState<any>(null);
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&limit=5&countrycodes=br&addressdetails=1`
+      );
+      const results = await response.json();
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Erro na busca:", error);
+      alert("Erro ao buscar endereço. Tente novamente.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectResult = (result: SearchResult) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    onLocationChange(lat, lng);
+    setSearchResults([]);
+    setSearchTerm("");
+    
+    // Move the map to the selected location
+    if (map) {
+      map.setView([lat, lng], 16);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setSearchResults([]);
+  };
+
   const handleGetCurrentLocation = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -79,8 +129,60 @@ export function LocationMap({ latitude, longitude, radius, onLocationChange, cla
           </Button>
         </div>
         
+        {/* Campo de busca */}
+        <div className="relative">
+          <div className="flex space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar endereço (ex: Rua Augusta, São Paulo)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="pl-9 pr-8"
+                data-testid="input-search-address"
+              />
+              {searchTerm && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+                  data-testid="button-clear-search"
+                >
+                  <X className="h-3 w-3 text-gray-400" />
+                </button>
+              )}
+            </div>
+            <Button
+              type="button"
+              onClick={handleSearch}
+              disabled={!searchTerm.trim() || isSearching}
+              size="sm"
+              data-testid="button-search"
+            >
+              {isSearching ? "Buscando..." : "Buscar"}
+            </Button>
+          </div>
+          
+          {/* Resultados da busca */}
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+              {searchResults.map((result) => (
+                <button
+                  key={result.place_id}
+                  onClick={() => handleSelectResult(result)}
+                  className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b last:border-b-0 text-sm"
+                  data-testid={`result-${result.place_id}`}
+                >
+                  <div className="font-medium truncate">{result.display_name}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        
         <div className="text-sm text-gray-600 mb-2">
-          Clique no mapa para selecionar a localização do departamento
+          Busque um endereço ou clique no mapa para selecionar a localização
         </div>
         
         <div className="h-64 w-full rounded-lg overflow-hidden border" data-testid="map-container">
@@ -89,6 +191,7 @@ export function LocationMap({ latitude, longitude, radius, onLocationChange, cla
             zoom={15}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={true}
+            ref={setMap}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
