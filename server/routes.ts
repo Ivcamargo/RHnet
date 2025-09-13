@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/departments', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -401,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/companies', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -423,7 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/companies', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -442,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/companies/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -469,7 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/companies/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -513,7 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/holidays', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -537,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/holidays/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -568,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/holidays/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
@@ -610,7 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
