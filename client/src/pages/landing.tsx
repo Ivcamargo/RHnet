@@ -36,7 +36,7 @@ export default function Landing() {
           backgroundImage: `url(${rhnetLogo})`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
-          backgroundSize: '400px 400px',
+          backgroundSize: '280px 280px',
           opacity: 0.675,
           filter: 'brightness(1.5)'
         }}
