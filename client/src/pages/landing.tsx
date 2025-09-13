@@ -44,11 +44,11 @@ export default function Landing() {
       
       {/* People Using App Background */}
       <div 
-        className="fixed inset-0 pointer-events-none z-0"
+        className="fixed inset-0 pointer-events-none z-1"
         style={{
           backgroundImage: `url(${peopleUsingApp})`,
           backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'bottom right',
+          backgroundPosition: 'center center',
           backgroundSize: '600px auto',
           opacity: 0.29,
           filter: 'brightness(1.2)'
