@@ -55,10 +55,7 @@ export default function Training() {
 
   // Mutations for course actions
   const startCourseMutation = useMutation({
-    mutationFn: (courseId: number) => apiRequest(`/api/employee-courses/start`, {
-      method: "POST",
-      body: JSON.stringify({ courseId })
-    }),
+    mutationFn: (courseId: number) => apiRequest("POST", "/api/employee-courses/start", { courseId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-courses"] });
     }

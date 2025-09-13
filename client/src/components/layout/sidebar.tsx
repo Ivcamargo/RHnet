@@ -57,16 +57,8 @@ export default function Sidebar() {
   let navigation = baseNavigation;
   
   if (isSuperAdmin) {
-    // Superadmin gets system management plus all core HR features
-    navigation = [
-      baseNavigation[0], // Dashboard RH
-      ...superAdminNavigation,
-      baseNavigation[1], // Mensagens
-      baseNavigation[2], // Documentos
-      baseNavigation[3], // Capacitação
-      baseNavigation[5], // Relatórios
-      ...adminNavigation, // All admin features
-    ];
+    // Superadmin gets all base features plus admin features plus system management
+    navigation = [...baseNavigation, ...adminNavigation, ...superAdminNavigation];
   } else if (isAdmin) {
     // Admin gets all base features plus admin-specific ones
     navigation = [...baseNavigation, ...adminNavigation];
