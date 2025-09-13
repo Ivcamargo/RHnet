@@ -4,18 +4,63 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Upload, Download, Calendar, Loader2 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Document } from "@shared/schema";
 
 export default function Documents() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   // Fetch documents from API
   const { data: documents = [], isLoading, error } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
   });
 
+  // Upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', file.name);
+      formData.append('mimeType', file.type);
+      
+      return fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      }).then(res => {
+        if (!res.ok) throw new Error('Upload failed');
+        return res.json();
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      toast({
+        title: "Sucesso!",
+        description: "Documento enviado com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao enviar documento. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Calculate stats from real data
   const pendingDocs = documents.filter(doc => !doc.assignedTo).length;
   const receivedDocs = documents.filter(doc => doc.assignedTo).length;
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadMutation.mutate(file);
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -42,10 +87,30 @@ export default function Documents() {
                 <Upload className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <Button className="w-full" data-testid="button-upload-document">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Fazer Upload
-                </Button>
+                <label htmlFor="file-upload" className="w-full">
+                  <Button 
+                    className="w-full" 
+                    data-testid="button-upload-document"
+                    disabled={uploadMutation.isPending}
+                    asChild
+                  >
+                    <span>
+                      {uploadMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {uploadMutation.isPending ? 'Enviando...' : 'Fazer Upload'}
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                />
               </CardContent>
             </Card>
 

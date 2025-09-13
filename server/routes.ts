@@ -28,6 +28,7 @@ import {
   type InsertCertificate
 } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
 
 // Helper function to calculate distance between two coordinates
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -54,6 +55,28 @@ function calculateHours(start: Date, end: Date): number {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Configure multer for file uploads
+  const upload = multer({
+    limits: { 
+      fileSize: 10 * 1024 * 1024 // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/jpg',
+        'image/png'
+      ];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type'), false);
+      }
+    }
+  });
 
   // Database health check endpoint (no auth required for operational monitoring)
   app.get('/api/db-health', async (req, res) => {
@@ -1204,6 +1227,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching document:", error);
       res.status(500).json({ message: "Failed to fetch document" });
+    }
+  });
+
+  // Upload document
+  app.post('/api/documents/upload', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Use file info from multer
+      const title = req.body.title || req.file.originalname;
+      const mimeType = req.file.mimetype;
+
+      // Validate with schema (excluding generated fields)
+      const documentData: InsertDocument = insertDocumentSchema.parse({
+        title,
+        content: `[File: ${req.file.originalname}, Size: ${req.file.size} bytes]`,
+        mimeType,
+        companyId: user.companyId,
+        uploadedBy: userId,
+      });
+
+      const document = await storage.createDocument(documentData);
+      res.status(201).json(document);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error uploading document:", error);
+      res.status(500).json({ message: "Failed to upload document" });
     }
   });
 
