@@ -1,6 +1,21 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Clock, Home, Building, BarChart3, Users, Settings, LogOut, Menu, X, Shield, MessageCircle } from "lucide-react";
+import { 
+  Clock, 
+  Home, 
+  Building, 
+  BarChart3, 
+  Users, 
+  Settings, 
+  LogOut, 
+  Menu, 
+  Shield, 
+  MessageCircle,
+  FileText,
+  GraduationCap,
+  Calendar,
+  Upload
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -16,19 +31,21 @@ export default function Sidebar() {
   const isAdmin = user && 'role' in user && user.role === 'admin';
   const isSuperAdmin = user && 'role' in user && user.role === 'superadmin';
 
-  // Base navigation for all users
+  // Base navigation for all users - prioritizing HR and messaging features
   const baseNavigation = [
-    { name: "Dashboard", href: "/", icon: Home },
-    { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
+    { name: "Dashboard RH", href: "/", icon: Home },
     { name: "Mensagens", href: "/messages", icon: MessageCircle },
+    { name: "Documentos", href: "/documents", icon: FileText },
+    { name: "Capacitação", href: "/training", icon: GraduationCap },
+    { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
     { name: "Relatórios", href: "/reports", icon: BarChart3 },
-    { name: "Funcionários", href: "/employees", icon: Users },
   ];
 
   // Admin-only navigation items
   const adminNavigation = [
+    { name: "Funcionários", href: "/employees", icon: Users },
     { name: "Departamentos", href: "/departments", icon: Building },
-    { name: "Feriados", href: "/holidays", icon: Settings },
+    { name: "Feriados", href: "/holidays", icon: Calendar },
   ];
 
   // Superadmin-only navigation items
@@ -40,16 +57,19 @@ export default function Sidebar() {
   let navigation = baseNavigation;
   
   if (isSuperAdmin) {
-    // Superadmin gets system management but not company-specific items
+    // Superadmin gets system management plus all core HR features
     navigation = [
-      baseNavigation[0], // Dashboard
+      baseNavigation[0], // Dashboard RH
       ...superAdminNavigation,
-      baseNavigation[2], // Messages
-      baseNavigation[3], // Reports
-      baseNavigation[4], // Employees
+      baseNavigation[1], // Mensagens
+      baseNavigation[2], // Documentos
+      baseNavigation[3], // Capacitação
+      baseNavigation[5], // Relatórios
+      ...adminNavigation, // All admin features
     ];
   } else if (isAdmin) {
-    navigation = [...baseNavigation.slice(0, 3), ...adminNavigation, ...baseNavigation.slice(3)];
+    // Admin gets all base features plus admin-specific ones
+    navigation = [...baseNavigation, ...adminNavigation];
   }
 
   const handleLogout = () => {
@@ -57,11 +77,11 @@ export default function Sidebar() {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-background border-r border-border">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 px-4 point-primary">
-        <h1 className="text-xl font-bold text-white">
-          <Clock className="inline-block h-6 w-6 mr-2" />
+      <div className="flex items-center justify-center h-16 px-4 bg-primary">
+        <h1 className="text-xl font-bold text-primary-foreground">
+          <MessageCircle className="inline-block h-6 w-6 mr-2" />
           RHNet
         </h1>
       </div>
@@ -75,27 +95,33 @@ export default function Sidebar() {
           return (
             <Link key={item.name} href={item.href}>
               <div 
-                className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg group transition-colors cursor-pointer ${
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? "text-white point-primary"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Icon className="mr-3 h-5 w-5" />
-                {item.name}
+                <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                <span className="truncate">{item.name}</span>
               </div>
             </Link>
           );
         })}
       </nav>
       
-      {/* Logout Button */}
-      <div className="p-4 border-t border-gray-200">
+      {/* User Info & Logout */}
+      <div className="p-4 border-t border-border space-y-2">
+        {user && (
+          <div className="text-xs text-muted-foreground px-2">
+            <p className="font-medium">{user.firstName} {user.lastName}</p>
+            <p className="uppercase">{user.role}</p>
+          </div>
+        )}
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-gray-600 hover:text-gray-900"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
         >
           <LogOut className="mr-3 h-5 w-5" />
           Sair
