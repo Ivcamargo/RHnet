@@ -36,7 +36,7 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: '400px 400px',
-          opacity: 0.08,
+          opacity: 0.15,
           filter: 'brightness(1.5)'
         }}
       ></div>
@@ -46,7 +46,7 @@ export default function Landing() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-10 w-10 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-blue-800">RHNet - A Rede do RH</h1>
+              <h1 className="text-2xl font-bold text-blue-800">RHNet Sistema de gestão de recursos humanos</h1>
             </div>
             <Button 
               onClick={handleLogin} 
@@ -66,7 +66,7 @@ export default function Landing() {
             Sistema de Gestão de RH
           </Badge>
           <h2 className="text-5xl font-bold text-blue-900 mb-6">
-            RHNet - "A Rede do RH"
+            Bem-vindo ao RHNet
           </h2>
           <p className="text-xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed">
             Sistema de gestão de recursos humanos que integra <strong>controle de ponto eletrônico</strong>, 
@@ -96,7 +96,7 @@ export default function Landing() {
         {/* Core Features - Sistema Integrado */}
         <div className="mb-20">
           <h3 className="text-3xl font-bold text-center text-blue-900 mb-12">
-            Sistema Integrado de RH
+            Principais Funcionalidades
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-white/90 transition-all shadow-lg">
@@ -299,7 +299,7 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img src={rhnetLogo} alt="RHNet" className="h-8 w-8 mr-3 rounded" />
-              <span className="text-xl font-bold text-blue-800">RHNet - A Rede do RH</span>
+              <span className="text-xl font-bold text-blue-800">RHNet Sistema de gestão de recursos humanos</span>
             </div>
             <div className="text-gray-600">
               <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
