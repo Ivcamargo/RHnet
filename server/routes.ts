@@ -227,18 +227,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid role. Must be employee, admin, or superadmin" });
       }
 
+      // Verify the target user exists
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       // If assigning admin or employee role, companyId is required
       if (role !== 'superadmin' && !companyId) {
         return res.status(400).json({ message: "Company ID is required for admin and employee roles" });
       }
 
-      // If assigning superadmin role, companyId should be null
+      // Validate that the company exists when assigning admin or employee role
+      if (role !== 'superadmin' && companyId) {
+        const company = await storage.getCompany(companyId);
+        if (!company) {
+          return res.status(400).json({ message: "Invalid company ID - company does not exist" });
+        }
+      }
+
+      // Prepare update data with proper integrity checks
       const updateData: any = { role };
+      
       if (role === 'superadmin') {
+        // Superadmin has no company or department
         updateData.companyId = null;
         updateData.departmentId = null;
       } else {
         updateData.companyId = companyId;
+        
+        // If user has a department, verify it belongs to the new company
+        if (targetUser.departmentId) {
+          const department = await storage.getDepartment(targetUser.departmentId);
+          if (department && department.companyId !== companyId) {
+            // Clear department if it doesn't belong to the new company
+            updateData.departmentId = null;
+          }
+        }
+        
+        // If switching companies, clear department unless explicitly reassigned
+        if (targetUser.companyId && targetUser.companyId !== companyId) {
+          updateData.departmentId = null;
+        }
       }
 
       await storage.updateUser(userId, updateData);

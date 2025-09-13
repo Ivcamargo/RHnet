@@ -60,6 +60,27 @@ export const holidays = pgTable("holidays", {
   }),
 }));
 
+// Departments table
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  shiftStart: varchar("shift_start").notNull(), // "08:00"
+  shiftEnd: varchar("shift_end").notNull(), // "17:00"
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  radius: integer("radius").default(100), // meters
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
 // User storage table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
@@ -82,27 +103,6 @@ export const users = pgTable("users", {
     columns: [table.departmentId],
     foreignColumns: [departments.id],
   }).onDelete('set null'),
-}));
-
-// Departments table
-export const departments = pgTable("departments", {
-  id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(),
-  name: varchar("name").notNull(),
-  description: text("description"),
-  shiftStart: varchar("shift_start").notNull(), // "08:00"
-  shiftEnd: varchar("shift_end").notNull(), // "17:00"
-  latitude: real("latitude").notNull(),
-  longitude: real("longitude").notNull(),
-  radius: integer("radius").default(100), // meters
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  companyReference: foreignKey({
-    columns: [table.companyId],
-    foreignColumns: [companies.id],
-  }),
 }));
 
 // Time entries table
