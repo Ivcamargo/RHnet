@@ -68,23 +68,6 @@ export default function Landing() {
             <strong> capacitação de funcionários</strong>. Uma solução unificada para comunicação entre RH e colaboradores, 
             com funcionalidades avançadas de geolocalização, reconhecimento facial e relatórios abrangentes.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={handleLogin} 
-              size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3"
-            >
-              Começar Agora
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 text-lg px-8 py-3"
-            >
-              Ver Demonstração
-            </Button>
-          </div>
         </div>
 
         {/* Core Features - Sistema Integrado */}
