@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
   serial,
   integer,
   decimal,
@@ -223,7 +224,7 @@ export const messageRecipients = pgTable("message_recipients", {
     columns: [table.userId],
     foreignColumns: [users.id],
   }).onDelete('cascade'),
-  uniqueMessageRecipient: index("unique_message_recipient").unique().on(table.messageId, table.userId),
+  uniqueMessageRecipient: uniqueIndex("unique_message_recipient").on(table.messageId, table.userId),
 }));
 
 // Message attachments and documents
@@ -285,7 +286,7 @@ export const documents = pgTable("documents", {
     columns: [table.parentDocumentId],
     foreignColumns: [table.id],
   }).onDelete('set null'),
-  uniqueDocumentVersion: index("unique_document_version").unique().on(table.companyId, table.title, table.version),
+  uniqueDocumentVersion: uniqueIndex("unique_document_version").on(table.companyId, table.title, table.version),
 }));
 
 // Training courses
@@ -372,7 +373,7 @@ export const employeeCourses = pgTable("employee_courses", {
     columns: [table.validatedBy],
     foreignColumns: [users.id],
   }).onDelete('set null'),
-  uniqueUserCourse: index("unique_user_course_active").unique().on(table.userId, table.courseId),
+  uniqueUserCourse: uniqueIndex("unique_user_course_active").on(table.userId, table.courseId),
 }));
 
 // Certificates earned by employees

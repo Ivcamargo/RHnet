@@ -1,0 +1,567 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { toast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Mail, Plus, Send, Clock, Eye, Filter, Search, MessageCircle, Users } from "lucide-react";
+import Sidebar from "@/components/layout/sidebar";
+
+// Form schemas
+const messageFormSchema = z.object({
+  recipientId: z.string().optional(),
+  categoryId: z.string().optional().transform(val => val ? parseInt(val) : undefined),
+  subject: z.string().min(1, "Assunto é obrigatório"),
+  content: z.string().min(1, "Conteúdo é obrigatório"),
+  priority: z.enum(["low", "normal", "high"]).default("normal"),
+  isMassMessage: z.boolean().default(false)
+});
+
+const categoryFormSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  description: z.string().optional(),
+  color: z.string().default("#3B82F6")
+});
+
+type MessageFormData = z.infer<typeof messageFormSchema>;
+type CategoryFormData = z.infer<typeof categoryFormSchema>;
+
+export default function Messages() {
+  const [selectedTab, setSelectedTab] = useState("inbox");
+  const [showNewMessageDialog, setShowNewMessageDialog] = useState(false);
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+
+  // Fetch user data
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+  });
+
+  // Fetch messages based on current tab
+  const { data: messages, isLoading: loadingMessages } = useQuery({
+    queryKey: ["/api/messages", selectedTab],
+    queryFn: () => fetch(`/api/messages/${selectedTab}`).then(res => res.json()),
+  });
+
+  // Fetch message categories
+  const { data: categories, isLoading: loadingCategories } = useQuery({
+    queryKey: ["/api/message-categories"],
+  });
+
+  // Fetch users for recipient selection
+  const { data: users, isLoading: loadingUsers } = useQuery({
+    queryKey: ["/api/users"],
+  });
+
+  // Message form
+  const messageForm = useForm<MessageFormData>({
+    resolver: zodResolver(messageFormSchema),
+    defaultValues: {
+      priority: "normal",
+      isMassMessage: false
+    }
+  });
+
+  // Category form
+  const categoryForm = useForm<CategoryFormData>({
+    resolver: zodResolver(categoryFormSchema),
+    defaultValues: {
+      color: "#3B82F6"
+    }
+  });
+
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: (data: MessageFormData) => 
+      apiRequest("/api/messages", "POST", data),
+    onSuccess: () => {
+      toast({
+        title: "Mensagem enviada",
+        description: "Sua mensagem foi enviada com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      setShowNewMessageDialog(false);
+      messageForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar mensagem",
+        description: error.message || "Ocorreu um erro ao enviar a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: CategoryFormData) =>
+      apiRequest("/api/message-categories", "POST", data),
+    onSuccess: () => {
+      toast({
+        title: "Categoria criada",
+        description: "Nova categoria de mensagem foi criada.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/message-categories"] });
+      setShowCategoryDialog(false);
+      categoryForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao criar categoria",
+        description: error.message || "Ocorreu um erro ao criar a categoria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mark message as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: (messageId: string) =>
+      apiRequest(`/api/messages/${messageId}/read`, "PATCH"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    },
+  });
+
+  const handleSendMessage = (data: MessageFormData) => {
+    sendMessageMutation.mutate(data);
+  };
+
+  const handleCreateCategory = (data: CategoryFormData) => {
+    createCategoryMutation.mutate(data);
+  };
+
+  const handleMessageClick = (message: any) => {
+    setSelectedMessage(message);
+    if (!message?.isRead && selectedTab === 'inbox') {
+      markAsReadMutation.mutate(message?.id);
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high": return "bg-red-100 text-red-800";
+      case "low": return "bg-green-100 text-green-800";
+      default: return "bg-blue-100 text-blue-800";
+    }
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const filteredMessages = Array.isArray(messages) ? messages.filter((message: any) =>
+    message?.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    message?.content?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+
+  if (loadingMessages || loadingCategories || loadingUsers) {
+    return (
+      <div className="flex h-screen">
+        <Sidebar />
+        <main className="flex-1 p-6">
+          <div className="flex items-center justify-center h-96">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 p-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                <MessageCircle className="inline-block h-8 w-8 mr-3 text-blue-600" />
+                Mensageria Corporativa
+              </h1>
+              <p className="text-gray-600">Gerencie suas mensagens e comunicações</p>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" data-testid="button-new-category">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Nova Categoria
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Nova Categoria</DialogTitle>
+                    <DialogDescription>
+                      Crie uma nova categoria para organizar suas mensagens.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...categoryForm}>
+                    <form onSubmit={categoryForm.handleSubmit(handleCreateCategory)} className="space-y-4">
+                      <FormField
+                        control={categoryForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nome da categoria" {...field} data-testid="input-category-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={categoryForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Descrição</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Descrição da categoria" {...field} data-testid="textarea-category-description" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={categoryForm.control}
+                        name="color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cor</FormLabel>
+                            <FormControl>
+                              <Input type="color" {...field} data-testid="input-category-color" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setShowCategoryDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button type="submit" disabled={createCategoryMutation.isPending} data-testid="button-save-category">
+                          {createCategoryMutation.isPending ? "Criando..." : "Criar"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-new-message">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Mensagem
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Nova Mensagem</DialogTitle>
+                    <DialogDescription>
+                      Envie uma mensagem para funcionários ou grupos específicos.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...messageForm}>
+                    <form onSubmit={messageForm.handleSubmit(handleSendMessage)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={messageForm.control}
+                          name="recipientId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Destinatário</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-recipient">
+                                    <SelectValue placeholder="Selecione o destinatário" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="all">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Todos os funcionários
+                                  </SelectItem>
+                                  {Array.isArray(users) ? users.map((user: any) => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                      {user.firstName} {user.lastName}
+                                    </SelectItem>
+                                  )) : null}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={messageForm.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categoria</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value ? field.value.toString() : ""}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-category">
+                                    <SelectValue placeholder="Selecione a categoria" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(categories) ? categories.map((category: any) => (
+                                    <SelectItem key={category.id} value={category.id.toString()}>
+                                      {category.name}
+                                    </SelectItem>
+                                  )) : null}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={messageForm.control}
+                          name="subject"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Assunto</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Digite o assunto" {...field} data-testid="input-subject" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={messageForm.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Prioridade</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-priority">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="low">Baixa</SelectItem>
+                                  <SelectItem value="normal">Normal</SelectItem>
+                                  <SelectItem value="high">Alta</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={messageForm.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Conteúdo</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Digite o conteúdo da mensagem" 
+                                rows={6} 
+                                {...field} 
+                                data-testid="textarea-content" 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setShowNewMessageDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button type="submit" disabled={sendMessageMutation.isPending} data-testid="button-send-message">
+                          <Send className="h-4 w-4 mr-2" />
+                          {sendMessageMutation.isPending ? "Enviando..." : "Enviar"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 gap-6 h-full">
+            {/* Left Column - Message List */}
+            <div className="col-span-5 space-y-4">
+              {/* Search and Filters */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex gap-2 mb-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input 
+                        placeholder="Pesquisar mensagens..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-search-messages"
+                      />
+                    </div>
+                  </div>
+                  
+                  <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="inbox" data-testid="tab-inbox">Recebidas</TabsTrigger>
+                      <TabsTrigger value="sent" data-testid="tab-sent">Enviadas</TabsTrigger>
+                      <TabsTrigger value="archived" data-testid="tab-archived">Arquivadas</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* Message List */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {filteredMessages.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center text-gray-500">
+                      <Mail className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Nenhuma mensagem encontrada</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  filteredMessages.map((message: any) => (
+                    <Card 
+                      key={message.id} 
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                        selectedMessage?.id === message.id ? 'ring-2 ring-blue-500' : ''
+                      } ${!message.isRead ? 'bg-blue-50 border-blue-200' : ''}`}
+                      onClick={() => handleMessageClick(message)}
+                      data-testid={`card-message-${message.id}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-sm truncate">
+                              {message.sender?.name || "Sistema"}
+                            </h4>
+                            {!message.isRead && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Badge className={getPriorityColor(message.priority)}>
+                              {message.priority === 'high' ? 'Alta' : 
+                               message.priority === 'low' ? 'Baixa' : 'Normal'}
+                            </Badge>
+                            <Clock className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs text-gray-500">
+                              {formatDate(message.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="font-medium text-sm mb-1">{message.subject}</p>
+                        <p className="text-xs text-gray-600 line-clamp-2">{message.content}</p>
+                        {message.category && (
+                          <Badge 
+                            variant="outline" 
+                            className="mt-2"
+                            style={{ borderColor: message.category.color, color: message.category.color }}
+                          >
+                            {message.category.name}
+                          </Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Right Column - Message Details */}
+            <div className="col-span-7">
+              {selectedMessage ? (
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {selectedMessage.subject}
+                          <Badge className={getPriorityColor(selectedMessage.priority)}>
+                            {selectedMessage.priority === 'high' ? 'Alta' : 
+                             selectedMessage.priority === 'low' ? 'Baixa' : 'Normal'}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          De: {selectedMessage.sender?.name || "Sistema"} • 
+                          {formatDate(selectedMessage.createdAt)}
+                          {selectedMessage.category && (
+                            <>
+                              {' • '}
+                              <Badge 
+                                variant="outline"
+                                style={{ borderColor: selectedMessage.category.color, color: selectedMessage.category.color }}
+                              >
+                                {selectedMessage.category.name}
+                              </Badge>
+                            </>
+                          )}
+                        </CardDescription>
+                      </div>
+                      {selectedMessage.isRead ? (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          Lida
+                        </Badge>
+                      ) : (
+                        <Badge className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          Nova
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose max-w-none" data-testid="message-content">
+                      <p className="whitespace-pre-wrap text-gray-700">
+                        {selectedMessage.content}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="h-full">
+                  <CardContent className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                      <MessageCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium mb-2">Selecione uma mensagem</p>
+                      <p>Clique em uma mensagem para visualizar seu conteúdo</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

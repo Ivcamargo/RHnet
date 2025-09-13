@@ -6,23 +6,34 @@ import {
   faceProfiles,
   companies,
   holidays,
+  messages,
+  messageCategories,
+  messageRecipients,
   type User,
   type UpsertUser,
   type Department,
   type InsertDepartment,
   type TimeEntry,
-  type InsertTimeEntry,
-  type BreakEntry,
-  type InsertBreakEntry,
-  type FaceProfile,
-  type InsertFaceProfile,
   type Company,
   type InsertCompany,
   type Holiday,
   type InsertHoliday,
+  type Message,
+  type InsertMessage,
+  type MessageCategory,
+  type InsertMessageCategory,
+  type MessageRecipient,
+  type InsertMessageRecipient,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+
+// Local type aliases for tables that don't have exported types
+type InsertTimeEntry = typeof timeEntries.$inferInsert;
+type BreakEntry = typeof breakEntries.$inferSelect;
+type InsertBreakEntry = typeof breakEntries.$inferInsert;
+type FaceProfile = typeof faceProfiles.$inferSelect;
+type InsertFaceProfile = typeof faceProfiles.$inferInsert;
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -81,6 +92,17 @@ export interface IStorage {
     totalEmployees: number;
     activeEmployees: number;
   }>;
+  
+  // Message operations
+  getReceivedMessages(userId: string, companyId: number): Promise<any[]>;
+  getSentMessages(userId: string, companyId: number): Promise<any[]>;
+  getArchivedMessages(userId: string, companyId: number): Promise<any[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  createMessageRecipient(recipient: InsertMessageRecipient): Promise<MessageRecipient>;
+  markMessageAsRead(messageId: number, userId: string): Promise<void>;
+  getMessageCategories(companyId: number): Promise<MessageCategory[]>;
+  createMessageCategory(category: InsertMessageCategory): Promise<MessageCategory>;
+  getCompanyEmployees(companyId: number): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -377,6 +399,192 @@ export class DatabaseStorage implements IStorage {
     }
     
     return false;
+  }
+
+  // Message operations
+  async getReceivedMessages(userId: string, companyId: number): Promise<any[]> {
+    const results = await db
+      .select({
+        // Message fields
+        id: messages.id,
+        subject: messages.subject,
+        content: messages.content,
+        priority: messages.priority,
+        isMassMessage: messages.isMassMessage,
+        createdAt: messages.createdAt,
+        updatedAt: messages.updatedAt,
+        senderId: messages.senderId,
+        categoryId: messages.categoryId,
+        companyId: messages.companyId,
+        // Sender info
+        senderName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        senderEmail: users.email,
+        // Category info
+        categoryName: messageCategories.name,
+        categoryColor: messageCategories.color,
+        // Recipient status
+        isRead: messageRecipients.isRead,
+        readAt: messageRecipients.readAt,
+        isDelivered: messageRecipients.isDelivered,
+        deliveredAt: messageRecipients.deliveredAt,
+      })
+      .from(messageRecipients)
+      .leftJoin(messages, eq(messageRecipients.messageId, messages.id))
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .leftJoin(messageCategories, eq(messages.categoryId, messageCategories.id))
+      .where(
+        and(
+          eq(messageRecipients.userId, userId),
+          eq(messages.companyId, companyId),
+          eq(messageRecipients.isDeleted, false)
+        )
+      )
+      .orderBy(desc(messages.createdAt));
+
+    return results;
+  }
+
+  async getSentMessages(userId: string, companyId: number): Promise<any[]> {
+    const results = await db
+      .select({
+        // Message fields
+        id: messages.id,
+        subject: messages.subject,
+        content: messages.content,
+        priority: messages.priority,
+        isMassMessage: messages.isMassMessage,
+        createdAt: messages.createdAt,
+        updatedAt: messages.updatedAt,
+        senderId: messages.senderId,
+        categoryId: messages.categoryId,
+        companyId: messages.companyId,
+        // Sender info (current user)
+        senderName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        senderEmail: users.email,
+        // Category info
+        categoryName: messageCategories.name,
+        categoryColor: messageCategories.color,
+        // For sent messages, we don't have recipient status
+        isRead: sql<boolean>`null`,
+        readAt: sql<string>`null`,
+        isDelivered: sql<boolean>`true`,
+        deliveredAt: messages.createdAt,
+      })
+      .from(messages)
+      .leftJoin(messageCategories, eq(messages.categoryId, messageCategories.id))
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .where(
+        and(
+          eq(messages.senderId, userId),
+          eq(messages.companyId, companyId)
+        )
+      )
+      .orderBy(desc(messages.createdAt));
+
+    return results;
+  }
+
+  async getArchivedMessages(userId: string, companyId: number): Promise<any[]> {
+    // Archived messages are received messages that user has deleted/archived
+    const results = await db
+      .select({
+        // Message fields
+        id: messages.id,
+        subject: messages.subject,
+        content: messages.content,
+        priority: messages.priority,
+        isMassMessage: messages.isMassMessage,
+        createdAt: messages.createdAt,
+        updatedAt: messages.updatedAt,
+        senderId: messages.senderId,
+        categoryId: messages.categoryId,
+        companyId: messages.companyId,
+        // Sender info
+        senderName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        senderEmail: users.email,
+        // Category info
+        categoryName: messageCategories.name,
+        categoryColor: messageCategories.color,
+        // Recipient status
+        isRead: messageRecipients.isRead,
+        readAt: messageRecipients.readAt,
+        isDelivered: messageRecipients.isDelivered,
+        deliveredAt: messageRecipients.deliveredAt,
+      })
+      .from(messageRecipients)
+      .leftJoin(messages, eq(messageRecipients.messageId, messages.id))
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .leftJoin(messageCategories, eq(messages.categoryId, messageCategories.id))
+      .where(
+        and(
+          eq(messageRecipients.userId, userId),
+          eq(messages.companyId, companyId),
+          eq(messageRecipients.isDeleted, true)
+        )
+      )
+      .orderBy(desc(messageRecipients.deletedAt));
+
+    return results;
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [createdMessage] = await db
+      .insert(messages)
+      .values(message)
+      .returning();
+    return createdMessage;
+  }
+
+  async createMessageRecipient(recipient: InsertMessageRecipient): Promise<MessageRecipient> {
+    const [createdRecipient] = await db
+      .insert(messageRecipients)
+      .values(recipient)
+      .returning();
+    return createdRecipient;
+  }
+
+  async markMessageAsRead(messageId: number, userId: string): Promise<void> {
+    await db
+      .update(messageRecipients)
+      .set({ 
+        isRead: true, 
+        readAt: new Date() 
+      })
+      .where(
+        and(
+          eq(messageRecipients.messageId, messageId),
+          eq(messageRecipients.userId, userId)
+        )
+      );
+  }
+
+  async getMessageCategories(companyId: number): Promise<MessageCategory[]> {
+    return await db
+      .select()
+      .from(messageCategories)
+      .where(eq(messageCategories.companyId, companyId))
+      .orderBy(messageCategories.name);
+  }
+
+  async createMessageCategory(category: InsertMessageCategory): Promise<MessageCategory> {
+    const [createdCategory] = await db
+      .insert(messageCategories)
+      .values(category)
+      .returning();
+    return createdCategory;
+  }
+
+  async getCompanyEmployees(companyId: number): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.companyId, companyId),
+          eq(users.isActive, true)
+        )
+      )
+      .orderBy(users.firstName, users.lastName);
   }
 
   // User management methods

@@ -13,6 +13,7 @@ import Reports from "@/pages/reports";
 import Employees from "@/pages/employees";
 import Holidays from "@/pages/holidays";
 import SuperAdmin from "@/pages/superadmin";
+import Messages from "@/pages/messages";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/superadmin" component={SuperAdmin} />
           <Route path="/reports" component={Reports} />
           <Route path="/employees" component={Employees} />
+          <Route path="/messages" component={Messages} />
         </>
       )}
       <Route component={NotFound} />

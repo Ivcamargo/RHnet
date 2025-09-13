@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Clock, Home, Building, BarChart3, Users, Settings, LogOut, Menu, X, Shield } from "lucide-react";
+import { Clock, Home, Building, BarChart3, Users, Settings, LogOut, Menu, X, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -20,6 +20,7 @@ export default function Sidebar() {
   const baseNavigation = [
     { name: "Dashboard", href: "/", icon: Home },
     { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
+    { name: "Mensagens", href: "/messages", icon: MessageCircle },
     { name: "Relatórios", href: "/reports", icon: BarChart3 },
     { name: "Funcionários", href: "/employees", icon: Users },
   ];
@@ -43,11 +44,12 @@ export default function Sidebar() {
     navigation = [
       baseNavigation[0], // Dashboard
       ...superAdminNavigation,
-      baseNavigation[2], // Reports
-      baseNavigation[3], // Employees
+      baseNavigation[2], // Messages
+      baseNavigation[3], // Reports
+      baseNavigation[4], // Employees
     ];
   } else if (isAdmin) {
-    navigation = [...baseNavigation.slice(0, 2), ...adminNavigation, ...baseNavigation.slice(2)];
+    navigation = [...baseNavigation.slice(0, 3), ...adminNavigation, ...baseNavigation.slice(3)];
   }
 
   const handleLogout = () => {

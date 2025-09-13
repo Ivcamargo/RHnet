@@ -8,8 +8,13 @@ import {
   clockOutSchema, 
   insertCompanySchema,
   insertHolidaySchema,
+  insertMessageSchema,
+  insertMessageCategorySchema,
+  insertMessageRecipientSchema,
   type ClockInRequest,
-  type ClockOutRequest
+  type ClockOutRequest,
+  type InsertMessage,
+  type InsertMessageCategory
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -523,8 +528,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management routes
-  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+  // User management routes (admin only)
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin') {
@@ -923,6 +928,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // ===== MESSAGE ROUTES =====
+  
+  // Get messages for current user based on type (inbox, sent, archived)
+  app.get('/api/messages/:type', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const type = req.params.type;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let messages;
+      switch (type) {
+        case 'inbox':
+          messages = await storage.getReceivedMessages(userId, user.companyId);
+          break;
+        case 'sent':
+          messages = await storage.getSentMessages(userId, user.companyId);
+          break;
+        case 'archived':
+          messages = await storage.getArchivedMessages(userId, user.companyId);
+          break;
+        default:
+          messages = await storage.getReceivedMessages(userId, user.companyId);
+      }
+
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Get messages for current user (default to inbox)
+  app.get('/api/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const messages = await storage.getReceivedMessages(userId, user.companyId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Send new message
+  app.post('/api/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can send messages" });
+      }
+
+      const messageData: InsertMessage = insertMessageSchema.parse(req.body);
+      messageData.senderId = userId;
+      messageData.companyId = user.companyId;
+
+      const message = await storage.createMessage(messageData);
+      
+      // Handle mass messages or specific recipient
+      if (messageData.recipientId === 'all' || messageData.isMassMessage) {
+        // Get all employees in the company
+        const employees = await storage.getCompanyEmployees(user.companyId);
+        for (const employee of employees) {
+          if (employee.id !== userId) { // Don't send to sender
+            await storage.createMessageRecipient({
+              messageId: message.id,
+              userId: employee.id,
+              isDelivered: true,
+              deliveredAt: new Date().toISOString()
+            });
+          }
+        }
+      } else if (messageData.recipientId) {
+        // Send to specific recipient
+        await storage.createMessageRecipient({
+          messageId: message.id,
+          userId: messageData.recipientId,
+          isDelivered: true,
+          deliveredAt: new Date().toISOString()
+        });
+      }
+
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Mark message as read
+  app.patch('/api/messages/:id/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const messageId = parseInt(req.params.id);
+      
+      await storage.markMessageAsRead(messageId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  // Get message categories
+  app.get('/api/message-categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const categories = await storage.getMessageCategories(user.companyId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching message categories:", error);
+      res.status(500).json({ message: "Failed to fetch message categories" });
+    }
+  });
+
+  // Create message category
+  app.post('/api/message-categories', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can create message categories" });
+      }
+
+      const categoryData: InsertMessageCategory = insertMessageCategorySchema.parse(req.body);
+      categoryData.companyId = user.companyId;
+
+      const category = await storage.createMessageCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating message category:", error);
+      res.status(500).json({ message: "Failed to create message category" });
+    }
+  });
+
+  // Get users (for recipient selection)
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const users = await storage.getCompanyEmployees(user.companyId);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
