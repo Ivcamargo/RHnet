@@ -30,7 +30,7 @@ const messageFormSchema = z.object({
 const categoryFormSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
-  color: z.string().default("#3B82F6")
+  color: z.string().default("#EA580C")
 });
 
 type MessageFormData = z.infer<typeof messageFormSchema>;
@@ -77,7 +77,7 @@ export default function Messages() {
   const categoryForm = useForm<CategoryFormData>({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: {
-      color: "#3B82F6"
+      color: "#EA580C"
     }
   });
 
@@ -153,7 +153,7 @@ export default function Messages() {
     switch (priority) {
       case "high": return "bg-red-100 text-red-800";
       case "low": return "bg-green-100 text-green-800";
-      default: return "bg-blue-100 text-blue-800";
+      default: return "bg-orange-100 text-orange-800";
     }
   };
 
@@ -186,7 +186,7 @@ export default function Messages() {
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
+    <div className="flex h-screen bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
       <Sidebar />
       <main className="flex-1 p-6 overflow-hidden">
         <div className="max-w-7xl mx-auto">
@@ -194,7 +194,7 @@ export default function Messages() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold text-orange-800">
-                <MessageCircle className="inline-block h-8 w-8 mr-3 text-blue-600" />
+                <MessageCircle className="inline-block h-8 w-8 mr-3 text-orange-600" />
                 Mensageria Corporativa
               </h1>
               <p className="text-gray-600">Gerencie suas mensagens e comunicações</p>
@@ -453,7 +453,7 @@ export default function Messages() {
                       key={message.id} 
                       className={`cursor-pointer transition-colors hover:bg-gray-50 ${
                         selectedMessage?.id === message.id ? 'ring-2 ring-blue-500' : ''
-                      } ${!message.isRead ? 'bg-blue-50 border-blue-200' : ''}`}
+                      } ${!message.isRead ? 'bg-orange-50 border-orange-200' : ''}`}
                       onClick={() => handleMessageClick(message)}
                       data-testid={`card-message-${message.id}`}
                     >
@@ -464,7 +464,7 @@ export default function Messages() {
                               {message.sender?.name || "Sistema"}
                             </h4>
                             {!message.isRead && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                              <div className="w-2 h-2 bg-orange-600 rounded-full" />
                             )}
                           </div>
                           <div className="flex items-center gap-1">

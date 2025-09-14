@@ -129,7 +129,7 @@ export default function Employees() {
   if (!isAdmin) {
     // Show only current user profile for non-admin users
     return (
-      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
+      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
         <Sidebar />
         
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -249,7 +249,7 @@ export default function Employees() {
 
   // Admin view with user management
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">

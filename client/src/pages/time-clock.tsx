@@ -38,7 +38,7 @@ export default function TimeClock() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -53,7 +53,7 @@ export default function TimeClock() {
                   <div className="clock-display">
                     {formatTime(currentTime)}
                   </div>
-                  <div className="text-gray-600 mb-8">
+                  <div className="text-orange-700 mb-8">
                     {formatDate(currentTime)}
                   </div>
                   
@@ -72,8 +72,8 @@ export default function TimeClock() {
                   {/* Current Session Info */}
                   {clockStatus?.activeEntry && (
                     <div className="mt-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <h3 className="font-medium text-gray-800 mb-2">Sessão Atual</h3>
-                      <div className="text-sm text-gray-600">
+                      <h3 className="font-medium text-orange-800 mb-2">Sessão Atual</h3>
+                      <div className="text-sm text-orange-600">
                         <p>Entrada: {new Date(clockStatus.activeEntry.clockInTime).toLocaleTimeString('pt-BR')}</p>
                         <p>Data: {new Date(clockStatus.activeEntry.clockInTime).toLocaleDateString('pt-BR')}</p>
                         {clockStatus.activeEntry.faceRecognitionVerified && (
