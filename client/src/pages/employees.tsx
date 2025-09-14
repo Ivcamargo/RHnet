@@ -407,6 +407,7 @@ export default function Employees() {
       <div className="flex-1 flex flex-col">
         <TopBar title="Funcionários" />
         <main className="flex-1 overflow-auto p-6">
+          {/* Header with Add Employee Button and Search */}
           <div className="flex items-center justify-between mb-6">
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
@@ -1995,10 +1996,8 @@ export default function Employees() {
                 </Form>
               </DialogContent>
             </Dialog>
-          </div>
-
-          {/* Search and Filter */}
-          <div className="mb-6">
+            
+            {/* Search on the same line */}
             <div className="flex items-center space-x-2">
               <Search className="h-4 w-4 text-gray-400" />
               <Input
