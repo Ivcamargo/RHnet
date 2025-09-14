@@ -38,7 +38,7 @@ export default function TimeClock() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -46,10 +46,10 @@ export default function TimeClock() {
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto">
-            <Card className="material-shadow">
+            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 shadow-lg">
               <CardContent className="p-8">
                 <div className="text-center">
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">Controle de Ponto</h1>
+                  <h1 className="text-3xl font-bold text-orange-800 mb-2">Controle de Ponto</h1>
                   <div className="clock-display">
                     {formatTime(currentTime)}
                   </div>
@@ -71,7 +71,7 @@ export default function TimeClock() {
                   
                   {/* Current Session Info */}
                   {clockStatus?.activeEntry && (
-                    <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="mt-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
                       <h3 className="font-medium text-gray-800 mb-2">Sessão Atual</h3>
                       <div className="text-sm text-gray-600">
                         <p>Entrada: {new Date(clockStatus.activeEntry.clockInTime).toLocaleTimeString('pt-BR')}</p>

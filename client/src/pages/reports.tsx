@@ -53,7 +53,7 @@ export default function Reports() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">

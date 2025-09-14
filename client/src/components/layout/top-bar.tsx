@@ -36,7 +36,7 @@ export default function TopBar({ title }: TopBarProps) {
   const locationStatus = getLocationStatus();
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
+    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-orange-50 to-red-50 shadow-sm border-b border-orange-200">
       <div className="flex items-center">
         <Button
           variant="ghost"
@@ -60,7 +60,7 @@ export default function TopBar({ title }: TopBarProps) {
         {/* Notifications */}
         <Button variant="ghost" size="sm" className="p-2 text-gray-400 hover:text-gray-500 relative">
           <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 point-error text-white text-xs rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
             0
           </span>
         </Button>
@@ -69,18 +69,18 @@ export default function TopBar({ title }: TopBarProps) {
         {user && (
           <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user.profileImageUrl} alt={`${user.firstName} ${user.lastName}`} />
+              <AvatarImage src={(user as any).profileImageUrl} alt={`${(user as any).firstName} ${(user as any).lastName}`} />
               <AvatarFallback>
-                {user.firstName?.[0]}{user.lastName?.[0]}
+                {(user as any).firstName?.[0]}{(user as any).lastName?.[0]}
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block">
               <p className="text-sm font-medium text-gray-700">
-                {user.firstName} {user.lastName}
+                {(user as any).firstName} {(user as any).lastName}
               </p>
               <div className="flex items-center space-x-2">
-                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="text-xs">
-                  {user.role === 'admin' ? 'Admin' : 'Funcionário'}
+                <Badge variant={(user as any).role === 'admin' ? 'default' : 'secondary'} className="text-xs">
+                  {(user as any).role === 'admin' || (user as any).role === 'superadmin' ? 'Admin' : 'Funcionário'}
                 </Badge>
               </div>
             </div>

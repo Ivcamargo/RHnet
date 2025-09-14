@@ -157,7 +157,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -235,13 +235,13 @@ export default function Dashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Mensagens</CardTitle>
-                <MessageSquare className="h-4 w-4 text-primary" />
+                <MessageSquare className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{hrData.unreadMessages}</div>
+                <div className="text-2xl font-bold text-orange-800">{hrData.unreadMessages}</div>
                 <p className="text-xs text-muted-foreground">Não lidas</p>
                 {hrData.unreadMessages > 0 && (
                   <Badge variant="destructive" className="mt-2">
@@ -251,13 +251,13 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Documentos</CardTitle>
                 <FileText className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{hrData.pendingDocuments}</div>
+                <div className="text-2xl font-bold text-orange-800">{hrData.pendingDocuments}</div>
                 <p className="text-xs text-muted-foreground">Pendentes</p>
                 {hrData.pendingDocuments > 0 && (
                   <Badge variant="outline" className="mt-2">
@@ -267,10 +267,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Cursos Ativos</CardTitle>
-                <GraduationCap className="h-4 w-4 text-green-500" />
+                <GraduationCap className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{hrData.activeCourses}</div>
@@ -303,10 +303,10 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Recent Messages */}
-            <Card>
+            <Card className="bg-white/90 backdrop-blur-sm border-orange-200">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
-                  <Mail className="h-5 w-5 mr-2" />
+                  <Mail className="h-5 w-5 mr-2 text-orange-600" />
                   Mensagens Recentes
                 </CardTitle>
                 <Button variant="ghost" size="sm">
@@ -341,10 +341,10 @@ export default function Dashboard() {
             </Card>
 
             {/* Pending Tasks */}
-            <Card>
+            <Card className="bg-white/90 backdrop-blur-sm border-orange-200">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
-                  <Bell className="h-5 w-5 mr-2" />
+                  <Bell className="h-5 w-5 mr-2 text-orange-600" />
                   Tarefas Pendentes
                 </CardTitle>
               </CardHeader>
