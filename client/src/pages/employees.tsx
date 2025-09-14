@@ -254,7 +254,7 @@ export default function Employees() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "Sucesso",
-        description: "Funcionário removido com sucesso",
+        description: "Funcionário desativado permanentemente",
       });
     },
     onError: (error: Error) => {
@@ -288,7 +288,7 @@ export default function Employees() {
   };
 
   const handleDeleteEmployee = (employee: any) => {
-    if (window.confirm(`Tem certeza que deseja remover o funcionário ${employee.firstName} ${employee.lastName}?`)) {
+    if (window.confirm(`Tem certeza que deseja desativar permanentemente o funcionário ${employee.firstName} ${employee.lastName}? Esta ação não pode ser desfeita.`)) {
       deleteEmployeeMutation.mutate(employee.id);
     }
   };

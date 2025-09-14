@@ -936,15 +936,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete user (admin only)
+  // Delete user (admin only) - Uses soft delete for data integrity
   app.delete('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
-      }
-      if (!currentUser?.companyId) {
-        return res.status(400).json({ message: "Admin must be assigned to a company" });
       }
 
       const userId = req.params.id;
@@ -955,21 +952,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // CRITICAL SECURITY: Admin can only delete users from their own company
-      if (userToDelete.companyId !== currentUser.companyId) {
-        return res.status(403).json({ message: "Access denied: cannot delete user from different company" });
+      // CRITICAL SECURITY: Role-based authorization
+      if (currentUser.role === 'admin') {
+        // Admins can only delete employees from their own company
+        if (!currentUser?.companyId) {
+          return res.status(400).json({ message: "Admin must be assigned to a company" });
+        }
+        if (userToDelete.companyId !== currentUser.companyId) {
+          return res.status(403).json({ message: "Access denied: cannot delete user from different company" });
+        }
+        // Admins cannot delete other admins or superadmins
+        if (userToDelete.role === 'admin' || userToDelete.role === 'superadmin') {
+          return res.status(403).json({ message: "Access denied: cannot delete admin or superadmin users" });
+        }
       }
+      // Superadmins can delete any user (no additional restrictions)
 
-      // Prevent deleting the current user (admin deleting themselves)
+      // Prevent deleting the current user (self-deletion)
       if (userId === currentUser.id) {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
-      await storage.deleteUser(userId);
-      res.json({ message: "User deleted successfully" });
+      // Check if user is already inactive
+      if (!userToDelete.isActive) {
+        return res.status(400).json({ message: "User is already deactivated" });
+      }
+
+      // Use soft delete (set isActive = false) for data integrity
+      await storage.updateUser(userId, { isActive: false });
+      
+      res.status(200).json({ message: "User deactivated successfully" });
     } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
+      console.error("Error deactivating user:", error);
+      res.status(500).json({ message: "Failed to deactivate user" });
     }
   });
 
