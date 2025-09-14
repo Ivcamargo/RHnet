@@ -636,12 +636,8 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(users)
-      .where(
-        and(
-          eq(users.companyId, companyId),
-          eq(users.isActive, true)
-        )
-      );
+      .where(eq(users.companyId, companyId))
+      .orderBy(desc(users.isActive), users.firstName, users.lastName);
   }
 
   async updateUserCompany(userId: string, companyId: number): Promise<void> {

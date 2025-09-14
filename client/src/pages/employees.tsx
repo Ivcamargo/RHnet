@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Trash2, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +27,7 @@ export default function Employees() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -368,15 +370,21 @@ export default function Employees() {
     setIsEditDialogOpen(true);
   };
 
-  // Filter users based on search term
+  // Filter users based on search term and active/inactive status
   const filteredUsers = allUsers?.filter((employee: any) => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       employee.firstName?.toLowerCase().includes(searchLower) ||
       employee.lastName?.toLowerCase().includes(searchLower) ||
       employee.email?.toLowerCase().includes(searchLower) ||
       employee.position?.toLowerCase().includes(searchLower)
     );
+    
+    // If showInactive is false, only show active employees
+    // If showInactive is true, show all employees (both active and inactive)
+    const matchesStatus = showInactive || employee.isActive;
+    
+    return matchesSearch && matchesStatus;
   });
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
@@ -409,16 +417,29 @@ export default function Employees() {
         <main className="flex-1 overflow-auto p-6">
           {/* Header with Search and Add Employee Button */}
           <div className="flex items-center justify-between mb-6">
-            {/* Search on the left */}
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por nome, email ou cargo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md"
-                data-testid="input-search-employees"
-              />
+            {/* Search and filters on the left */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nome, email ou cargo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-md"
+                  data-testid="input-search-employees"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-inactive"
+                  checked={showInactive}
+                  onCheckedChange={setShowInactive}
+                  data-testid="checkbox-show-inactive"
+                />
+                <Label htmlFor="show-inactive" className="text-sm font-medium">
+                  Mostrar inativos
+                </Label>
+              </div>
             </div>
             
             {/* Add Employee Button on the right */}
