@@ -46,7 +46,7 @@ export default function TopBar({ title }: TopBarProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <img src={rhnetLogo} alt="RHNet" className="h-8 w-8 mr-3 rounded-lg" />
+        
         <h2 className="text-xl font-semibold text-orange-800">{title}</h2>
       </div>
       
