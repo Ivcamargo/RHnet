@@ -620,7 +620,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const users = await storage.getUsersByCompany(user.companyId);
-      res.json(users);
+      
+      // Get departments for each user
+      const usersWithDepartments = await Promise.all(
+        users.map(async (user) => {
+          let department = null;
+          if (user.departmentId) {
+            department = await storage.getDepartment(user.departmentId);
+          }
+          return { ...user, department };
+        })
+      );
+      
+      res.json(usersWithDepartments);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
@@ -893,33 +905,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management routes (admin only)
-  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
-    try {
-      const currentUser = await storage.getUser(req.user.claims.sub);
-      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      const users = await storage.getAllUsers();
-      
-      // Get departments for each user
-      const usersWithDepartments = await Promise.all(
-        users.map(async (user) => {
-          let department = null;
-          if (user.departmentId) {
-            department = await storage.getDepartment(user.departmentId);
-          }
-          return { ...user, department };
-        })
-      );
-      
-      res.json(usersWithDepartments);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
 
   app.put('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
     try {
@@ -948,6 +933,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Delete user (admin only)
+  app.delete('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!currentUser?.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      }
+
+      const userId = req.params.id;
+      
+      // Get user to be deleted
+      const userToDelete = await storage.getUser(userId);
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // CRITICAL SECURITY: Admin can only delete users from their own company
+      if (userToDelete.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied: cannot delete user from different company" });
+      }
+
+      // Prevent deleting the current user (admin deleting themselves)
+      if (userId === currentUser.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await storage.deleteUser(userId);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 

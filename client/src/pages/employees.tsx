@@ -387,6 +387,14 @@ export default function Employees() {
     return matchesSearch && matchesStatus;
   });
 
+  // Debug: Log filter status
+  console.log('Filter debug:', { 
+    totalUsers: allUsers?.length, 
+    filteredUsers: filteredUsers?.length, 
+    showInactive,
+    inactiveCount: allUsers?.filter(u => !u.isActive).length 
+  });
+
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   if (!isAdmin) {
