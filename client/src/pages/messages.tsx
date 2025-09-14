@@ -84,7 +84,7 @@ export default function Messages() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: (data: MessageFormData) => 
-      apiRequest("/api/messages", "POST", data),
+      apiRequest("/api/messages", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       toast({
         title: "Mensagem enviada",
@@ -106,7 +106,7 @@ export default function Messages() {
   // Create category mutation
   const createCategoryMutation = useMutation({
     mutationFn: (data: CategoryFormData) =>
-      apiRequest("/api/message-categories", "POST", data),
+      apiRequest("/api/message-categories", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       toast({
         title: "Categoria criada",

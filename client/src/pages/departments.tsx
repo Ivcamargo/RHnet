@@ -51,7 +51,7 @@ export default function Departments() {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertDepartment) => {
-      await apiRequest("POST", "/api/departments", data);
+      await apiRequest("/api/departments", { method: "POST", body: JSON.stringify(data) });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });

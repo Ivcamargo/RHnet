@@ -64,7 +64,7 @@ export default function Employees() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
-      await apiRequest("PUT", `/api/admin/users/${userId}`, data);
+      await apiRequest(`/api/admin/users/${userId}`, { method: "PUT", body: JSON.stringify(data) });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -86,7 +86,7 @@ export default function Employees() {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (data: AddEmployeeForm) => {
-      await apiRequest("POST", "/api/admin/employees", data);
+      await apiRequest("/api/admin/employees", { method: "POST", body: JSON.stringify(data) });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
