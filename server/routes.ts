@@ -1034,6 +1034,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update employee with complete HR data (admin only)
+  app.put('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!currentUser?.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      }
+
+      const userId = req.params.id;
+      
+      // Check if the user exists and belongs to current admin's company
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (existingUser.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Cannot edit user from different company" });
+      }
+
+      // Transform and validate request body using complete employee schema
+      const requestData = { ...req.body };
+      
+      // Transform departmentId: empty string or "none" -> null, otherwise parse to int
+      if (requestData.departmentId === "" || requestData.departmentId === "none") {
+        requestData.departmentId = null;
+      } else if (requestData.departmentId) {
+        requestData.departmentId = parseInt(requestData.departmentId);
+      }
+
+      // Transform salary to string for decimal field
+      if (requestData.salary !== undefined) {
+        requestData.salary = typeof requestData.salary === 'number' ? requestData.salary.toFixed(2) : requestData.salary;
+      }
+
+      // Set companyId from current user (cannot change company)
+      requestData.companyId = currentUser.companyId;
+
+      // Make some fields optional for updates (like email, required only for creation)
+      const updateEmployeeSchema = insertCompleteEmployeeSchema.partial().extend({
+        email: z.string().email("Invalid email format").optional(),
+        firstName: z.string().min(1, "First name is required").optional(),
+        lastName: z.string().min(1, "Last name is required").optional(),
+      });
+
+      const validationResult = updateEmployeeSchema.safeParse(requestData);
+      if (!validationResult.success) {
+        console.error("Employee update validation error:", validationResult.error.errors);
+        return res.status(400).json({ 
+          message: "Invalid employee data", 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const updateData = validationResult.data;
+
+      // Validate department belongs to current user's company
+      if (updateData.departmentId) {
+        const department = await storage.getDepartment(updateData.departmentId);
+        if (!department || department.companyId !== currentUser.companyId) {
+          return res.status(400).json({ message: "Invalid department or department not in your company" });
+        }
+      }
+      
+      // Check if email is being changed and already exists for another user
+      if (updateData.email && updateData.email !== existingUser.email) {
+        const existingUsers = await storage.getAllUsers();
+        const emailExists = existingUsers.find(u => u.email === updateData.email && u.id !== userId);
+        if (emailExists) {
+          return res.status(400).json({ message: "User with this email already exists" });
+        }
+      }
+      
+      // Update user with new data
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      // Get department info if assigned
+      let department = null;
+      if (updatedUser.departmentId) {
+        department = await storage.getDepartment(updatedUser.departmentId);
+      }
+      
+      res.json({ ...updatedUser, department });
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid employee data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update employee" });
+    }
+  });
+
   // Dashboard stats
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {

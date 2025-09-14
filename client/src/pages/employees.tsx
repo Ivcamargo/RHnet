@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Trash2, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Trash2, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCompleteEmployeeSchema, type InsertCompleteEmployee } from "@shared/schema";
@@ -40,6 +40,72 @@ export default function Employees() {
   const { data: departments } = useQuery({
     queryKey: ["/api/departments"],
     enabled: user?.role === 'admin' || user?.role === 'superadmin',
+  });
+
+  // Form for editing employee
+  const editForm = useForm<InsertCompleteEmployee>({
+    resolver: zodResolver(insertCompleteEmployeeSchema),
+    defaultValues: {
+      // Dados pessoais
+      firstName: "",
+      lastName: "",
+      email: "",
+      cpf: "",
+      rg: "",
+      rgIssuingOrgan: "",
+      ctps: "",
+      pisPasep: "",
+      tituloEleitor: "",
+      birthDate: "",
+      maritalStatus: "solteiro",
+      gender: "prefiro_nao_informar",
+      nationality: "Brasileira",
+      naturalness: "",
+      
+      // Endereço
+      cep: "",
+      address: "",
+      addressNumber: "",
+      addressComplement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      country: "Brasil",
+      
+      // Contatos
+      personalPhone: "",
+      commercialPhone: "",
+      emergencyContactName: "",
+      emergencyContactPhone: "",
+      emergencyContactRelationship: "",
+      
+      // Dados profissionais
+      role: "employee",
+      departmentId: "",
+      position: "",
+      admissionDate: "",
+      contractType: "clt",
+      workSchedule: "integral",
+      salary: 0,
+      benefits: "",
+      
+      // Dados bancários
+      bankCode: "",
+      bankName: "",
+      agencyNumber: "",
+      accountNumber: "",
+      accountType: "corrente",
+      pixKey: "",
+      
+      // Escolaridade
+      educationLevel: "medio",
+      institution: "",
+      course: "",
+      graduationYear: new Date().getFullYear(),
+      
+      // Sistema
+      isActive: true,
+    },
   });
 
   // Form for adding complete employee
@@ -152,6 +218,32 @@ export default function Employees() {
     },
   });
 
+  const editEmployeeMutation = useMutation({
+    mutationFn: async (data: InsertCompleteEmployee) => {
+      await apiRequest(`/api/admin/users/${selectedEmployee.id}`, { 
+        method: "PUT", 
+        body: JSON.stringify(data) 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsEditDialogOpen(false);
+      setSelectedEmployee(null);
+      editForm.reset();
+      toast({
+        title: "Sucesso",
+        description: "Funcionário atualizado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (userId: string) => {
       await apiRequest(`/api/admin/users/${userId}`, { method: "DELETE" });
@@ -201,6 +293,79 @@ export default function Employees() {
 
   const onSubmitNewEmployee = (data: InsertCompleteEmployee) => {
     addEmployeeMutation.mutate(data);
+  };
+
+  const onSubmitEditEmployee = (data: InsertCompleteEmployee) => {
+    editEmployeeMutation.mutate(data);
+  };
+
+  const handleEditEmployee = (employee: any) => {
+    setSelectedEmployee(employee);
+    
+    // Pre-populate form with employee data
+    editForm.reset({
+      // Dados pessoais
+      firstName: employee.firstName || "",
+      lastName: employee.lastName || "",
+      email: employee.email || "",
+      cpf: employee.cpf || "",
+      rg: employee.rg || "",
+      rgIssuingOrgan: employee.rgIssuingOrgan || "",
+      ctps: employee.ctps || "",
+      pisPasep: employee.pisPasep || "",
+      tituloEleitor: employee.tituloEleitor || "",
+      birthDate: employee.birthDate || "",
+      maritalStatus: employee.maritalStatus || "solteiro",
+      gender: employee.gender || "prefiro_nao_informar",
+      nationality: employee.nationality || "Brasileira",
+      naturalness: employee.naturalness || "",
+      
+      // Endereço
+      cep: employee.cep || "",
+      address: employee.address || "",
+      addressNumber: employee.addressNumber || "",
+      addressComplement: employee.addressComplement || "",
+      neighborhood: employee.neighborhood || "",
+      city: employee.city || "",
+      state: employee.state || "",
+      country: employee.country || "Brasil",
+      
+      // Contatos
+      personalPhone: employee.personalPhone || "",
+      commercialPhone: employee.commercialPhone || "",
+      emergencyContactName: employee.emergencyContactName || "",
+      emergencyContactPhone: employee.emergencyContactPhone || "",
+      emergencyContactRelationship: employee.emergencyContactRelationship || "",
+      
+      // Dados profissionais
+      role: employee.role || "employee",
+      departmentId: employee.departmentId?.toString() || "",
+      position: employee.position || "",
+      admissionDate: employee.admissionDate || "",
+      contractType: employee.contractType || "clt",
+      workSchedule: employee.workSchedule || "integral",
+      salary: parseFloat(employee.salary || "0"),
+      benefits: employee.benefits || "",
+      
+      // Dados bancários
+      bankCode: employee.bankCode || "",
+      bankName: employee.bankName || "",
+      agencyNumber: employee.agencyNumber || "",
+      accountNumber: employee.accountNumber || "",
+      accountType: employee.accountType || "corrente",
+      pixKey: employee.pixKey || "",
+      
+      // Escolaridade
+      educationLevel: employee.educationLevel || "medio",
+      institution: employee.institution || "",
+      course: employee.course || "",
+      graduationYear: employee.graduationYear || new Date().getFullYear(),
+      
+      // Sistema
+      isActive: employee.isActive !== false,
+    });
+    
+    setIsEditDialogOpen(true);
   };
 
   // Filter users based on search term
@@ -1035,6 +1200,802 @@ export default function Employees() {
                 </Form>
               </DialogContent>
             </Dialog>
+
+            {/* Edit Employee Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Editar Funcionário</DialogTitle>
+                </DialogHeader>
+                <Form {...editForm}>
+                  <form onSubmit={editForm.handleSubmit(onSubmitEditEmployee)} className="space-y-6">
+                    <Tabs defaultValue="pessoais" className="w-full">
+                      <TabsList className="grid w-full grid-cols-6">
+                        <TabsTrigger value="pessoais" className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          Pessoais
+                        </TabsTrigger>
+                        <TabsTrigger value="documentos" className="flex items-center gap-1">
+                          <FileText className="h-4 w-4" />
+                          Documentos
+                        </TabsTrigger>
+                        <TabsTrigger value="endereco" className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          Endereço
+                        </TabsTrigger>
+                        <TabsTrigger value="contatos" className="flex items-center gap-1">
+                          <Phone className="h-4 w-4" />
+                          Contatos
+                        </TabsTrigger>
+                        <TabsTrigger value="profissionais" className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          Profissional
+                        </TabsTrigger>
+                        <TabsTrigger value="bancarios" className="flex items-center gap-1">
+                          <CreditCard className="h-4 w-4" />
+                          Bancários
+                        </TabsTrigger>
+                      </TabsList>
+
+                      {/* Dados Pessoais */}
+                      <TabsContent value="pessoais" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="firstName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nome *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Ex: João" {...field} data-testid="input-first-name-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Sobrenome *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Ex: Silva" {...field} data-testid="input-last-name-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <FormField
+                          control={editForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>E-mail *</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="joao.silva@email.com" {...field} data-testid="input-email-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="personalPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Telefone Pessoal *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="(11) 99999-9999" {...field} data-testid="input-personal-phone-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="birthDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Data de Nascimento</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} data-testid="input-birth-date-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="maritalStatus"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Estado Civil</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-marital-status-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                                    <SelectItem value="casado">Casado(a)</SelectItem>
+                                    <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                                    <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="gender"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Gênero</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-gender-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                    <SelectItem value="feminino">Feminino</SelectItem>
+                                    <SelectItem value="nao_binario">Não Binário</SelectItem>
+                                    <SelectItem value="prefiro_nao_informar">Prefiro não informar</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="nationality"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nacionalidade</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Brasileira" {...field} data-testid="input-nationality-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="naturalness"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Naturalidade</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="São Paulo - SP" {...field} data-testid="input-naturalness-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </TabsContent>
+
+                      {/* Documentos */}
+                      <TabsContent value="documentos" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="cpf"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>CPF *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="000.000.000-00" {...field} data-testid="input-cpf-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="rg"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>RG</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="00.000.000-0" {...field} data-testid="input-rg-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="rgIssuingOrgan"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Órgão Emissor RG</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="SSP-SP" {...field} data-testid="input-rg-organ-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="ctps"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>CTPS</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="0000000-00" {...field} data-testid="input-ctps-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="pisPasep"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>PIS/PASEP</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="000.00000.00-0" {...field} data-testid="input-pis-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={editForm.control}
+                          name="tituloEleitor"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Título de Eleitor</FormLabel>
+                              <FormControl>
+                                <Input placeholder="0000.0000.0000" {...field} data-testid="input-titulo-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+
+                      {/* Endereço */}
+                      <TabsContent value="endereco" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="cep"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>CEP</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="00000-000" {...field} data-testid="input-cep-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="address"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Endereço</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Rua das Flores" {...field} data-testid="input-address-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="addressNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Número</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123" {...field} data-testid="input-address-number-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="addressComplement"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Complemento</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Apto 45" {...field} data-testid="input-complement-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="neighborhood"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Bairro</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Centro" {...field} data-testid="input-neighborhood-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Cidade</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="São Paulo" {...field} data-testid="input-city-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="state"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Estado</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="SP" {...field} data-testid="input-state-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="country"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>País</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Brasil" {...field} data-testid="input-country-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </TabsContent>
+
+                      {/* Contatos */}
+                      <TabsContent value="contatos" className="space-y-4">
+                        <FormField
+                          control={editForm.control}
+                          name="commercialPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Telefone Comercial</FormLabel>
+                              <FormControl>
+                                <Input placeholder="(11) 3000-0000" {...field} data-testid="input-commercial-phone-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="emergencyContactName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nome do Contato de Emergência</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Maria Silva" {...field} data-testid="input-emergency-name-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="emergencyContactPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Telefone do Contato de Emergência</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="(11) 99999-8888" {...field} data-testid="input-emergency-phone-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={editForm.control}
+                          name="emergencyContactRelationship"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Parentesco do Contato de Emergência</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Mãe, Pai, Cônjuge, etc." {...field} data-testid="input-emergency-relationship-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+
+                      {/* Profissional */}
+                      <TabsContent value="profissionais" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="position"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Cargo *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Desenvolvedor Full Stack" {...field} data-testid="input-position-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="departmentId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Departamento</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => {
+                                    field.onChange(value === "none" ? "" : value);
+                                  }} 
+                                  value={field.value?.toString() || ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-department-edit">
+                                      <SelectValue placeholder="Selecione um departamento" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="none">Sem departamento</SelectItem>
+                                    {departments?.map((dept: any) => (
+                                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                                        {dept.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="admissionDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Data de Admissão</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} data-testid="input-admission-date-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="contractType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Tipo de Contrato</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-contract-type-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="clt">CLT</SelectItem>
+                                    <SelectItem value="pj">PJ</SelectItem>
+                                    <SelectItem value="estagio">Estágio</SelectItem>
+                                    <SelectItem value="terceirizado">Terceirizado</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="workSchedule"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Jornada de Trabalho</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-work-schedule-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="integral">Integral</SelectItem>
+                                    <SelectItem value="meio_periodo">Meio Período</SelectItem>
+                                    <SelectItem value="flexivel">Flexível</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="salary"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Salário</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    placeholder="5000.00" 
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                    data-testid="input-salary-edit"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="role"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nível de Acesso</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-role-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="employee">Funcionário</SelectItem>
+                                    <SelectItem value="admin">Administrador</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={editForm.control}
+                          name="benefits"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Benefícios</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Vale alimentação, plano de saúde, convênio odontológico..." 
+                                  {...field} 
+                                  data-testid="input-benefits-edit"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="educationLevel"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Escolaridade</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-education-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="fundamental">Ensino Fundamental</SelectItem>
+                                    <SelectItem value="medio">Ensino Médio</SelectItem>
+                                    <SelectItem value="superior">Ensino Superior</SelectItem>
+                                    <SelectItem value="pos_graduacao">Pós-graduação</SelectItem>
+                                    <SelectItem value="mestrado">Mestrado</SelectItem>
+                                    <SelectItem value="doutorado">Doutorado</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="institution"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Instituição</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Universidade de São Paulo" {...field} data-testid="input-institution-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="course"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Curso</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Engenharia de Software" {...field} data-testid="input-course-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </TabsContent>
+
+                      {/* Dados Bancários */}
+                      <TabsContent value="bancarios" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="bankCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Código do Banco</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="001" {...field} data-testid="input-bank-code-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="bankName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nome do Banco</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Banco do Brasil" {...field} data-testid="input-bank-name-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={editForm.control}
+                            name="agencyNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Número da Agência</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="1234-5" {...field} data-testid="input-agency-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="accountNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Número da Conta</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="12345-6" {...field} data-testid="input-account-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="accountType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Tipo de Conta</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-account-type-edit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="corrente">Corrente</SelectItem>
+                                    <SelectItem value="poupanca">Poupança</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={editForm.control}
+                          name="pixKey"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Chave PIX</FormLabel>
+                              <FormControl>
+                                <Input placeholder="joao.silva@email.com ou CPF ou telefone" {...field} data-testid="input-pix-key-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                    </Tabs>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        type="submit" 
+                        disabled={editEmployeeMutation.isPending} 
+                        className="point-primary"
+                        data-testid="button-save-edit-employee"
+                      >
+                        {editEmployeeMutation.isPending ? "Atualizando..." : "Atualizar Funcionário"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setIsEditDialogOpen(false)}
+                        data-testid="button-cancel-edit-employee"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Search and Filter */}
@@ -1092,6 +2053,15 @@ export default function Employees() {
                         <Badge variant={employee.isActive ? "default" : "secondary"}>
                           {employee.isActive ? "Ativo" : "Inativo"}
                         </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditEmployee(employee)}
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          data-testid={`button-edit-employee-${employee.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
