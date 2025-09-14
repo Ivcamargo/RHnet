@@ -54,7 +54,7 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="rhnet-ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="rhnet-ui-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

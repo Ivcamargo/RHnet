@@ -150,8 +150,8 @@ export default function Dashboard() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
-      case 'normal': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400';
+      case 'high': return 'text-red-600 bg-red-100';
+      case 'normal': return 'text-orange-600 bg-orange-100';
       default: return 'text-gray-600 bg-orange-100';
     }
   };
@@ -167,14 +167,14 @@ export default function Dashboard() {
           {/* Superadmin Claim Alert - Only show if no superadmin exists in the system */}
           {user && superadminCheck && !superadminCheck.hasSuperadmin && (
             <div className="mb-6">
-              <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
-                <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <Alert className="border-amber-200 bg-amber-50">
+                <Crown className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="flex items-center justify-between">
                   <div>
-                    <span className="font-medium text-amber-800 dark:text-amber-200">
+                    <span className="font-medium text-amber-800">
                       Sistema sem Super Administrador
                     </span>
-                    <p className="text-amber-700 dark:text-amber-300 mt-1">
+                    <p className="text-amber-700 mt-1">
                       Seja o primeiro administrador do sistema e tenha controle total sobre empresas e usuários.
                     </p>
                   </div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
                     size="sm"
                     onClick={() => claimSuperadminMutation.mutate()}
                     disabled={claimSuperadminMutation.isPending}
-                    className="ml-4 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                    className="ml-4 border-amber-300 text-amber-700 hover:bg-amber-100"
                     data-testid="button-claim-superadmin"
                   >
                     {claimSuperadminMutation.isPending ? (
