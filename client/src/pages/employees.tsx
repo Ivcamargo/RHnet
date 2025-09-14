@@ -383,11 +383,11 @@ export default function Employees() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <TopBar />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-6">
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <TopBar title="Funcionários" />
+          <main className="flex-1 overflow-auto p-6">
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
                 <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -402,13 +402,12 @@ export default function Employees() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <TopBar />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6">
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <TopBar title="Funcionários" />
+        <main className="flex-1 overflow-auto p-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Funcionários</h1>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="point-primary" data-testid="button-add-employee">
