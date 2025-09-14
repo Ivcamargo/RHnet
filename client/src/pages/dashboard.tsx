@@ -161,7 +161,7 @@ export default function Dashboard() {
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar title="Gestão de RH" />
+        <TopBar />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           {/* Superadmin Claim Alert - Only show if no superadmin exists in the system */}
