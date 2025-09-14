@@ -181,7 +181,9 @@ export default function Employees() {
       await apiRequest(`/api/admin/users/${userId}`, { method: "PUT", body: JSON.stringify(data) });
     },
     onSuccess: () => {
+      // Force refetch to ensure UI is synchronized
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/admin/users"] });
       setIsEditDialogOpen(false);
       setSelectedEmployee(null);
       toast({
@@ -386,6 +388,7 @@ export default function Employees() {
     
     return matchesSearch && matchesStatus;
   });
+
 
   // Debug: Log filter status
   console.log('Filter debug:', { 
