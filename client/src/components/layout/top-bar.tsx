@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Bell, MapPin } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
-import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 interface TopBarProps {
   title: string;

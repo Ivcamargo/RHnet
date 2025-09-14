@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Mail, Plus, Send, Clock, Eye, Filter, Search, MessageCircle, Users, Edit, Trash2 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
+import TopBar from "@/components/layout/top-bar";
 
 // Form schemas
 const messageFormSchema = z.object({
@@ -309,31 +310,36 @@ export default function Messages() {
 
   if (loadingMessages || loadingCategories || loadingUsers) {
     return (
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-gray-50">
         <Sidebar />
-        <main className="flex-1 p-6">
-          <div className="flex items-center justify-center h-96">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          </div>
-        </main>
+        <div className="flex-1 flex flex-col">
+          <TopBar title="Mensagens" />
+          <main className="flex-1 overflow-auto p-6">
+            <div className="flex items-center justify-center h-96">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+            </div>
+          </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <main className="flex-1 p-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-orange-800">
-                <MessageCircle className="inline-block h-8 w-8 mr-3 text-orange-600" />
-                Mensageria Corporativa
-              </h1>
-              <p className="text-gray-600">Gerencie suas mensagens e comunicações</p>
-            </div>
+      <div className="flex-1 flex flex-col">
+        <TopBar title="Mensagens" />
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-orange-800">
+                  <MessageCircle className="inline-block h-8 w-8 mr-3 text-orange-600" />
+                  Mensageria Corporativa
+                </h1>
+                <p className="text-gray-600">Gerencie suas mensagens e comunicações</p>
+              </div>
             <div className="flex gap-2">
               <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
                 <DialogTrigger asChild>
@@ -914,7 +920,8 @@ export default function Messages() {
             </div>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
