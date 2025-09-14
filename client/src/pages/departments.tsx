@@ -6,19 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertDepartmentSchema, type InsertDepartment } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Building, MapPin, Users, Plus } from "lucide-react";
+import { Building, MapPin, Users, Plus, Edit, Trash2, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { LocationMap } from "@/components/ui/location-map";
 
 export default function Departments() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<any>(null);
   const { toast } = useToast();
 
   const { data: departments, isLoading } = useQuery({
@@ -44,9 +49,29 @@ export default function Departments() {
     },
   });
 
+  const editForm = useForm<InsertDepartment>({
+    resolver: zodResolver(insertDepartmentSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      shiftStart: "08:00",
+      shiftEnd: "17:00",
+      latitude: -23.5505,
+      longitude: -46.6333,
+      radius: 100,
+      isActive: true,
+      companyId: 1,
+    },
+  });
+
   const handleLocationChange = (lat: number, lng: number) => {
     form.setValue('latitude', lat);
     form.setValue('longitude', lng);
+  };
+
+  const handleEditLocationChange = (lat: number, lng: number) => {
+    editForm.setValue('latitude', lat);
+    editForm.setValue('longitude', lng);
   };
 
   const createMutation = useMutation({
@@ -71,13 +96,96 @@ export default function Departments() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: InsertDepartment }) => {
+      await apiRequest(`/api/departments/${id}`, { method: "PUT", body: JSON.stringify(data) });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      setIsEditOpen(false);
+      setSelectedDepartment(null);
+      editForm.reset();
+      toast({
+        title: "Sucesso",
+        description: "Departamento atualizado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest(`/api/departments/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      setIsDeleteOpen(false);
+      setSelectedDepartment(null);
+      toast({
+        title: "Sucesso",
+        description: "Departamento excluído com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: InsertDepartment) => {
     createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: InsertDepartment) => {
+    if (selectedDepartment) {
+      updateMutation.mutate({ id: selectedDepartment.id, data });
+    }
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     form.handleSubmit(onSubmit)(e);
+  };
+
+  const handleEditFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    editForm.handleSubmit(onEditSubmit)(e);
+  };
+
+  const handleEditDepartment = (department: any) => {
+    setSelectedDepartment(department);
+    editForm.reset({
+      name: department.name,
+      description: department.description || "",
+      shiftStart: department.shiftStart,
+      shiftEnd: department.shiftEnd,
+      latitude: department.latitude,
+      longitude: department.longitude,
+      radius: department.radius,
+      isActive: department.isActive,
+      companyId: department.companyId,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleDeleteDepartment = (department: any) => {
+    setSelectedDepartment(department);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedDepartment) {
+      deleteMutation.mutate(selectedDepartment.id);
+    }
   };
 
   const isAdmin = (user as any)?.role === 'admin' || (user as any)?.role === 'superadmin';
@@ -95,7 +203,7 @@ export default function Departments() {
             {isAdmin && (
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button className="point-primary">
+                  <Button className="point-primary" data-testid="button-new-department">
                     <Plus className="h-4 w-4 mr-2" />
                     Novo Departamento
                   </Button>
@@ -253,6 +361,181 @@ export default function Departments() {
             )}
           </div>
 
+          {/* Edit Department Dialog */}
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Editar Departamento</DialogTitle>
+              </DialogHeader>
+              <Form {...editForm}>
+                <form onSubmit={handleEditFormSubmit} className="space-y-4">
+                  <FormField
+                    control={editForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do Departamento</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Tecnologia da Informação" {...field} data-testid="edit-input-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Descrição do departamento..." {...field} value={field.value || ''} data-testid="edit-input-description" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="shiftStart"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Início do Turno</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} data-testid="edit-input-shift-start" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="shiftEnd"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fim do Turno</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} data-testid="edit-input-shift-end" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <LocationMap
+                    latitude={editForm.watch('latitude')}
+                    longitude={editForm.watch('longitude')}
+                    radius={editForm.watch('radius') || 100}
+                    onLocationChange={handleEditLocationChange}
+                    className="mb-4"
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="latitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Latitude</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="any" 
+                              readOnly
+                              className="bg-gray-50"
+                              {...field}
+                              data-testid="edit-input-latitude"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="longitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Longitude</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="any" 
+                              readOnly
+                              className="bg-gray-50"
+                              {...field}
+                              data-testid="edit-input-longitude"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={editForm.control}
+                    name="radius"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Raio da Cerca Virtual (metros)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="100"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            data-testid="edit-input-radius"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={updateMutation.isPending} className="point-primary" data-testid="button-save-department">
+                      {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} data-testid="button-cancel-edit">
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza de que deseja excluir o departamento "{selectedDepartment?.name}"? 
+                  Esta ação não pode ser desfeita e pode afetar funcionários associados a este departamento.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={confirmDelete}
+                  disabled={deleteMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700"
+                  data-testid="button-confirm-delete"
+                >
+                  {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
@@ -281,16 +564,44 @@ export default function Departments() {
               {departments?.map && departments.map((department: any) => (
                 <Card key={department.id} className="material-shadow hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 point-primary rounded-lg flex items-center justify-center">
-                        <Building className="h-5 w-5" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 point-primary rounded-lg flex items-center justify-center">
+                          <Building className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{department.name}</CardTitle>
+                          <p className="text-sm text-gray-500">
+                            {department.shiftStart} - {department.shiftEnd}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">{department.name}</CardTitle>
-                        <p className="text-sm text-gray-500">
-                          {department.shiftStart} - {department.shiftEnd}
-                        </p>
-                      </div>
+                      {isAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" data-testid={`dropdown-department-${department.id}`}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleEditDepartment(department)}
+                              data-testid={`edit-department-${department.id}`}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteDepartment(department)}
+                              className="text-red-600"
+                              data-testid={`delete-department-${department.id}`}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
