@@ -19,7 +19,7 @@ import {
   CheckCircle,
   ArrowRight
 } from "lucide-react";
-import rhnetLogo from "@assets/image_1757809833414.png";
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
 
 export default function Landing() {
@@ -55,26 +55,75 @@ export default function Landing() {
         }}
       ></div>
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-orange-800">Sistema de gestão de recursos humanos</h1>
+      <header className="relative z-10">
+        {/* Top Header Bar */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+              <div className="flex items-center">
+                <div className="bg-blue-500 p-2 rounded-lg mr-3">
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-xl font-bold text-blue-600">RHNet</span>
+              </div>
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-gray-800">Gestão de RH</h2>
+              </div>
+              <Button 
+                onClick={handleLogin} 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                data-testid="button-login"
+              >
+                Fazer Login
+              </Button>
             </div>
-            <Button 
-              onClick={handleLogin} 
-              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
-              data-testid="button-login"
-            >
-              Fazer Login
-            </Button>
+          </div>
+        </div>
+        
+        {/* Hero Section */}
+        <div className="bg-gray-900 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="flex">
+              {/* Left Sidebar */}
+              <div className="w-64 mr-8">
+                <div className="space-y-2">
+                  <div className="bg-blue-600 text-white px-4 py-3 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="mr-3">🏠</div>
+                      <span className="font-medium">Dashboard RH</span>
+                    </div>
+                  </div>
+                  <div className="text-gray-300 px-4 py-3 hover:bg-gray-800 rounded-lg cursor-pointer">
+                    <div className="flex items-center">
+                      <MessageSquare className="h-4 w-4 mr-3" />
+                      <span>Mensagens</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Main Content */}
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold mb-4">Bem-vindo ao RHNet</h1>
+                <p className="text-xl text-gray-300">
+                  'A Rede do RH' - Sistema completo de gestão de recursos humanos
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
+        <div className="text-center mb-20">
+          <p className="text-xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed">
+            Sistema de gestão de recursos humanos que integra <strong>controle de ponto eletrônico</strong>, 
+            <strong> mensageria corporativa</strong>, <strong>gestão de documentos</strong> e 
+            <strong> capacitação de funcionários</strong>. Uma solução unificada para comunicação entre RH e colaboradores, 
+            com funcionalidades avançadas de geolocalização, reconhecimento facial e relatórios abrangentes.
+          </p>
+        </div>
 
         {/* Core Features - Sistema Integrado */}
         <div className="mb-20">
