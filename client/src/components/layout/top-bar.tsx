@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Bell, MapPin } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 interface TopBarProps {
   title: string;
@@ -45,7 +46,8 @@ export default function TopBar({ title }: TopBarProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h2 className="ml-2 text-xl font-semibold text-gray-800">{title}</h2>
+        <img src={rhnetLogo} alt="RHNet" className="h-8 w-8 mr-3 rounded-lg" />
+        <h2 className="text-xl font-semibold text-orange-800">{title}</h2>
       </div>
       
       <div className="flex items-center space-x-4">
