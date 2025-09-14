@@ -19,7 +19,7 @@ import {
   CheckCircle,
   ArrowRight
 } from "lucide-react";
-import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
+import rhnetLogo from "@assets/image_1757809833414.png";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
 
 export default function Landing() {
