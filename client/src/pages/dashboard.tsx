@@ -152,7 +152,7 @@ export default function Dashboard() {
     switch (priority) {
       case 'high': return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
       case 'normal': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+      default: return 'text-gray-600 bg-orange-100';
     }
   };
 
@@ -318,7 +318,7 @@ export default function Dashboard() {
                 {hrData.recentMessages.map((message) => (
                   <div key={message.id} className="flex items-start space-x-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="flex-shrink-0">
-                      <div className={`w-3 h-3 rounded-full mt-2 ${message.isRead ? 'bg-gray-400' : 'bg-primary'}`} />
+                      <div className={`w-3 h-3 rounded-full mt-2 ${message.isRead ? 'bg-gray-400' : 'bg-orange-600'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">

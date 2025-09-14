@@ -186,14 +186,14 @@ export default function Messages() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       <main className="flex-1 p-6 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-orange-800">
                 <MessageCircle className="inline-block h-8 w-8 mr-3 text-blue-600" />
                 Mensageria Corporativa
               </h1>

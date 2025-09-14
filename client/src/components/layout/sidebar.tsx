@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 export default function Sidebar() {
   const [location] = useLocation();
@@ -71,11 +72,13 @@ export default function Sidebar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-gradient-to-b from-orange-50 to-red-50 border-r border-orange-200">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 px-4 bg-gradient-to-r from-orange-600 to-red-600">
-        <h1 className="text-xl font-bold text-white">
-          <MessageCircle className="inline-block h-6 w-6 mr-2" />
-          RHNet
-        </h1>
+      <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-orange-600 to-red-600">
+        <div className="flex items-center">
+          <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
+          <h1 className="text-xl font-bold text-white">
+            RHNet
+          </h1>
+        </div>
       </div>
       
       {/* Navigation */}
