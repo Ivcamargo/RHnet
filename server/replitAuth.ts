@@ -35,7 +35,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -56,19 +56,25 @@ async function upsertUser(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // CRITICAL SECURITY FIX: Only assign default company to NEW users
-    // Check if user already exists to preserve existing companyId
-    const existingUser = await storage.getUser(claims["sub"]);
+    // Check if user already exists by ID first, then by email to avoid duplicates
+    let existingUser = await storage.getUser(claims["sub"]);
+    
+    if (!existingUser) {
+      // If not found by ID, check by email to avoid email constraint violation
+      const allUsers = await storage.getAllUsers();
+      existingUser = allUsers.find(user => user.email === claims["email"]);
+    }
     
     if (existingUser) {
-      // User exists - update profile info but preserve companyId and role
+      // User exists (by ID or email) - update profile info and role from claims if available
       await storage.upsertUser({
-        id: claims["sub"],
+        id: claims["sub"], // Use the new ID from claims (important for OIDC consistency)
         companyId: existingUser.companyId, // PRESERVE existing companyId
         email: claims["email"],
         firstName: claims["first_name"],
         lastName: claims["last_name"],
         profileImageUrl: claims["profile_image_url"],
-        role: existingUser.role, // PRESERVE existing role
+        role: claims["role"] || existingUser.role, // USE role from claims if available, otherwise preserve existing
         departmentId: existingUser.departmentId, // PRESERVE existing departmentId
       });
     } else {
@@ -92,6 +98,7 @@ async function upsertUser(
         firstName: claims["first_name"],
         lastName: claims["last_name"],
         profileImageUrl: claims["profile_image_url"],
+        role: claims["role"] || "employee", // USE role from claims if available, default to employee
       });
     }
     

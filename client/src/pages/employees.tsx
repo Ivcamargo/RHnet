@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Trash2, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,6 +34,7 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -86,7 +87,7 @@ export default function Employees() {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (data: AddEmployeeForm) => {
-      await apiRequest("/api/admin/employees", { method: "POST", body: JSON.stringify(data) });
+      await apiRequest("/api/admin/users", { method: "POST", body: JSON.stringify(data) });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -95,6 +96,27 @@ export default function Employees() {
       toast({
         title: "Sucesso",
         description: "Funcionário adicionado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete employee mutation
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest(`/api/admin/users/${userId}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Sucesso",
+        description: "Funcionário removido com sucesso",
       });
     },
     onError: (error: Error) => {
@@ -125,6 +147,20 @@ export default function Employees() {
   const onSubmitAddEmployee = (data: AddEmployeeForm) => {
     addEmployeeMutation.mutate(data);
   };
+
+  const handleDeleteEmployee = (userId: string) => {
+    if (confirm("Tem certeza que deseja remover este funcionário? Esta ação não pode ser desfeita.")) {
+      deleteEmployeeMutation.mutate(userId);
+    }
+  };
+
+  // Filter employees based on search term
+  const filteredEmployees = allUsers?.filter((employee: any) =>
+    employee.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.department?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   if (!isAdmin) {
     // Show only current user profile for non-admin users
@@ -256,12 +292,32 @@ export default function Employees() {
         <TopBar title="Gestão de Funcionários" />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          <div className="mb-6 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Gestão de Funcionários</h1>
-              <p className="text-gray-600">Visualize e gerencie os funcionários da empresa</p>
+          <div className="mb-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Gestão de Funcionários</h1>
+                <p className="text-gray-600">Visualize e gerencie os funcionários da empresa</p>
+              </div>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            
+            {/* Search Bar */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input 
+                    placeholder="Pesquisar funcionários por nome, email ou departamento..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-employees"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="flex justify-end">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="point-primary" data-testid="button-add-employee">
                   <Plus className="h-4 w-4 mr-2" />
@@ -284,7 +340,6 @@ export default function Employees() {
                             <Input 
                               type="email"
                               placeholder="funcionario@empresa.com"
-                              data-testid="input-employee-email" 
                               data-testid="input-employee-email"
                               {...field} 
                             />
@@ -420,7 +475,7 @@ export default function Employees() {
                 </Card>
               ))}
             </div>
-          ) : allUsers?.length === 0 ? (
+          ) : !filteredEmployees || filteredEmployees.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum funcionário encontrado</h3>
@@ -428,7 +483,7 @@ export default function Employees() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allUsers?.map((employee: any) => (
+              {filteredEmployees.map((employee: any) => (
                 <Card key={employee.id} className="material-shadow hover:shadow-lg transition-shadow">
                   <CardHeader className="text-center">
                     <Avatar className="w-16 h-16 mx-auto mb-3">
@@ -460,15 +515,28 @@ export default function Employees() {
                       <span>{employee.department?.name || 'Sem departamento'}</span>
                     </div>
                     
-                    <div className="pt-3 border-t">
+                    <div className="pt-3 border-t space-y-2">
                       <Button
                         onClick={() => handleEditUser(employee)}
                         size="sm"
                         className="w-full point-primary"
+                        data-testid={`button-edit-employee-${employee.id}`}
                       >
                         <Settings className="h-4 w-4 mr-2" />
                         Gerenciar
                       </Button>
+                      {user?.role === 'admin' && (
+                        <Button
+                          onClick={() => handleDeleteEmployee(employee.id)}
+                          size="sm"
+                          variant="destructive"
+                          className="w-full"
+                          data-testid={`button-delete-employee-${employee.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -496,6 +564,7 @@ export default function Employees() {
               )}
             </DialogContent>
           </Dialog>
+          </div>
         </main>
       </div>
     </div>

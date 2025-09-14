@@ -14,7 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Plus, Send, Clock, Eye, Filter, Search, MessageCircle, Users } from "lucide-react";
+import { Mail, Plus, Send, Clock, Eye, Filter, Search, MessageCircle, Users, Edit, Trash2 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 
 // Form schemas
@@ -42,16 +42,19 @@ export default function Messages() {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [showEditMessageDialog, setShowEditMessageDialog] = useState(false);
+  const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
 
   // Fetch user data
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
   });
 
-  // Fetch messages based on current tab
+  // Fetch messages based on current tab  
   const { data: messages, isLoading: loadingMessages } = useQuery({
     queryKey: ["/api/messages", selectedTab],
-    queryFn: () => fetch(`/api/messages/${selectedTab}`).then(res => res.json()),
   });
 
   // Fetch message categories
@@ -128,9 +131,96 @@ export default function Messages() {
   // Mark message as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: (messageId: string) =>
-      apiRequest(`/api/messages/${messageId}/read`, "PATCH"),
+      apiRequest(`/api/messages/${messageId}/read`, { method: "PATCH" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    },
+  });
+
+  // Update message mutation
+  const updateMessageMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<MessageFormData> }) =>
+      apiRequest(`/api/messages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      toast({
+        title: "Mensagem atualizada",
+        description: "A mensagem foi atualizada com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      setShowEditMessageDialog(false);
+      setEditingMessage(null);
+      messageForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar mensagem",
+        description: error.message || "Ocorreu um erro ao atualizar a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: (messageId: string) =>
+      apiRequest(`/api/messages/${messageId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast({
+        title: "Mensagem excluída",
+        description: "A mensagem foi excluída com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      setSelectedMessage(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir mensagem",
+        description: error.message || "Ocorreu um erro ao excluir a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update category mutation
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<CategoryFormData> }) =>
+      apiRequest(`/api/message-categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      toast({
+        title: "Categoria atualizada",
+        description: "A categoria foi atualizada com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/message-categories"] });
+      setShowEditCategoryDialog(false);
+      setEditingCategory(null);
+      categoryForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar categoria",
+        description: error.message || "Ocorreu um erro ao atualizar a categoria.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete category mutation
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (categoryId: number) =>
+      apiRequest(`/api/message-categories/${categoryId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast({
+        title: "Categoria excluída",
+        description: "A categoria foi excluída com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/message-categories"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir categoria",
+        description: error.message || "Ocorreu um erro ao excluir a categoria.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -140,6 +230,51 @@ export default function Messages() {
 
   const handleCreateCategory = (data: CategoryFormData) => {
     createCategoryMutation.mutate(data);
+  };
+
+  const handleEditMessage = (message: any) => {
+    setEditingMessage(message);
+    messageForm.reset({
+      recipientId: message.recipientId || "",
+      categoryId: message.categoryId?.toString() || "",
+      subject: message.subject || "",
+      content: message.content || "",
+      priority: message.priority || "normal",
+      isMassMessage: message.isMassMessage || false
+    });
+    setShowEditMessageDialog(true);
+  };
+
+  const handleUpdateMessage = (data: MessageFormData) => {
+    if (!editingMessage) return;
+    updateMessageMutation.mutate({ id: editingMessage.id, data });
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    if (confirm("Tem certeza que deseja excluir esta mensagem?")) {
+      deleteMessageMutation.mutate(messageId);
+    }
+  };
+
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category);
+    categoryForm.reset({
+      name: category.name || "",
+      description: category.description || "",
+      color: category.color || "#EA580C"
+    });
+    setShowEditCategoryDialog(true);
+  };
+
+  const handleUpdateCategory = (data: CategoryFormData) => {
+    if (!editingCategory) return;
+    updateCategoryMutation.mutate({ id: editingCategory.id, data });
+  };
+
+  const handleDeleteCategory = (categoryId: number) => {
+    if (confirm("Tem certeza que deseja excluir esta categoria?")) {
+      deleteCategoryMutation.mutate(categoryId);
+    }
   };
 
   const handleMessageClick = (message: any) => {
@@ -406,6 +541,202 @@ export default function Messages() {
                   </Form>
                 </DialogContent>
               </Dialog>
+
+              {/* Edit Message Dialog */}
+              <Dialog open={showEditMessageDialog} onOpenChange={setShowEditMessageDialog}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Editar Mensagem</DialogTitle>
+                    <DialogDescription>
+                      Atualize as informações da mensagem.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...messageForm}>
+                    <form onSubmit={messageForm.handleSubmit(handleUpdateMessage)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={messageForm.control}
+                          name="recipientId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Destinatário</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-recipient-edit">
+                                    <SelectValue placeholder="Selecione o destinatário" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="all">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Todos os funcionários
+                                  </SelectItem>
+                                  {Array.isArray(users) ? users.map((user: any) => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                      {user.firstName} {user.lastName}
+                                    </SelectItem>
+                                  )) : null}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={messageForm.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categoria</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value ? field.value.toString() : ""}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-category-edit">
+                                    <SelectValue placeholder="Selecione a categoria" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(categories) ? categories.map((category: any) => (
+                                    <SelectItem key={category.id} value={category.id.toString()}>
+                                      {category.name}
+                                    </SelectItem>
+                                  )) : null}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={messageForm.control}
+                          name="subject"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Assunto</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Digite o assunto" {...field} data-testid="input-subject-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={messageForm.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Prioridade</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-priority-edit">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="low">Baixa</SelectItem>
+                                  <SelectItem value="normal">Normal</SelectItem>
+                                  <SelectItem value="high">Alta</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={messageForm.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Conteúdo</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Digite o conteúdo da mensagem" 
+                                rows={6} 
+                                {...field} 
+                                data-testid="textarea-content-edit" 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setShowEditMessageDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button type="submit" disabled={updateMessageMutation.isPending} data-testid="button-update-message">
+                          {updateMessageMutation.isPending ? "Atualizando..." : "Atualizar"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Edit Category Dialog */}
+              <Dialog open={showEditCategoryDialog} onOpenChange={setShowEditCategoryDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Editar Categoria</DialogTitle>
+                    <DialogDescription>
+                      Atualize as informações da categoria.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...categoryForm}>
+                    <form onSubmit={categoryForm.handleSubmit(handleUpdateCategory)} className="space-y-4">
+                      <FormField
+                        control={categoryForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nome da categoria" {...field} data-testid="input-category-name-edit" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={categoryForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Descrição</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Descrição da categoria" {...field} data-testid="textarea-category-description-edit" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={categoryForm.control}
+                        name="color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cor</FormLabel>
+                            <FormControl>
+                              <Input type="color" {...field} data-testid="input-category-color-edit" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setShowEditCategoryDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button type="submit" disabled={updateCategoryMutation.isPending} data-testid="button-update-category">
+                          {updateCategoryMutation.isPending ? "Atualizando..." : "Atualizar"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -526,17 +857,39 @@ export default function Messages() {
                           )}
                         </CardDescription>
                       </div>
-                      {selectedMessage.isRead ? (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          Lida
-                        </Badge>
-                      ) : (
-                        <Badge className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          Nova
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {selectedMessage.isRead ? (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            Lida
+                          </Badge>
+                        ) : (
+                          <Badge className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            Nova
+                          </Badge>
+                        )}
+                        <div className="flex gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleEditMessage(selectedMessage)}
+                            data-testid="button-edit-message"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => handleDeleteMessage(selectedMessage.id)}
+                            data-testid="button-delete-message"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Excluir
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>

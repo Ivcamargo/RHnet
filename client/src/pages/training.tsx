@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { GraduationCap, Play, Award, Clock, CheckCircle, Plus } from "lucide-react";
+import { GraduationCap, Play, Award, Clock, CheckCircle, Plus, Edit, Trash2, X } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,8 @@ import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCou
 export default function Training() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const { toast } = useToast();
 
   // Fetch user info
@@ -83,6 +85,72 @@ export default function Training() {
     },
   });
 
+  // Update course mutation
+  const updateCourseMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertCourse> }) => {
+      await apiRequest(`/api/courses/${id}`, { method: "PUT", body: JSON.stringify(data) });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      setShowEditDialog(false);
+      setEditingCourse(null);
+      form.reset();
+      toast({
+        title: "Sucesso",
+        description: "Curso atualizado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete course mutation
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (courseId: number) => {
+      await apiRequest(`/api/courses/${courseId}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      toast({
+        title: "Sucesso",
+        description: "Curso excluído com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Stop course mutation
+  const stopCourseMutation = useMutation({
+    mutationFn: async (employeeCourseId: number) => {
+      await apiRequest(`/api/employee-courses/${employeeCourseId}/stop`, { method: "PUT" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employee-courses"] });
+      toast({
+        title: "Curso parado",
+        description: "Você parou o curso com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Calculate stats
   const activeCourses = employeeCourses.filter(ec => ec.status === 'in_progress').length;
   const completedCourses = employeeCourses.filter(ec => ec.status === 'completed').length;
@@ -113,6 +181,34 @@ export default function Training() {
 
   const onSubmitCourse = (data: InsertCourse) => {
     createCourseMutation.mutate(data);
+  };
+
+  const handleEditCourse = (course: Course) => {
+    setEditingCourse(course);
+    form.reset({
+      title: course.title || "",
+      description: course.description || "",
+      duration: course.duration || 0,
+      isRequired: course.isRequired || false,
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateCourse = (data: InsertCourse) => {
+    if (!editingCourse) return;
+    updateCourseMutation.mutate({ id: editingCourse.id, data });
+  };
+
+  const handleDeleteCourse = (courseId: number) => {
+    if (confirm("Tem certeza que deseja excluir este curso? Esta ação não pode ser desfeita.")) {
+      deleteCourseMutation.mutate(courseId);
+    }
+  };
+
+  const handleStopCourse = (employeeCourseId: number) => {
+    if (confirm("Tem certeza que deseja parar este curso?")) {
+      stopCourseMutation.mutate(employeeCourseId);
+    }
   };
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
@@ -239,10 +335,20 @@ export default function Training() {
                         <span className="text-muted-foreground">
                           Iniciado: {item.startedAt ? new Date(item.startedAt).toLocaleDateString('pt-BR') : 'N/A'}
                         </span>
-                        <Button variant="outline" size="sm" data-testid={`button-continue-course-${index}`}>
-                          <Play className="h-4 w-4 mr-1" />
-                          Continuar
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button variant="outline" size="sm" data-testid={`button-continue-course-${index}`}>
+                            <Play className="h-4 w-4 mr-1" />
+                            Continuar
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => handleStopCourse(item.id)}
+                            data-testid={`button-stop-course-${index}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -356,6 +462,99 @@ export default function Training() {
                     </Dialog>
                   )}
                 </div>
+
+                {/* Edit Course Dialog */}
+                <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>Editar Curso</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(handleUpdateCourse)} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Título do Curso</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ex: Treinamento de Segurança no Trabalho" {...field} data-testid="input-course-title-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Descrição</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Descrição do curso..." {...field} data-testid="textarea-course-description-edit" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="duration"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Duração (em minutos)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  placeholder="Ex: 120" 
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                  data-testid="input-course-duration-edit"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="isRequired"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">
+                                  Curso Obrigatório
+                                </FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Marque se este curso é obrigatório para todos os funcionários
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  data-testid="switch-course-required-edit"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="flex gap-2">
+                          <Button type="submit" disabled={updateCourseMutation.isPending} className="point-primary" data-testid="button-update-course">
+                            {updateCourseMutation.isPending ? "Atualizando..." : "Atualizar"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent className="space-y-4">
                 {coursesLoading ? (
@@ -390,20 +589,42 @@ export default function Training() {
                           {course.duration ? `${Math.floor(course.duration / 60)}h` : 'Duração não definida'}
                         </p>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        data-testid={`button-start-course-${index}`}
-                        onClick={() => handleStartCourse(course.id)}
-                        disabled={startCourseMutation.isPending}
-                      >
-                        {startCourseMutation.isPending ? (
-                          <Clock className="h-4 w-4 mr-1" />
-                        ) : (
-                          <Play className="h-4 w-4 mr-1" />
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          data-testid={`button-start-course-${index}`}
+                          onClick={() => handleStartCourse(course.id)}
+                          disabled={startCourseMutation.isPending}
+                        >
+                          {startCourseMutation.isPending ? (
+                            <Clock className="h-4 w-4 mr-1" />
+                          ) : (
+                            <Play className="h-4 w-4 mr-1" />
+                          )}
+                          Iniciar
+                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleEditCourse(course)}
+                              data-testid={`button-edit-course-${index}`}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              onClick={() => handleDeleteCourse(course.id)}
+                              data-testid={`button-delete-course-${index}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
                         )}
-                        Iniciar
-                      </Button>
+                      </div>
                     </div>
                   ))
                 )}
