@@ -75,14 +75,6 @@ export default function Landing() {
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
-        <div className="text-center mb-20">
-          <p className="text-xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed">
-            Sistema de gestão de recursos humanos que integra <strong>controle de ponto eletrônico</strong>, 
-            <strong> mensageria corporativa</strong>, <strong>gestão de documentos</strong> e 
-            <strong> capacitação de funcionários</strong>. Uma solução unificada para comunicação entre RH e colaboradores, 
-            com funcionalidades avançadas de geolocalização, reconhecimento facial e relatórios abrangentes.
-          </p>
-        </div>
 
         {/* Core Features - Sistema Integrado */}
         <div className="mb-20">
