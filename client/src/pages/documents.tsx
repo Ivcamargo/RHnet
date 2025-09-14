@@ -63,7 +63,7 @@ export default function Documents() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -71,7 +71,7 @@ export default function Documents() {
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-3xl font-bold text-orange-800 mb-2">
               Documentos
             </h1>
             <p className="text-muted-foreground">
@@ -84,7 +84,7 @@ export default function Documents() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Enviar Documento</CardTitle>
-                <Upload className="h-4 w-4 text-primary" />
+                <Upload className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
                 <label htmlFor="file-upload" className="w-full">

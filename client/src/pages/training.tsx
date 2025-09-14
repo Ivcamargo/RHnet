@@ -118,7 +118,7 @@ export default function Training() {
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -139,7 +139,7 @@ export default function Training() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Cursos Ativos</CardTitle>
-                <Play className="h-4 w-4 text-primary" />
+                <Play className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
                 {progressLoading ? (
@@ -154,7 +154,7 @@ export default function Training() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
                 {progressLoading ? (
@@ -169,7 +169,7 @@ export default function Training() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Horas de Treinamento</CardTitle>
-                <Clock className="h-4 w-4 text-blue-500" />
+                <Clock className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
                 {coursesLoading || progressLoading ? (
@@ -184,7 +184,7 @@ export default function Training() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Certificados</CardTitle>
-                <Award className="h-4 w-4 text-yellow-500" />
+                <Award className="h-4 w-4 text-orange-400" />
               </CardHeader>
               <CardContent>
                 {certificatesLoading ? (
@@ -443,7 +443,7 @@ export default function Training() {
                   certificates.map((cert, index) => (
                     <div key={cert.id} className="border rounded-lg p-4 space-y-2" data-testid={`certificate-${index}`}>
                       <div className="flex items-center space-x-2">
-                        <Award className="h-4 w-4 text-yellow-500" />
+                        <Award className="h-4 w-4 text-orange-400" />
                         <span className="font-medium text-sm">{cert.title}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">

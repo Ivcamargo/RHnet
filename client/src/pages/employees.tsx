@@ -129,7 +129,7 @@ export default function Employees() {
   if (!isAdmin) {
     // Show only current user profile for non-admin users
     return (
-      <div className="flex h-screen overflow-hidden bg-gray-100">
+      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
         <Sidebar />
         
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -137,7 +137,7 @@ export default function Employees() {
           
           <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
+              <h1 className="text-2xl font-bold text-orange-800">Meu Perfil</h1>
               <p className="text-gray-600">Informações do seu perfil e departamento</p>
             </div>
 
@@ -249,7 +249,7 @@ export default function Employees() {
 
   // Admin view with user management
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-blue-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -410,11 +410,11 @@ export default function Employees() {
                 <Card key={i} className="material-shadow">
                   <CardContent className="p-6">
                     <div className="animate-pulse">
-                      <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto mb-4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                      <div className="w-16 h-16 bg-orange-200 rounded-full mx-auto mb-4"></div>
+                      <div className="h-4 bg-orange-200 rounded w-3/4 mx-auto mb-2"></div>
+                      <div className="h-3 bg-orange-200 rounded w-1/2 mx-auto mb-4"></div>
+                      <div className="h-3 bg-orange-200 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-orange-200 rounded w-2/3"></div>
                     </div>
                   </CardContent>
                 </Card>
