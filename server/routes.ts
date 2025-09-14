@@ -18,6 +18,7 @@ import {
   updateDocumentSchema,
   updateCourseSchema,
   updateEmployeeCourseSchema,
+  insertCompleteEmployeeSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -25,7 +26,8 @@ import {
   type InsertDocument,
   type InsertCourse,
   type InsertEmployeeCourse,
-  type InsertCertificate
+  type InsertCertificate,
+  type InsertCompleteEmployee
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -949,8 +951,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new employee (admin only)
-  app.post('/api/admin/employees', isAuthenticated, async (req: any, res) => {
+  // Create new employee with complete HR data (admin only)
+  app.post('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
@@ -960,28 +962,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Admin must be assigned to a company" });
       }
 
-      // Validate request body using Zod schema
-      const createEmployeeSchema = z.object({
-        email: z.string().email("Invalid email format"),
-        firstName: z.string().min(1, "First name is required"),
-        lastName: z.string().min(1, "Last name is required"),
-        role: z.enum(['employee', 'admin']).optional().default('employee'),
-        departmentId: z.string().optional(),
-      });
+      // Transform and validate request body using complete employee schema
+      const requestData = { ...req.body };
+      
+      // Transform departmentId: empty string or "none" -> null, otherwise parse to int
+      if (requestData.departmentId === "" || requestData.departmentId === "none") {
+        requestData.departmentId = null;
+      } else if (requestData.departmentId) {
+        requestData.departmentId = parseInt(requestData.departmentId);
+      }
 
-      const validationResult = createEmployeeSchema.safeParse(req.body);
+      // Transform salary to string for decimal field
+      if (requestData.salary !== undefined) {
+        requestData.salary = typeof requestData.salary === 'number' ? requestData.salary.toFixed(2) : requestData.salary;
+      }
+
+      // Set companyId from current user
+      requestData.companyId = currentUser.companyId;
+
+      const validationResult = insertCompleteEmployeeSchema.safeParse(requestData);
       if (!validationResult.success) {
+        console.error("Employee validation error:", validationResult.error.errors);
         return res.status(400).json({ 
           message: "Invalid employee data", 
           errors: validationResult.error.errors 
         });
       }
 
-      const { email, firstName, lastName, role, departmentId } = validationResult.data;
+      const employeeData = validationResult.data;
       
       // Validate department belongs to current user's company
-      if (departmentId && departmentId !== 'none') {
-        const department = await storage.getDepartment(parseInt(departmentId));
+      if (employeeData.departmentId) {
+        const department = await storage.getDepartment(employeeData.departmentId);
         if (!department || department.companyId !== currentUser.companyId) {
           return res.status(400).json({ message: "Invalid department or department not in your company" });
         }
@@ -989,7 +1001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user with this email already exists
       const existingUsers = await storage.getAllUsers();
-      const existingUser = existingUsers.find(u => u.email === email);
+      const existingUser = existingUsers.find(u => u.email === employeeData.email);
       if (existingUser) {
         return res.status(400).json({ message: "User with this email already exists" });
       }
@@ -997,15 +1009,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a unique ID for the new user
       const userId = `emp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Create new user
+      // Create new user with complete employee data
       const userData = {
         id: userId,
-        email,
-        firstName,
-        lastName,
-        role: role || 'employee',
-        companyId: currentUser.companyId,
-        departmentId: departmentId && departmentId !== 'none' ? parseInt(departmentId) : undefined,
+        ...employeeData,
         isActive: true,
       };
       

@@ -89,9 +89,68 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  
+  // Documentos pessoais
+  cpf: varchar("cpf", { length: 14 }), // XXX.XXX.XXX-XX
+  rg: varchar("rg", { length: 20 }),
+  rgIssuingOrgan: varchar("rg_issuing_organ", { length: 10 }), // SSP-SP, PC-RJ, etc
+  ctps: varchar("ctps", { length: 20 }), // Carteira de Trabalho
+  pisPasep: varchar("pis_pasep", { length: 15 }),
+  tituloEleitor: varchar("titulo_eleitor", { length: 15 }),
+  
+  // Dados pessoais
+  birthDate: date("birth_date"),
+  maritalStatus: varchar("marital_status"), // solteiro, casado, divorciado, viuvo, uniao_estavel
+  gender: varchar("gender"), // masculino, feminino, outro, prefiro_nao_informar
+  nationality: varchar("nationality").default("Brasileira"),
+  naturalness: varchar("naturalness"), // Cidade de nascimento
+  
+  // Endereço
+  cep: varchar("cep", { length: 9 }), // XXXXX-XXX
+  address: text("address"),
+  addressNumber: varchar("address_number", { length: 10 }),
+  addressComplement: varchar("address_complement"),
+  neighborhood: varchar("neighborhood"),
+  city: varchar("city"),
+  state: varchar("state", { length: 2 }),
+  country: varchar("country").default("Brasil"),
+  
+  // Contatos
+  personalPhone: varchar("personal_phone", { length: 15 }),
+  commercialPhone: varchar("commercial_phone", { length: 15 }),
+  emergencyContactName: varchar("emergency_contact_name"),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 15 }),
+  emergencyContactRelationship: varchar("emergency_contact_relationship"),
+  
+  // Dados profissionais
   role: varchar("role").default("employee"), // employee, admin, superadmin
   companyId: integer("company_id"), // Nullable for superadmins
   departmentId: integer("department_id"),
+  position: varchar("position"), // Cargo
+  admissionDate: date("admission_date"),
+  contractType: varchar("contract_type"), // clt, pj, estagio, terceirizado, temporario
+  workSchedule: varchar("work_schedule"), // integral, meio_periodo, flexivel
+  salary: decimal("salary", { precision: 10, scale: 2 }),
+  benefits: text("benefits"), // Benefícios em texto livre
+  
+  // Dados bancários
+  bankCode: varchar("bank_code", { length: 3 }),
+  bankName: varchar("bank_name"),
+  agencyNumber: varchar("agency_number", { length: 10 }),
+  accountNumber: varchar("account_number", { length: 20 }),
+  accountType: varchar("account_type"), // corrente, poupanca
+  pixKey: varchar("pix_key"),
+  
+  // Escolaridade e formação
+  educationLevel: varchar("education_level"), // fundamental, medio, superior, pos_graduacao, mestrado, doutorado
+  institution: varchar("institution"),
+  course: varchar("course"),
+  graduationYear: integer("graduation_year"),
+  
+  // Dependentes (armazenado como JSON)
+  dependents: jsonb("dependents"), // Array de objetos com nome, parentesco, data nascimento, CPF
+  
+  // Sistema
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -464,6 +523,75 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
+// Complete employee registration schema for HR
+export const insertCompleteEmployeeSchema = insertUserSchema.extend({
+  // Dados pessoais obrigatórios
+  firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
+  cpf: z.string()
+    .regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF deve estar no formato XXX.XXX.XXX-XX")
+    .refine((cpf) => {
+      // Validação básica de CPF
+      const numbers = cpf.replace(/\D/g, '');
+      return numbers.length === 11 && !numbers.split('').every(n => n === numbers[0]);
+    }, "CPF inválido"),
+  
+  // Documentos
+  rg: z.string().min(5, "RG é obrigatório").optional(),
+  rgIssuingOrgan: z.string().min(2, "Órgão emissor é obrigatório").optional(),
+  ctps: z.string().optional(),
+  pisPasep: z.string().optional(),
+  
+  // Dados pessoais
+  birthDate: z.string().min(1, "Data de nascimento é obrigatória").refine((date) => {
+    const birthDate = new Date(date);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    return age >= 16 && age <= 100;
+  }, "Idade deve estar entre 16 e 100 anos"),
+  
+  maritalStatus: z.enum(["solteiro", "casado", "divorciado", "viuvo", "uniao_estavel"]),
+  gender: z.enum(["masculino", "feminino", "outro", "prefiro_nao_informar"]),
+  
+  // Endereço
+  cep: z.string().regex(/^\d{5}-\d{3}$/, "CEP deve estar no formato XXXXX-XXX"),
+  address: z.string().min(10, "Endereço deve ter pelo menos 10 caracteres"),
+  addressNumber: z.string().min(1, "Número é obrigatório"),
+  neighborhood: z.string().min(2, "Bairro é obrigatório"),
+  city: z.string().min(2, "Cidade é obrigatória"),
+  state: z.string().length(2, "Estado deve ter 2 caracteres"),
+  
+  // Contatos
+  personalPhone: z.string()
+    .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone deve estar no formato (XX) XXXXX-XXXX"),
+  emergencyContactName: z.string().min(2, "Nome do contato de emergência é obrigatório"),
+  emergencyContactPhone: z.string()
+    .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone deve estar no formato (XX) XXXXX-XXXX"),
+  emergencyContactRelationship: z.string().min(2, "Parentesco é obrigatório"),
+  
+  // Dados profissionais
+  position: z.string().min(2, "Cargo é obrigatório"),
+  admissionDate: z.string().min(1, "Data de admissão é obrigatória").refine((date) => {
+    const admissionDate = new Date(date);
+    const today = new Date();
+    return admissionDate <= today;
+  }, "Data de admissão não pode ser futura"),
+  contractType: z.enum(["clt", "pj", "estagio", "terceirizado", "temporario"]),
+  workSchedule: z.enum(["integral", "meio_periodo", "flexivel"]),
+  salary: z.coerce.number().min(0, "Salário deve ser positivo"),
+  
+  // Dados bancários
+  bankCode: z.string().length(3, "Código do banco deve ter 3 dígitos"),
+  bankName: z.string().min(2, "Nome do banco é obrigatório"),
+  agencyNumber: z.string().min(1, "Número da agência é obrigatório"),
+  accountNumber: z.string().min(1, "Número da conta é obrigatório"),
+  accountType: z.enum(["corrente", "poupanca"]),
+  
+  // Escolaridade
+  educationLevel: z.enum(["fundamental", "medio", "superior", "pos_graduacao", "mestrado", "doutorado"]),
+});
+
 export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,
   createdAt: true,
@@ -554,6 +682,7 @@ export const updateEmployeeCourseSchema = insertEmployeeCourseSchema.partial().o
 
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertCompleteEmployee = z.infer<typeof insertCompleteEmployeeSchema>;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
