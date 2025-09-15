@@ -19,6 +19,7 @@ import {
   updateCourseSchema,
   updateEmployeeCourseSchema,
   insertCompleteEmployeeSchema,
+  insertAuditLogSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -27,7 +28,8 @@ import {
   type InsertCourse,
   type InsertEmployeeCourse,
   type InsertCertificate,
-  type InsertCompleteEmployee
+  type InsertCompleteEmployee,
+  type InsertAuditLog
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -1051,13 +1053,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Log the deletion for audit trail
-      console.log(`AUDIT: User deletion by ${currentUser.id} (${currentUser.email}) - Target: ${userId} (${userToDelete.email}) at ${new Date().toISOString()}`);
-
-      // Perform permanent deletion
-      await storage.deleteUserPermanently(userId);
+      // Create audit log entry for the deletion attempt
+      const auditEntry: InsertAuditLog = {
+        action: 'user_hard_delete',
+        performedBy: currentUser.id,
+        targetUserId: userId,
+        targetResource: `user:${userId}`,
+        companyId: userToDelete.companyId,
+        details: {
+          userEmail: userToDelete.email,
+          userName: `${userToDelete.firstName} ${userToDelete.lastName}`,
+          performedByEmail: currentUser.email,
+          performedByName: `${currentUser.firstName} ${currentUser.lastName}`,
+          confirmationReceived: confirmation,
+          dependencies
+        },
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
+        success: false, // Will update to true if successful
+      };
       
-      res.status(200).json({ message: "User permanently deleted" });
+      try {
+        // Perform permanent deletion
+        await storage.deleteUserPermanently(userId);
+        
+        // Update audit entry as successful
+        auditEntry.success = true;
+        await storage.createAuditLog(auditEntry);
+        
+        res.status(200).json({ message: "User permanently deleted" });
+      } catch (deletionError) {
+        // Log failed deletion attempt
+        auditEntry.errorMessage = deletionError instanceof Error ? deletionError.message : 'Unknown deletion error';
+        await storage.createAuditLog(auditEntry);
+        
+        console.error('Failed to delete user permanently:', deletionError);
+        throw deletionError;
+      }
     } catch (error) {
       console.error("Error permanently deleting user:", error);
       res.status(500).json({ message: "Failed to permanently delete user" });

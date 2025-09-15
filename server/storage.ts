@@ -13,6 +13,7 @@ import {
   courses,
   employeeCourses,
   certificates,
+  auditLog,
   type User,
   type UpsertUser,
   type Department,
@@ -36,6 +37,8 @@ import {
   type InsertEmployeeCourse,
   type Certificate,
   type InsertCertificate,
+  type AuditLog,
+  type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
@@ -149,6 +152,10 @@ export interface IStorage {
   getCertificate(id: number): Promise<Certificate | undefined>;
   createCertificate(certificate: InsertCertificate): Promise<Certificate>;
   verifyCertificate(id: number, verifiedBy: string): Promise<Certificate>;
+  
+  // Audit operations
+  createAuditLog(auditEntry: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(companyId?: number, targetUserId?: string, action?: string): Promise<AuditLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -187,61 +194,75 @@ export class DatabaseStorage implements IStorage {
   }
 
   async canHardDeleteUser(id: string): Promise<{allowed: boolean; dependencies: Record<string, number>}> {
+    // First check if user exists and is inactive
+    const user = await this.getUser(id);
+    if (!user) {
+      return { allowed: false, dependencies: { user: 0 } };
+    }
+    
+    if (user.isActive) {
+      return { allowed: false, dependencies: { activeUser: 1 } };
+    }
+    
     // Count dependencies across all related tables
     const dependencies: Record<string, number> = {};
     
-    // Check time entries
+    // Check time entries - these prevent deletion as they contain historical work data
     const [timeEntriesCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(timeEntries)
       .where(eq(timeEntries.userId, id));
     dependencies.timeEntries = Number(timeEntriesCount?.count) || 0;
     
-    // Check face profiles
+    // Check face profiles - these prevent deletion as they contain biometric data
     const [faceProfilesCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(faceProfiles)
       .where(eq(faceProfiles.userId, id));
     dependencies.faceProfiles = Number(faceProfilesCount?.count) || 0;
     
-    // Check messages sent
+    // Check messages sent - these prevent deletion to maintain message history
     const [messagesSentCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(messages)
       .where(eq(messages.senderId, id));
     dependencies.messagesSent = Number(messagesSentCount?.count) || 0;
     
-    // Check message recipients
+    // Check message recipients - these prevent deletion to maintain message history
     const [messageRecipientsCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(messageRecipients)
       .where(eq(messageRecipients.recipientId, id));
     dependencies.messageRecipients = Number(messageRecipientsCount?.count) || 0;
     
-    // Check documents uploaded
+    // Check documents uploaded - documents will be nullified, not deleted, so they don't block deletion
     const [documentsCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(documents)
       .where(eq(documents.uploadedBy, id));
     dependencies.documents = Number(documentsCount?.count) || 0;
     
-    // Check employee courses
+    // Check employee courses - these prevent deletion as they contain training history
     const [employeeCoursesCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(employeeCourses)
       .where(eq(employeeCourses.userId, id));
     dependencies.employeeCourses = Number(employeeCoursesCount?.count) || 0;
     
-    // Check certificates
+    // Check certificates - these prevent deletion as they contain certification records
     const [certificatesCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(certificates)
       .where(eq(certificates.userId, id));
     dependencies.certificates = Number(certificatesCount?.count) || 0;
     
-    // User can only be hard deleted if no dependencies exist
-    const totalDependencies = Object.values(dependencies).reduce((sum, count) => sum + count, 0);
-    const allowed = totalDependencies === 0;
+    // User can be hard deleted if no BLOCKING dependencies exist
+    // Documents don't block deletion since they're nullified, not deleted
+    const blockingDependencies = { ...dependencies };
+    delete blockingDependencies.documents; // Documents don't block deletion
+    
+    const totalBlockingDependencies = Object.values(blockingDependencies).reduce((sum, count) => sum + count, 0);
+    const allowed = totalBlockingDependencies === 0;
     
     return { allowed, dependencies };
   }
@@ -252,9 +273,18 @@ export class DatabaseStorage implements IStorage {
       // Note: Only call this method after confirming canHardDeleteUser returns true
       // Delete in order of dependencies (child records first, then parent)
       
-      // Delete break entries (tied to time entries)
-      await tx.delete(breakEntries)
-        .where(sql`time_entry_id IN (SELECT id FROM time_entries WHERE user_id = ${id})`);
+      // Delete break entries (tied to time entries) - use type-safe subquery
+      const userTimeEntries = await tx.select({ id: timeEntries.id })
+        .from(timeEntries)
+        .where(eq(timeEntries.userId, id));
+      
+      if (userTimeEntries.length > 0) {
+        const timeEntryIds = userTimeEntries.map(entry => entry.id);
+        for (const timeEntryId of timeEntryIds) {
+          await tx.delete(breakEntries)
+            .where(eq(breakEntries.timeEntryId, timeEntryId));
+        }
+      }
       
       // Delete time entries
       await tx.delete(timeEntries)
@@ -1011,6 +1041,34 @@ export class DatabaseStorage implements IStorage {
       .where(eq(certificates.id, id))
       .returning();
     return verifiedCertificate;
+  }
+  
+  // Audit operations
+  async createAuditLog(auditEntry: InsertAuditLog): Promise<AuditLog> {
+    const [audit] = await db.insert(auditLog).values(auditEntry).returning();
+    return audit;
+  }
+  
+  async getAuditLogs(companyId?: number, targetUserId?: string, action?: string): Promise<AuditLog[]> {
+    let conditions = [];
+    
+    if (companyId) {
+      conditions.push(eq(auditLog.companyId, companyId));
+    }
+    
+    if (targetUserId) {
+      conditions.push(eq(auditLog.targetUserId, targetUserId));
+    }
+    
+    if (action) {
+      conditions.push(eq(auditLog.action, action));
+    }
+    
+    return await db
+      .select()
+      .from(auditLog)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(auditLog.createdAt));
   }
 }
 

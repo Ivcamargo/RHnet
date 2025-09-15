@@ -498,6 +498,35 @@ export const notifications = pgTable("notifications", {
   }),
 }));
 
+// Audit trail table for security-critical operations
+export const auditLog = pgTable("audit_log", {
+  id: serial("id").primaryKey(),
+  action: varchar("action").notNull(), // user_hard_delete, user_role_change, etc.
+  performedBy: varchar("performed_by").notNull(), // User ID who performed the action
+  targetUserId: varchar("target_user_id"), // User ID being affected (nullable for non-user actions)
+  targetResource: varchar("target_resource"), // Additional resource identifier
+  companyId: integer("company_id"), // Company context
+  details: jsonb("details"), // Additional action details
+  ipAddress: varchar("ip_address"), // Client IP for security tracking
+  userAgent: text("user_agent"), // Client user agent
+  success: boolean("success").notNull(), // Whether the action succeeded
+  errorMessage: text("error_message"), // Error details if action failed
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  performedByReference: foreignKey({
+    columns: [table.performedBy],
+    foreignColumns: [users.id],
+  }).onDelete('set null'),
+  targetUserReference: foreignKey({
+    columns: [table.targetUserId],
+    foreignColumns: [users.id],
+  }).onDelete('set null'),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }).onDelete('set null'),
+}));
+
 // Schema types and validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -515,6 +544,7 @@ export type JobTrainingTrack = typeof jobTrainingTracks.$inferSelect;
 export type EmployeeCourse = typeof employeeCourses.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type AuditLog = typeof auditLog.$inferSelect;
 
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -649,6 +679,11 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertAuditLogSchema = createInsertSchema(auditLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertMessageRecipientSchema = createInsertSchema(messageRecipients).omit({
   id: true,
   createdAt: true,
@@ -696,6 +731,7 @@ export type InsertJobTrainingTrack = z.infer<typeof insertJobTrainingTrackSchema
 export type InsertEmployeeCourse = z.infer<typeof insertEmployeeCourseSchema>;
 export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 
 
 // Clock in/out request schemas
