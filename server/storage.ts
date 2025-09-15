@@ -55,6 +55,8 @@ export interface IStorage {
   getUsersByCompany(companyId: number): Promise<User[]>;
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User>;
   updateUserCompany(userId: string, companyId: number): Promise<void>;
+  canHardDeleteUser(id: string): Promise<{allowed: boolean; dependencies: Record<string, number>}>;
+  deleteUserPermanently(id: string): Promise<void>;
   
   // Department operations
   getDepartments(): Promise<Department[]>;
@@ -182,6 +184,112 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async canHardDeleteUser(id: string): Promise<{allowed: boolean; dependencies: Record<string, number>}> {
+    // Count dependencies across all related tables
+    const dependencies: Record<string, number> = {};
+    
+    // Check time entries
+    const [timeEntriesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(timeEntries)
+      .where(eq(timeEntries.userId, id));
+    dependencies.timeEntries = Number(timeEntriesCount?.count) || 0;
+    
+    // Check face profiles
+    const [faceProfilesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(faceProfiles)
+      .where(eq(faceProfiles.userId, id));
+    dependencies.faceProfiles = Number(faceProfilesCount?.count) || 0;
+    
+    // Check messages sent
+    const [messagesSentCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(messages)
+      .where(eq(messages.senderId, id));
+    dependencies.messagesSent = Number(messagesSentCount?.count) || 0;
+    
+    // Check message recipients
+    const [messageRecipientsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(messageRecipients)
+      .where(eq(messageRecipients.recipientId, id));
+    dependencies.messageRecipients = Number(messageRecipientsCount?.count) || 0;
+    
+    // Check documents uploaded
+    const [documentsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(documents)
+      .where(eq(documents.uploadedBy, id));
+    dependencies.documents = Number(documentsCount?.count) || 0;
+    
+    // Check employee courses
+    const [employeeCoursesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(employeeCourses)
+      .where(eq(employeeCourses.userId, id));
+    dependencies.employeeCourses = Number(employeeCoursesCount?.count) || 0;
+    
+    // Check certificates
+    const [certificatesCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(certificates)
+      .where(eq(certificates.userId, id));
+    dependencies.certificates = Number(certificatesCount?.count) || 0;
+    
+    // User can only be hard deleted if no dependencies exist
+    const totalDependencies = Object.values(dependencies).reduce((sum, count) => sum + count, 0);
+    const allowed = totalDependencies === 0;
+    
+    return { allowed, dependencies };
+  }
+
+  async deleteUserPermanently(id: string): Promise<void> {
+    // Execute all deletions in a transaction for atomicity
+    await db.transaction(async (tx) => {
+      // Note: Only call this method after confirming canHardDeleteUser returns true
+      // Delete in order of dependencies (child records first, then parent)
+      
+      // Delete break entries (tied to time entries)
+      await tx.delete(breakEntries)
+        .where(sql`time_entry_id IN (SELECT id FROM time_entries WHERE user_id = ${id})`);
+      
+      // Delete time entries
+      await tx.delete(timeEntries)
+        .where(eq(timeEntries.userId, id));
+      
+      // Delete face profiles
+      await tx.delete(faceProfiles)
+        .where(eq(faceProfiles.userId, id));
+      
+      // Delete message recipients
+      await tx.delete(messageRecipients)
+        .where(eq(messageRecipients.recipientId, id));
+      
+      // Delete messages sent by user
+      await tx.delete(messages)
+        .where(eq(messages.senderId, id));
+      
+      // Delete employee courses
+      await tx.delete(employeeCourses)
+        .where(eq(employeeCourses.userId, id));
+      
+      // Delete certificates
+      await tx.delete(certificates)
+        .where(eq(certificates.userId, id));
+      
+      // Update documents to remove reference (instead of deleting them)
+      // This preserves document history while removing user reference
+      await tx.update(documents)
+        .set({ uploadedBy: null })
+        .where(eq(documents.uploadedBy, id));
+      
+      // Finally, delete the user record
+      await tx.delete(users)
+        .where(eq(users.id, id));
+    });
   }
 
   // Department operations
