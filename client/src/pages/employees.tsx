@@ -2081,7 +2081,7 @@ export default function Employees() {
                         <p className="text-sm text-gray-500">{employee.position || employee.email}</p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant={employee.isActive ? "default" : "secondary"}>
+                        <Badge variant={employee.isActive ? "default" : "destructive"} className={employee.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"}>
                           {employee.isActive ? "Ativo" : "Inativo"}
                         </Badge>
                         <Button
