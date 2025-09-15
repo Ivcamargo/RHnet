@@ -517,19 +517,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/holidays', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
-      console.log('Holiday creation - user:', { id: user?.id, companyId: user?.companyId, role: user?.role });
       
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
       if (!user?.companyId) {
-        console.log('Holiday creation failed - no companyId for user:', user?.id);
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
       // Add companyId to req.body before validation - security critical
       const requestData = { ...req.body, companyId: user.companyId };
-      console.log('Holiday creation - requestData:', requestData);
       const holidayData = insertHolidaySchema.parse(requestData);
       const holiday = await storage.createHoliday(holidayData);
       res.json(holiday);
