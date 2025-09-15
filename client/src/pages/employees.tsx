@@ -49,10 +49,10 @@ export default function Employees() {
     enabled: user?.role === 'admin' || user?.role === 'superadmin',
   });
 
-  // Fetch companies for SuperAdmin
+  // Fetch companies for SuperAdmin and regular Admin
   const { data: companies } = useQuery({
-    queryKey: ["/api/superadmin/companies"],
-    enabled: user?.role === 'superadmin',
+    queryKey: user?.role === 'superadmin' ? ["/api/superadmin/companies"] : ["/api/companies"],
+    enabled: user?.role === 'admin' || user?.role === 'superadmin',
   });
 
   // Form for editing employee
@@ -327,6 +327,13 @@ export default function Employees() {
     updateUserMutation.mutate({
       userId: employee.id,
       data: { departmentId: departmentId && departmentId !== "none" ? parseInt(departmentId) : null }
+    });
+  };
+
+  const handleCompanyChange = (employee: any, companyId: string) => {
+    updateUserMutation.mutate({
+      userId: employee.id,
+      data: { companyId: companyId && companyId !== "none" ? parseInt(companyId) : null }
     });
   };
 
@@ -2122,6 +2129,7 @@ export default function Employees() {
                       <TableHead>Email</TableHead>
                       <TableHead>Função</TableHead>
                       <TableHead>Departamento</TableHead>
+                      <TableHead>Empresa</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-24">Ações</TableHead>
                     </TableRow>
@@ -2180,6 +2188,25 @@ export default function Employees() {
                               {departments?.map((dept: any) => (
                                 <SelectItem key={dept.id} value={dept.id.toString()}>
                                   {dept.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={employee.companyId?.toString() || ""}
+                            onValueChange={(value) => handleCompanyChange(employee, value)}
+                            disabled={updateUserMutation.isPending}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="Sem empresa" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem empresa</SelectItem>
+                              {companies?.map((company: any) => (
+                                <SelectItem key={company.id} value={company.id.toString()}>
+                                  {company.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
