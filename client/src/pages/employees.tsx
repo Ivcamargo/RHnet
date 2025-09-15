@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +32,7 @@ export default function Employees() {
   const [showInactive, setShowInactive] = useState(false);
   const [deleteEmployee, setDeleteEmployee] = useState<any>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [managingUser, setManagingUser] = useState<any>(null);
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -45,6 +47,12 @@ export default function Employees() {
   const { data: departments } = useQuery({
     queryKey: ["/api/departments"],
     enabled: user?.role === 'admin' || user?.role === 'superadmin',
+  });
+
+  // Fetch companies for SuperAdmin
+  const { data: companies } = useQuery({
+    queryKey: ["/api/superadmin/companies"],
+    enabled: user?.role === 'superadmin',
   });
 
   // Form for editing employee
@@ -276,6 +284,31 @@ export default function Employees() {
     },
   });
 
+  // Mutation for managing user role and company (SuperAdmin only)
+  const manageUserMutation = useMutation({
+    mutationFn: async ({ userId, role, companyId }: { userId: string; role: string; companyId?: number }) => {
+      await apiRequest(`/api/superadmin/users/${userId}/role`, { 
+        method: "PUT", 
+        body: JSON.stringify({ role, companyId }) 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setManagingUser(null);
+      toast({
+        title: "Sucesso",
+        description: "Usuário atualizado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleEmployeeStatus = (employee: any) => {
     updateUserMutation.mutate({
       userId: employee.id,
@@ -294,6 +327,19 @@ export default function Employees() {
     updateUserMutation.mutate({
       userId: employee.id,
       data: { departmentId: departmentId && departmentId !== "none" ? parseInt(departmentId) : null }
+    });
+  };
+
+  const handleManageUser = (employee: any) => {
+    setManagingUser(employee);
+  };
+
+  const handleUpdateUserRole = (role: string, companyId?: number) => {
+    if (!managingUser) return;
+    manageUserMutation.mutate({
+      userId: managingUser.id,
+      role,
+      companyId
     });
   };
 
@@ -375,7 +421,7 @@ export default function Employees() {
     setIsEditDialogOpen(true);
   };
 
-  // Filter users based on search term and active/inactive status
+  // Filter users based on search term and active/inactive status, then sort alphabetically
   const filteredUsers = allUsers?.filter((employee: any) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = (
@@ -390,6 +436,11 @@ export default function Employees() {
     const matchesStatus = showInactive || employee.isActive;
     
     return matchesSearch && matchesStatus;
+  })?.sort((a: any, b: any) => {
+    // Sort alphabetically by first name, then last name
+    const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase();
+    const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim().toLowerCase();
+    return nameA.localeCompare(nameB);
   });
 
 
@@ -2039,221 +2090,139 @@ export default function Employees() {
             </Dialog>
           </div>
 
-          {/* Employee Cards */}
+          {/* Employee Table */}
           {usersLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="material-shadow">
-                  <CardContent className="p-6">
-                    <div className="animate-pulse">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full mb-4"></div>
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                      <div className="space-y-2">
-                        <div className="h-3 bg-gray-200 rounded"></div>
-                        <div className="h-3 bg-gray-200 rounded"></div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="space-y-3">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                        <div className="w-20 h-6 bg-gray-200 rounded"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded"></div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ) : filteredUsers && filteredUsers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUsers.map((employee: any) => (
-                <Card key={employee.id} className="material-shadow hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={employee.profileImageUrl} />
-                        <AvatarFallback className="bg-blue-100 text-blue-600">
-                          {employee.firstName?.[0]}{employee.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">
-                          {employee.firstName} {employee.lastName}
-                        </CardTitle>
-                        <p className="text-sm text-gray-500">{employee.position || employee.email}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={employee.isActive ? "default" : "destructive"} className={employee.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"}>
-                          {employee.isActive ? "Ativo" : "Inativo"}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditEmployee(employee)}
-                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                          data-testid={`button-edit-employee-${employee.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">{employee.email}</span>
-                      </div>
-                      
-                      {employee.cpf && (
-                        <div className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">CPF: {employee.cpf}</span>
-                        </div>
-                      )}
-
-                      {employee.personalPhone && (
-                        <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">{employee.personalPhone}</span>
-                        </div>
-                      )}
-
-                      {departments?.find((d: any) => d.id === employee.departmentId) && (
-                        <div className="flex items-center space-x-2">
-                          <Building className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">
-                            {departments.find((d: any) => d.id === employee.departmentId)?.name}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center space-x-2">
-                        <Shield className="h-4 w-4 text-gray-400" />
-                        <Select
-                          value={employee.role}
-                          onValueChange={(value) => handleRoleChange(employee, value)}
-                          disabled={updateUserMutation.isPending}
-                        >
-                          <SelectTrigger className="w-32 h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="employee">Funcionário</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Building className="h-4 w-4 text-gray-400" />
-                        <Select
-                          value={employee.departmentId?.toString() || ""}
-                          onValueChange={(value) => handleDepartmentChange(employee, value)}
-                          disabled={updateUserMutation.isPending}
-                        >
-                          <SelectTrigger className="w-full h-8 text-xs">
-                            <SelectValue placeholder="Sem departamento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sem departamento</SelectItem>
-                            {departments?.map((dept: any) => (
-                              <SelectItem key={dept.id} value={dept.id.toString()}>
-                                {dept.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center space-x-2">
-                          <UserCheck className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">{employee.isActive ? "Ativo" : "Inativo"}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleEmployeeStatus(employee)}
-                            disabled={updateUserMutation.isPending}
-                            className={employee.isActive ? "text-red-600" : "text-green-600"}
-                            data-testid={`button-toggle-employee-${employee.id}`}
-                          >
-                            {employee.isActive ? "Desativar" : "Ativar"}
-                          </Button>
-                          {!employee.isActive && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  data-testid={`button-hard-delete-employee-${employee.id}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="max-w-md">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-red-600">
-                                    Excluir Permanentemente
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription className="space-y-3">
-                                    <div>
-                                      Esta ação irá <strong>excluir permanentemente</strong> o funcionário:
-                                    </div>
-                                    <div className="font-medium">
-                                      {employee.firstName} {employee.lastName}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      Esta operação não pode ser desfeita e removerá todos os dados associados.
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label htmlFor="delete-confirmation" className="text-sm font-medium">
-                                        Digite <strong>DELETE</strong> para confirmar:
-                                      </Label>
-                                      <Input
-                                        id="delete-confirmation"
-                                        value={deleteConfirmation}
-                                        onChange={(e) => setDeleteConfirmation(e.target.value)}
-                                        placeholder="DELETE"
-                                        className="font-mono"
-                                        data-testid="input-delete-confirmation"
-                                      />
-                                    </div>
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel 
-                                    onClick={() => {
-                                      setDeleteConfirmation("");
-                                      setDeleteEmployee(null);
-                                    }}
-                                    data-testid="button-cancel-delete"
-                                  >
-                                    Cancelar
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => {
-                                      if (deleteConfirmation === "DELETE") {
-                                        hardDeleteEmployeeMutation.mutate({ 
-                                          userId: employee.id, 
-                                          confirmation: deleteConfirmation 
-                                        });
-                                      }
-                                    }}
-                                    disabled={deleteConfirmation !== "DELETE" || hardDeleteEmployeeMutation.isPending}
-                                    className="bg-red-600 hover:bg-red-700"
-                                    data-testid="button-confirm-delete"
-                                  >
-                                    {hardDeleteEmployeeMutation.isPending ? "Excluindo..." : "Excluir Permanentemente"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Função</TableHead>
+                      <TableHead>Departamento</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-24">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((employee: any) => (
+                      <TableRow key={employee.id} className="hover:bg-gray-50">
+                        <TableCell>
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={employee.profileImageUrl} />
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                              {employee.firstName?.[0]}{employee.lastName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div className="font-semibold">{employee.firstName} {employee.lastName}</div>
+                            {employee.position && (
+                              <div className="text-sm text-gray-500">{employee.position}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">{employee.email}</div>
+                          {employee.personalPhone && (
+                            <div className="text-xs text-gray-500">{employee.personalPhone}</div>
                           )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={employee.role}
+                            onValueChange={(value) => handleRoleChange(employee, value)}
+                            disabled={updateUserMutation.isPending}
+                          >
+                            <SelectTrigger className="w-28 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="employee">Funcionário</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={employee.departmentId?.toString() || ""}
+                            onValueChange={(value) => handleDepartmentChange(employee, value)}
+                            disabled={updateUserMutation.isPending}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="Sem depto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem departamento</SelectItem>
+                              {departments?.map((dept: any) => (
+                                <SelectItem key={dept.id} value={dept.id.toString()}>
+                                  {dept.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={employee.isActive ? "default" : "destructive"} 
+                            className={employee.isActive ? "bg-green-500 text-white text-xs" : "bg-red-500 text-white text-xs"}
+                          >
+                            {employee.isActive ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditEmployee(employee)}
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-8 w-8 p-0"
+                              data-testid={`button-edit-employee-${employee.id}`}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            {user?.role === 'superadmin' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleManageUser(employee)}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8 p-0"
+                                data-testid={`button-manage-employee-${employee.id}`}
+                              >
+                                <Settings className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           ) : (
             <div className="text-center py-12">
               <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
