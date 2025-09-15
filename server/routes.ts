@@ -524,9 +524,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
-      const holidayData = insertHolidaySchema.parse(req.body);
-      // Force companyId to be the user's company - security critical
-      holidayData.companyId = user.companyId;
+      // Add companyId to req.body before validation - security critical
+      const requestData = { ...req.body, companyId: user.companyId };
+      const holidayData = insertHolidaySchema.parse(requestData);
       const holiday = await storage.createHoliday(holidayData);
       res.json(holiday);
     } catch (error) {
