@@ -988,6 +988,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Hard delete route - PERMANENT deletion (separate from soft delete)
+  app.post('/api/admin/users/:id/hard-delete', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const userId = req.params.id;
+      const { confirmation } = req.body;
+      
+      // Require DELETE confirmation phrase
+      if (confirmation !== 'DELETE') {
+        return res.status(400).json({ message: "Confirmation phrase 'DELETE' is required" });
+      }
+      
+      // Get user to be permanently deleted
+      const userToDelete = await storage.getUser(userId);
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // CRITICAL SECURITY: Role-based authorization
+      if (currentUser.role === 'admin') {
+        // Admins can only delete employees from their own company
+        if (!currentUser?.companyId) {
+          return res.status(400).json({ message: "Admin must be assigned to a company" });
+        }
+        if (userToDelete.companyId !== currentUser.companyId) {
+          return res.status(403).json({ message: "Access denied: cannot delete user from different company" });
+        }
+        // Admins cannot delete other admins or superadmins
+        if (userToDelete.role === 'admin' || userToDelete.role === 'superadmin') {
+          return res.status(403).json({ message: "Access denied: cannot delete admin or superadmin users" });
+        }
+      }
+      // Superadmins can delete any user (no additional restrictions)
+
+      // Prevent deleting the current user (self-deletion)
+      if (userId === currentUser.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      // Require user to be inactive first (two-step process)
+      if (userToDelete.isActive) {
+        return res.status(400).json({ message: "User must be deactivated first before permanent deletion" });
+      }
+
+      // Check for dependencies that prevent deletion
+      const { allowed, dependencies } = await storage.canHardDeleteUser(userId);
+      if (!allowed) {
+        const dependencyList = Object.entries(dependencies)
+          .filter(([_, count]) => count > 0)
+          .map(([type, count]) => `${type}: ${count}`)
+          .join(', ');
+        
+        return res.status(409).json({ 
+          message: "Cannot delete user with existing records", 
+          dependencies,
+          details: `User has related records: ${dependencyList}. Remove these records first or contact system administrator.`
+        });
+      }
+
+      // Log the deletion for audit trail
+      console.log(`AUDIT: User deletion by ${currentUser.id} (${currentUser.email}) - Target: ${userId} (${userToDelete.email}) at ${new Date().toISOString()}`);
+
+      // Perform permanent deletion
+      await storage.deleteUserPermanently(userId);
+      
+      res.status(200).json({ message: "User permanently deleted" });
+    } catch (error) {
+      console.error("Error permanently deleting user:", error);
+      res.status(500).json({ message: "Failed to permanently delete user" });
+    }
+  });
+
   // Create new employee with complete HR data (admin only)
   app.post('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
