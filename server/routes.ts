@@ -1053,40 +1053,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create audit log entry for the deletion attempt
-      const auditEntry: InsertAuditLog = {
-        action: 'user_hard_delete',
-        performedBy: currentUser.id,
-        targetUserId: userId,
-        targetResource: `user:${userId}`,
-        companyId: userToDelete.companyId,
-        details: {
-          userEmail: userToDelete.email,
-          userName: `${userToDelete.firstName} ${userToDelete.lastName}`,
-          performedByEmail: currentUser.email,
-          performedByName: `${currentUser.firstName} ${currentUser.lastName}`,
-          confirmationReceived: confirmation,
-          dependencies
-        },
-        ipAddress: req.ip || req.connection.remoteAddress,
-        userAgent: req.get('User-Agent'),
-        success: false, // Will update to true if successful
-      };
-      
       try {
+        // Create audit log entry BEFORE deletion attempt (while user still exists)
+        const auditEntry: InsertAuditLog = {
+          action: 'user_hard_delete',
+          performedBy: currentUser.id,
+          targetUserId: userId,
+          targetResource: `user:${userId}`,
+          companyId: userToDelete.companyId,
+          details: {
+            userEmail: userToDelete.email,
+            userName: `${userToDelete.firstName} ${userToDelete.lastName}`,
+            performedByEmail: currentUser.email,
+            performedByName: `${currentUser.firstName} ${currentUser.lastName}`,
+            confirmationReceived: confirmation,
+            dependencies
+          },
+          ipAddress: req.ip || req.connection.remoteAddress,
+          userAgent: req.get('User-Agent'),
+          success: true, // Assume success, will be corrected if fails
+        };
+        
+        await storage.createAuditLog(auditEntry);
+        
         // Perform permanent deletion
         await storage.deleteUserPermanently(userId);
         
-        // Update audit entry as successful
-        auditEntry.success = true;
-        await storage.createAuditLog(auditEntry);
-        
         res.status(200).json({ message: "User permanently deleted" });
       } catch (deletionError) {
-        // Log failed deletion attempt
-        auditEntry.errorMessage = deletionError instanceof Error ? deletionError.message : 'Unknown deletion error';
-        await storage.createAuditLog(auditEntry);
+        // Create failure audit log while user still exists
+        const failureAuditEntry: InsertAuditLog = {
+          action: 'user_hard_delete_failed',
+          performedBy: currentUser.id,
+          targetUserId: userId,
+          targetResource: `user:${userId}`,
+          companyId: userToDelete.companyId,
+          details: {
+            userEmail: userToDelete.email,
+            userName: `${userToDelete.firstName} ${userToDelete.lastName}`,
+            performedByEmail: currentUser.email,
+            performedByName: `${currentUser.firstName} ${currentUser.lastName}`,
+            confirmationReceived: confirmation,
+            dependencies,
+            error: deletionError instanceof Error ? deletionError.message : 'Unknown deletion error'
+          },
+          ipAddress: req.ip || req.connection.remoteAddress,
+          userAgent: req.get('User-Agent'),
+          success: false,
+          errorMessage: deletionError instanceof Error ? deletionError.message : 'Unknown deletion error'
+        };
         
+        await storage.createAuditLog(failureAuditEntry);
         console.error('Failed to delete user permanently:', deletionError);
         throw deletionError;
       }
