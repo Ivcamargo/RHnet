@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Trash2, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCompleteEmployeeSchema, type InsertCompleteEmployee } from "@shared/schema";
@@ -248,25 +248,6 @@ export default function Employees() {
     },
   });
 
-  const deleteEmployeeMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      await apiRequest(`/api/admin/users/${userId}`, { method: "DELETE" });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Sucesso",
-        description: "Funcionário desativado permanentemente",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const toggleEmployeeStatus = (employee: any) => {
     updateUserMutation.mutate({
@@ -289,11 +270,6 @@ export default function Employees() {
     });
   };
 
-  const handleDeleteEmployee = (employee: any) => {
-    if (window.confirm(`Tem certeza que deseja desativar permanentemente o funcionário ${employee.firstName} ${employee.lastName}? Esta ação não pode ser desfeita.`)) {
-      deleteEmployeeMutation.mutate(employee.id);
-    }
-  };
 
   const onSubmitNewEmployee = (data: InsertCompleteEmployee) => {
     addEmployeeMutation.mutate(data);
@@ -2092,15 +2068,6 @@ export default function Employees() {
                           data-testid={`button-edit-employee-${employee.id}`}
                         >
                           <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteEmployee(employee)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          data-testid={`button-delete-employee-${employee.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
