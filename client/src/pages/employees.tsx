@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCompleteEmployeeSchema, type InsertCompleteEmployee } from "@shared/schema";
@@ -28,6 +29,8 @@ export default function Employees() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [deleteEmployee, setDeleteEmployee] = useState<any>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -248,6 +251,30 @@ export default function Employees() {
     },
   });
 
+  const hardDeleteEmployeeMutation = useMutation({
+    mutationFn: async ({ userId, confirmation }: { userId: string; confirmation: string }) => {
+      await apiRequest(`/api/admin/users/${userId}/hard-delete`, { 
+        method: "POST", 
+        body: JSON.stringify({ confirmation }) 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setDeleteEmployee(null);
+      setDeleteConfirmation("");
+      toast({
+        title: "Sucesso",
+        description: "Funcionário excluído permanentemente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const toggleEmployeeStatus = (employee: any) => {
     updateUserMutation.mutate({
@@ -2138,16 +2165,89 @@ export default function Employees() {
                           <UserCheck className="h-4 w-4 text-gray-400" />
                           <span className="text-sm">{employee.isActive ? "Ativo" : "Inativo"}</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleEmployeeStatus(employee)}
-                          disabled={updateUserMutation.isPending}
-                          className={employee.isActive ? "text-red-600" : "text-green-600"}
-                          data-testid={`button-toggle-employee-${employee.id}`}
-                        >
-                          {employee.isActive ? "Desativar" : "Ativar"}
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleEmployeeStatus(employee)}
+                            disabled={updateUserMutation.isPending}
+                            className={employee.isActive ? "text-red-600" : "text-green-600"}
+                            data-testid={`button-toggle-employee-${employee.id}`}
+                          >
+                            {employee.isActive ? "Desativar" : "Ativar"}
+                          </Button>
+                          {!employee.isActive && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  data-testid={`button-hard-delete-employee-${employee.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="max-w-md">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-red-600">
+                                    Excluir Permanentemente
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription className="space-y-3">
+                                    <div>
+                                      Esta ação irá <strong>excluir permanentemente</strong> o funcionário:
+                                    </div>
+                                    <div className="font-medium">
+                                      {employee.firstName} {employee.lastName}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      Esta operação não pode ser desfeita e removerá todos os dados associados.
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label htmlFor="delete-confirmation" className="text-sm font-medium">
+                                        Digite <strong>DELETE</strong> para confirmar:
+                                      </Label>
+                                      <Input
+                                        id="delete-confirmation"
+                                        value={deleteConfirmation}
+                                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                                        placeholder="DELETE"
+                                        className="font-mono"
+                                        data-testid="input-delete-confirmation"
+                                      />
+                                    </div>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel 
+                                    onClick={() => {
+                                      setDeleteConfirmation("");
+                                      setDeleteEmployee(null);
+                                    }}
+                                    data-testid="button-cancel-delete"
+                                  >
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => {
+                                      if (deleteConfirmation === "DELETE") {
+                                        hardDeleteEmployeeMutation.mutate({ 
+                                          userId: employee.id, 
+                                          confirmation: deleteConfirmation 
+                                        });
+                                      }
+                                    }}
+                                    disabled={deleteConfirmation !== "DELETE" || hardDeleteEmployeeMutation.isPending}
+                                    className="bg-red-600 hover:bg-red-700"
+                                    data-testid="button-confirm-delete"
+                                  >
+                                    {hardDeleteEmployeeMutation.isPending ? "Excluindo..." : "Excluir Permanentemente"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
