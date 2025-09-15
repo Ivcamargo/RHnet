@@ -41,7 +41,7 @@ import {
   type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, or, isNull, desc, gte, lte, sql } from "drizzle-orm";
 
 // Local type aliases for tables that don't have exported types
 type InsertTimeEntry = typeof timeEntries.$inferInsert;
@@ -796,7 +796,10 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(documents.companyId, companyId),
             eq(documents.isActive, true),
-            sql`(${documents.assignedTo} = ${userId} OR ${documents.assignedTo} IS NULL)`
+            or(
+              eq(documents.assignedTo, userId),
+              isNull(documents.assignedTo)
+            )
           )
         )
         .orderBy(desc(documents.createdAt));
