@@ -232,7 +232,7 @@ export class DatabaseStorage implements IStorage {
     const [messageRecipientsCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(messageRecipients)
-      .where(eq(messageRecipients.recipientId, id));
+      .where(eq(messageRecipients.userId, id));
     dependencies.messageRecipients = Number(messageRecipientsCount?.count) || 0;
     
     // Check documents uploaded - documents will be nullified, not deleted, so they don't block deletion
@@ -296,7 +296,7 @@ export class DatabaseStorage implements IStorage {
       
       // Delete message recipients
       await tx.delete(messageRecipients)
-        .where(eq(messageRecipients.recipientId, id));
+        .where(eq(messageRecipients.userId, id));
       
       // Delete messages sent by user
       await tx.delete(messages)
@@ -313,7 +313,7 @@ export class DatabaseStorage implements IStorage {
       // Update documents to remove reference (instead of deleting them)
       // This preserves document history while removing user reference
       await tx.update(documents)
-        .set({ uploadedBy: null })
+        .set({ uploadedBy: sql`NULL` })
         .where(eq(documents.uploadedBy, id));
       
       // Finally, delete the user record
