@@ -366,13 +366,6 @@ export default function Employees() {
   });
 
 
-  // Debug: Log filter status
-  console.log('Filter debug:', { 
-    totalUsers: allUsers?.length, 
-    filteredUsers: filteredUsers?.length, 
-    showInactive,
-    inactiveCount: allUsers?.filter(u => !u.isActive).length 
-  });
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
