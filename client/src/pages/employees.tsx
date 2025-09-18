@@ -24,6 +24,35 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 
+// Função utilitária para aplicar máscara de telefone brasileiro
+const applyPhoneMask = (value: string): string => {
+  // Remove todos os caracteres não numéricos
+  const numbersOnly = value.replace(/\D/g, '');
+  
+  // Limita a 11 dígitos (2 para DDD + 9 para número)
+  const limitedNumbers = numbersOnly.slice(0, 11);
+  
+  // Aplica a máscara conforme o número de dígitos
+  if (limitedNumbers.length <= 2) {
+    return `(${limitedNumbers}`;
+  } else if (limitedNumbers.length <= 6) {
+    return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2)}`;
+  } else if (limitedNumbers.length <= 10) {
+    return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2, 6)}-${limitedNumbers.slice(6)}`;
+  } else {
+    return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2, 7)}-${limitedNumbers.slice(7)}`;
+  }
+};
+
+// Função para criar handler customizado que aplica a máscara
+const createPhoneHandler = (field: any) => ({
+  ...field,
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maskedValue = applyPhoneMask(e.target.value);
+    field.onChange(maskedValue);
+  }
+});
+
 export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -889,7 +918,7 @@ export default function Employees() {
                               <FormItem>
                                 <FormLabel>Telefone Pessoal *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="(11) 99999-9999" {...field} data-testid="input-personal-phone" />
+                                  <Input placeholder="(11) 99999-9999" {...createPhoneHandler(field)} data-testid="input-personal-phone" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -902,7 +931,7 @@ export default function Employees() {
                               <FormItem>
                                 <FormLabel>Telefone Comercial</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="(11) 3333-3333" {...field} data-testid="input-commercial-phone" />
+                                  <Input placeholder="(11) 3333-3333" {...createPhoneHandler(field)} data-testid="input-commercial-phone" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -938,7 +967,7 @@ export default function Employees() {
                               <FormItem>
                                 <FormLabel>Telefone do Contato *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="(11) 88888-8888" {...field} data-testid="input-emergency-phone" />
+                                  <Input placeholder="(11) 88888-8888" {...createPhoneHandler(field)} data-testid="input-emergency-phone" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1389,7 +1418,7 @@ export default function Employees() {
                               <FormItem>
                                 <FormLabel>Telefone Pessoal *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="(11) 99999-9999" {...field} data-testid="input-personal-phone-edit" />
+                                  <Input placeholder="(11) 99999-9999" {...createPhoneHandler(field)} data-testid="input-personal-phone-edit" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1699,7 +1728,7 @@ export default function Employees() {
                             <FormItem>
                               <FormLabel>Telefone Comercial</FormLabel>
                               <FormControl>
-                                <Input placeholder="(11) 3000-0000" {...field} data-testid="input-commercial-phone-edit" />
+                                <Input placeholder="(11) 3000-0000" {...createPhoneHandler(field)} data-testid="input-commercial-phone-edit" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1727,7 +1756,7 @@ export default function Employees() {
                               <FormItem>
                                 <FormLabel>Telefone do Contato de Emergência</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="(11) 99999-8888" {...field} data-testid="input-emergency-phone-edit" />
+                                  <Input placeholder="(11) 99999-8888" {...createPhoneHandler(field)} data-testid="input-emergency-phone-edit" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
