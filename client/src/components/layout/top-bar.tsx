@@ -35,7 +35,7 @@ export default function TopBar({ title }: TopBarProps) {
   const locationStatus = getLocationStatus();
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-orange-50 to-red-50 shadow-sm border-b border-orange-200">
+    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-50 to-teal-50 shadow-sm border-b border-blue-200">
       <div className="flex items-center">
         <Button
           variant="ghost"
@@ -46,7 +46,7 @@ export default function TopBar({ title }: TopBarProps) {
           <Menu className="h-5 w-5" />
         </Button>
         
-        <h2 className="text-xl font-semibold text-orange-800">{title}</h2>
+        <h2 className="text-xl font-semibold text-blue-800">{title}</h2>
       </div>
       
       <div className="flex items-center space-x-4">

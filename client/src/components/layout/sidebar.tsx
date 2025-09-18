@@ -71,9 +71,9 @@ export default function Sidebar() {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-gradient-to-b from-orange-50 to-red-50 border-r border-orange-200">
+    <div className="flex flex-col h-full bg-gradient-to-b from-blue-50 to-teal-50 border-r border-blue-200">
       {/* Logo */}
-      <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-orange-600 to-red-600">
+      <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-blue-600 to-teal-600">
         <div className="flex items-center">
           <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
           <h1 className="text-xl font-bold text-white">
@@ -93,8 +93,8 @@ export default function Sidebar() {
               <div 
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? "bg-orange-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-orange-100 hover:text-orange-800"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-teal-100 hover:text-blue-800"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -107,7 +107,7 @@ export default function Sidebar() {
       </nav>
       
       {/* User Info & Logout */}
-      <div className="p-4 border-t border-orange-200 space-y-2">
+      <div className="p-4 border-t border-blue-200 space-y-2">
         {user && (
           <div className="text-xs text-gray-600 px-2">
             <p className="font-medium">{(user as any).firstName} {(user as any).lastName}</p>
@@ -117,7 +117,7 @@ export default function Sidebar() {
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-gray-600 hover:text-orange-800 hover:bg-orange-100"
+          className="w-full justify-start text-gray-600 hover:text-blue-800 hover:bg-teal-100"
         >
           <LogOut className="mr-3 h-5 w-5" />
           Sair

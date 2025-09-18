@@ -53,7 +53,7 @@ export default function Reports() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -61,7 +61,7 @@ export default function Reports() {
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-2xl font-bold text-orange-800">Relatórios de Ponto</h1>
+            <h1 className="text-2xl font-bold text-blue-800">Relatórios de Ponto</h1>
             
             <div className="flex items-center gap-4">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>

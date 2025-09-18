@@ -185,7 +185,7 @@ export default function Documents() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -193,7 +193,7 @@ export default function Documents() {
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-orange-800 mb-2">
+            <h1 className="text-3xl font-bold text-blue-800 mb-2">
               Documentos
             </h1>
             <p className="text-muted-foreground">

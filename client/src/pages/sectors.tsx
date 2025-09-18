@@ -372,7 +372,7 @@ export default function Sectors() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
@@ -383,7 +383,7 @@ export default function Sectors() {
             {/* Header */}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center" data-testid="page-title">
-                <Building className="h-8 w-8 mr-3 text-orange-600" />
+                <Building className="h-8 w-8 mr-3 text-blue-600" />
                 Gestão de Setores
               </h1>
               <p className="text-gray-600 mt-1">
