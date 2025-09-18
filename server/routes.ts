@@ -20,6 +20,9 @@ import {
   updateEmployeeCourseSchema,
   insertCompleteEmployeeSchema,
   insertAuditLogSchema,
+  insertSectorSchema,
+  insertDepartmentShiftSchema,
+  insertSupervisorAssignmentSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -29,7 +32,10 @@ import {
   type InsertEmployeeCourse,
   type InsertCertificate,
   type InsertCompleteEmployee,
-  type InsertAuditLog
+  type InsertAuditLog,
+  type InsertSector,
+  type InsertDepartmentShift,
+  type InsertSupervisorAssignment
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -54,6 +60,55 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 function calculateHours(start: Date, end: Date): number {
   const diffMs = end.getTime() - start.getTime();
   return Number((diffMs / (1000 * 60 * 60)).toFixed(2));
+}
+
+// Helper function to get user scope based on role
+async function getUserScope(userId: string) {
+  const user = await storage.getUser(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (user.role === 'superadmin') {
+    // Superadmin has access to all data
+    return { 
+      type: 'superadmin' as const, 
+      user,
+      companyId: null,
+      departmentIds: null
+    };
+  } else if (user.role === 'admin') {
+    // Admin has access to all data in their company
+    if (!user.companyId) {
+      throw new Error("Admin must be assigned to a company");
+    }
+    return { 
+      type: 'admin' as const, 
+      user,
+      companyId: user.companyId,
+      departmentIds: null
+    };
+  } else if (user.role === 'supervisor') {
+    // Supervisor has access only to their assigned sectors
+    const scope = await storage.getSupervisorScope(userId);
+    if (!scope) {
+      throw new Error("Supervisor has no assigned sectors");
+    }
+    return { 
+      type: 'supervisor' as const, 
+      user,
+      companyId: scope.companyId,
+      departmentIds: scope.departmentIds
+    };
+  } else {
+    // Employee has access only to their own data
+    return { 
+      type: 'employee' as const, 
+      user,
+      companyId: user.companyId,
+      departmentIds: user.departmentId ? [user.departmentId] : []
+    };
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -154,15 +209,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Department routes
   app.get('/api/departments', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.companyId) {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user.companyId && scope.type !== 'superadmin') {
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
       
-      const departments = await storage.getDepartmentsByCompany(user.companyId);
+      let departments;
+      if (scope.type === 'superadmin') {
+        departments = await storage.getDepartments();
+      } else if (scope.type === 'admin') {
+        departments = await storage.getDepartmentsByCompany(scope.companyId!);
+      } else if (scope.type === 'supervisor') {
+        // Supervisors can only see departments from their assigned sectors
+        departments = await storage.getDepartmentsByScope(scope.departmentIds!);
+      } else {
+        // Employees can see all departments in their company (for department selection purposes)
+        departments = await storage.getDepartmentsByCompany(scope.companyId!);
+      }
+      
       res.json(departments);
     } catch (error) {
       console.error("Error fetching departments:", error);
+      if (error instanceof Error && error.message.includes("assigned sectors")) {
+        return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+      }
       res.status(500).json({ message: "Failed to fetch departments" });
     }
   });
@@ -193,8 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/departments/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.companyId) {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user.companyId && scope.type !== 'superadmin') {
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
       
@@ -204,16 +276,393 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Department not found" });
       }
       
-      // CRITICAL SECURITY: Verify department belongs to user's company
-      if (department.companyId !== user.companyId) {
-        return res.status(403).json({ message: "Access denied: department not accessible" });
+      // CRITICAL SECURITY: Verify access based on user role
+      if (scope.type === 'superadmin') {
+        // Superadmin has access to all departments
+      } else if (scope.type === 'admin' || scope.type === 'employee') {
+        // Admin and employee can access departments in their company
+        if (department.companyId !== scope.companyId) {
+          return res.status(403).json({ message: "Access denied: department not accessible" });
+        }
+      } else if (scope.type === 'supervisor') {
+        // Supervisor can only access departments from their assigned sectors
+        if (department.companyId !== scope.companyId) {
+          return res.status(403).json({ message: "Access denied: department not accessible" });
+        }
+        if (!scope.departmentIds!.includes(id)) {
+          return res.status(403).json({ message: "Access denied: department not in your assigned scope" });
+        }
       }
       
       const stats = await storage.getDepartmentStats(id);
       res.json({ ...department, stats });
     } catch (error) {
       console.error("Error fetching department:", error);
+      if (error instanceof Error && error.message.includes("assigned sectors")) {
+        return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+      }
       res.status(500).json({ message: "Failed to fetch department" });
+    }
+  });
+
+  // ==== SECTOR ROUTES ====
+  
+  // Get sectors for current user's company
+  app.get('/api/sectors', isAuthenticated, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user.companyId && scope.type !== 'superadmin') {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+      
+      let sectors;
+      if (scope.type === 'superadmin') {
+        sectors = await storage.getSectors();
+      } else if (scope.type === 'admin') {
+        sectors = await storage.getSectorsByCompany(scope.companyId!);
+      } else if (scope.type === 'supervisor') {
+        // Get supervisor scope and filter sectors
+        const supervisorScope = await storage.getSupervisorScope(req.user.claims.sub);
+        if (!supervisorScope) {
+          return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+        }
+        // Return only sectors that the supervisor is assigned to
+        sectors = [];
+        for (const sectorId of supervisorScope.sectorIds) {
+          const sector = await storage.getSector(sectorId);
+          if (sector) {
+            sectors.push(sector);
+          }
+        }
+      } else {
+        // Employees can see sectors in their company (for information purposes)
+        sectors = await storage.getSectorsByCompany(scope.companyId!);
+      }
+      
+      res.json(sectors);
+    } catch (error) {
+      console.error("Error fetching sectors:", error);
+      if (error instanceof Error && error.message.includes("assigned sectors")) {
+        return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+      }
+      res.status(500).json({ message: "Failed to fetch sectors" });
+    }
+  });
+
+  // Create new sector (admin only)
+  app.post('/api/sectors', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const sectorData = insertSectorSchema.parse(req.body);
+      // Force companyId to be the user's company - security critical
+      sectorData.companyId = user.companyId;
+      const sector = await storage.createSector(sectorData);
+      res.json(sector);
+    } catch (error) {
+      console.error("Error creating sector:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid sector data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create sector" });
+    }
+  });
+
+  // Update sector (admin only)
+  app.put('/api/sectors/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      const sector = await storage.getSector(id);
+      if (!sector) {
+        return res.status(404).json({ message: "Sector not found" });
+      }
+      
+      // CRITICAL SECURITY: Verify sector belongs to user's company
+      if (sector.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: sector not accessible" });
+      }
+      
+      const sectorData = insertSectorSchema.partial().parse(req.body);
+      // Prevent companyId modification
+      delete sectorData.companyId;
+      const updatedSector = await storage.updateSector(id, sectorData);
+      res.json(updatedSector);
+    } catch (error) {
+      console.error("Error updating sector:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid sector data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update sector" });
+    }
+  });
+
+  // ==== DEPARTMENT SHIFT ROUTES ====
+  
+  // Get shifts for a department
+  app.get('/api/departments/:id/shifts', isAuthenticated, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user.companyId && scope.type !== 'superadmin') {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const departmentId = parseInt(req.params.id);
+      const department = await storage.getDepartment(departmentId);
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      
+      // CRITICAL SECURITY: Verify access based on user role
+      if (scope.type === 'superadmin') {
+        // Superadmin has access to all department shifts
+      } else if (scope.type === 'admin' || scope.type === 'employee') {
+        // Admin and employee can access shifts in their company departments
+        if (department.companyId !== scope.companyId) {
+          return res.status(403).json({ message: "Access denied: department not accessible" });
+        }
+      } else if (scope.type === 'supervisor') {
+        // Supervisor can only access shifts from departments in their assigned sectors
+        if (department.companyId !== scope.companyId) {
+          return res.status(403).json({ message: "Access denied: department not accessible" });
+        }
+        if (!scope.departmentIds!.includes(departmentId)) {
+          return res.status(403).json({ message: "Access denied: department not in your assigned scope" });
+        }
+      }
+      
+      const shifts = await storage.getDepartmentShifts(departmentId);
+      res.json(shifts);
+    } catch (error) {
+      console.error("Error fetching department shifts:", error);
+      if (error instanceof Error && error.message.includes("assigned sectors")) {
+        return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+      }
+      res.status(500).json({ message: "Failed to fetch department shifts" });
+    }
+  });
+
+  // Create department shift (admin only)
+  app.post('/api/departments/:id/shifts', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const departmentId = parseInt(req.params.id);
+      const department = await storage.getDepartment(departmentId);
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      
+      // CRITICAL SECURITY: Verify department belongs to user's company
+      if (department.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: department not accessible" });
+      }
+
+      const shiftData = insertDepartmentShiftSchema.parse(req.body);
+      shiftData.departmentId = departmentId;
+      const shift = await storage.createDepartmentShift(shiftData);
+      res.json(shift);
+    } catch (error) {
+      console.error("Error creating department shift:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid shift data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create department shift" });
+    }
+  });
+
+  // Update department shift (admin only)
+  app.put('/api/department-shifts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      const shift = await storage.getDepartmentShift(id);
+      if (!shift) {
+        return res.status(404).json({ message: "Shift not found" });
+      }
+      
+      // Verify shift's department belongs to user's company
+      const department = await storage.getDepartment(shift.departmentId);
+      if (!department || department.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: shift not accessible" });
+      }
+      
+      const shiftData = insertDepartmentShiftSchema.partial().parse(req.body);
+      // Prevent departmentId modification
+      delete shiftData.departmentId;
+      const updatedShift = await storage.updateDepartmentShift(id, shiftData);
+      res.json(updatedShift);
+    } catch (error) {
+      console.error("Error updating department shift:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid shift data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update department shift" });
+    }
+  });
+
+  // Delete department shift (admin only)
+  app.delete('/api/department-shifts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      const shift = await storage.getDepartmentShift(id);
+      if (!shift) {
+        return res.status(404).json({ message: "Shift not found" });
+      }
+      
+      // Verify shift's department belongs to user's company
+      const department = await storage.getDepartment(shift.departmentId);
+      if (!department || department.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: shift not accessible" });
+      }
+      
+      await storage.deleteDepartmentShift(id);
+      res.json({ message: "Department shift deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting department shift:", error);
+      res.status(500).json({ message: "Failed to delete department shift" });
+    }
+  });
+
+  // ==== SUPERVISOR ASSIGNMENT ROUTES ====
+  
+  // Get supervisor assignments for current user
+  app.get('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'supervisor') {
+        return res.status(403).json({ message: "Supervisor access required" });
+      }
+
+      const assignments = await storage.getSupervisorAssignments(userId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching supervisor assignments:", error);
+      res.status(500).json({ message: "Failed to fetch supervisor assignments" });
+    }
+  });
+
+  // Create supervisor assignment (admin only)
+  app.post('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const assignmentData = insertSupervisorAssignmentSchema.parse(req.body);
+      
+      // Verify supervisor is from the same company
+      const supervisor = await storage.getUser(assignmentData.supervisorId);
+      if (!supervisor || supervisor.companyId !== user.companyId) {
+        return res.status(400).json({ message: "Supervisor must be from your company" });
+      }
+      
+      // Verify supervisor has supervisor role
+      if (supervisor.role !== 'supervisor') {
+        return res.status(400).json({ message: "User must have supervisor role" });
+      }
+      
+      // Verify sector belongs to the same company
+      const sector = await storage.getSector(assignmentData.sectorId);
+      if (!sector || sector.companyId !== user.companyId) {
+        return res.status(400).json({ message: "Sector must be from your company" });
+      }
+
+      const assignment = await storage.createSupervisorAssignment(assignmentData);
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error creating supervisor assignment:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assignment data", errors: error.errors });
+      }
+      // Handle security validation errors from storage layer
+      if (error instanceof Error && error.message.includes("same company")) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to create supervisor assignment" });
+    }
+  });
+
+  // Delete supervisor assignment (admin only)
+  app.delete('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const { supervisorId, sectorId } = req.body;
+      
+      if (!supervisorId || !sectorId) {
+        return res.status(400).json({ message: "supervisorId and sectorId are required" });
+      }
+      
+      // Verify supervisor is from the same company
+      const supervisor = await storage.getUser(supervisorId);
+      if (!supervisor || supervisor.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: supervisor not in your company" });
+      }
+      
+      // Verify sector belongs to the same company
+      const sector = await storage.getSector(sectorId);
+      if (!sector || sector.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: sector not in your company" });
+      }
+
+      await storage.deleteSupervisorAssignment(supervisorId, sectorId);
+      res.json({ message: "Supervisor assignment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting supervisor assignment:", error);
+      res.status(500).json({ message: "Failed to delete supervisor assignment" });
     }
   });
 
@@ -309,8 +758,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.params.id;
       const { role, companyId } = req.body;
       
-      if (!['employee', 'admin', 'superadmin'].includes(role)) {
-        return res.status(400).json({ message: "Invalid role. Must be employee, admin, or superadmin" });
+      if (!['employee', 'admin', 'supervisor', 'superadmin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be employee, admin, supervisor, or superadmin" });
       }
 
       // Verify the target user exists
@@ -611,18 +1060,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management routes (admin only)
+  // User management routes (admin and supervisor)
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      if (!user?.companyId) {
-        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      // Allow admin, superadmin, and supervisor roles
+      if (!['admin', 'superadmin', 'supervisor'].includes(scope.user.role)) {
+        return res.status(403).json({ message: "Admin or supervisor access required" });
       }
 
-      const users = await storage.getUsersByCompany(user.companyId);
+      let users;
+      if (scope.type === 'superadmin') {
+        users = await storage.getAllUsers();
+      } else if (scope.type === 'admin') {
+        users = await storage.getUsersByCompany(scope.companyId!);
+      } else if (scope.type === 'supervisor') {
+        // Supervisors can only see users from their assigned sectors
+        users = await storage.getUsersByScope(scope.companyId, scope.departmentIds!);
+      } else {
+        return res.status(403).json({ message: "Access denied" });
+      }
       
       // Get departments for each user
       const usersWithDepartments = await Promise.all(
@@ -638,6 +1096,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(usersWithDepartments);
     } catch (error) {
       console.error("Error fetching users:", error);
+      if (error instanceof Error && error.message.includes("assigned sectors")) {
+        return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+      }
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
@@ -1515,17 +1976,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get users (for recipient selection)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const scope = await getUserScope(req.user.claims.sub);
       
-      if (!user) {
+      if (!scope.user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const users = await storage.getCompanyEmployees(user.companyId);
+      let users;
+      if (scope.type === 'superadmin') {
+        users = await storage.getAllUsers();
+      } else if (scope.type === 'admin') {
+        users = await storage.getCompanyEmployees(scope.companyId!);
+      } else if (scope.type === 'supervisor') {
+        // Supervisors can only see users from their assigned sectors
+        users = await storage.getUsersByScope(scope.companyId, scope.departmentIds!);
+      } else {
+        // Employees can see all users in their company (for recipient selection)
+        users = await storage.getCompanyEmployees(scope.companyId!);
+      }
+
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
+      if (error instanceof Error && error.message.includes("assigned sectors")) {
+        return res.status(400).json({ message: "Supervisor has no assigned sectors" });
+      }
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
