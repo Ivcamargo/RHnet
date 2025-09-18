@@ -84,11 +84,18 @@ async function upsertUser(
       const allCompanies = await storage.getCompanies();
       console.log("DEBUG: Found companies:", allCompanies.map(c => ({ id: c.id, name: c.name, cnpj: c.cnpj })));
       
+      // Try to find company with default CNPJ
       let defaultCompany = allCompanies.find(c => c.cnpj === "00000000000000");
       console.log("DEBUG: Default company found:", defaultCompany);
       
+      // If not found, use the first company available (fallback)
+      if (!defaultCompany && allCompanies.length > 0) {
+        defaultCompany = allCompanies[0];
+        console.log("DEBUG: Using first available company as fallback:", defaultCompany);
+      }
+      
       if (!defaultCompany) {
-        console.log("DEBUG: No default company found, attempting to create one");
+        console.log("DEBUG: No companies found, attempting to create default company");
         try {
           defaultCompany = await storage.createCompany({
             name: "Empresa Padrão",
