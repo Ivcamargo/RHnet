@@ -24,7 +24,7 @@ import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartpho
 
 export default function Landing() {
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/login";
   };
 
   return (
