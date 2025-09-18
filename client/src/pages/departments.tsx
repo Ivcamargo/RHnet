@@ -41,9 +41,6 @@ export default function Departments() {
       description: "",
       shiftStart: "08:00",
       shiftEnd: "17:00",
-      latitude: -23.5505,
-      longitude: -46.6333,
-      radius: 100,
       isActive: true,
       companyId: 1, // Backend will override this with user's actual company
     },
@@ -56,23 +53,11 @@ export default function Departments() {
       description: "",
       shiftStart: "08:00",
       shiftEnd: "17:00",
-      latitude: -23.5505,
-      longitude: -46.6333,
-      radius: 100,
       isActive: true,
       companyId: 1,
     },
   });
 
-  const handleLocationChange = (lat: number, lng: number) => {
-    form.setValue('latitude', lat);
-    form.setValue('longitude', lng);
-  };
-
-  const handleEditLocationChange = (lat: number, lng: number) => {
-    editForm.setValue('latitude', lat);
-    editForm.setValue('longitude', lng);
-  };
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertDepartment) => {
@@ -168,9 +153,7 @@ export default function Departments() {
       description: department.description || "",
       shiftStart: department.shiftStart,
       shiftEnd: department.shiftEnd,
-      latitude: department.latitude,
-      longitude: department.longitude,
-      radius: department.radius,
+      sectorId: department.sectorId,
       isActive: department.isActive,
       companyId: department.companyId,
     });
@@ -272,80 +255,6 @@ export default function Departments() {
                         />
                       </div>
                       
-                      <LocationMap
-                        latitude={form.watch('latitude')}
-                        longitude={form.watch('longitude')}
-                        radius={form.watch('radius') || 100}
-                        onLocationChange={handleLocationChange}
-                        className="mb-4"
-                      />
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="latitude"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Latitude</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  step="any" 
-                                  placeholder="Ex: -23.5505"
-                                  readOnly
-                                  className="bg-gray-50"
-                                  {...field}
-                                  data-testid="input-latitude"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="longitude"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Longitude</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  step="any" 
-                                  placeholder="Ex: -46.6333"
-                                  readOnly
-                                  className="bg-gray-50"
-                                  {...field}
-                                  data-testid="input-longitude"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <FormField
-                        control={form.control}
-                        name="radius"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Raio da Cerca Virtual (metros)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="100"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                data-testid="input-radius"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
                       <div className="flex gap-2">
                         <Button type="submit" disabled={createMutation.isPending} className="point-primary">
                           {createMutation.isPending ? "Criando..." : "Criar"}
@@ -426,78 +335,6 @@ export default function Departments() {
                       )}
                     />
                   </div>
-                  
-                  <LocationMap
-                    latitude={editForm.watch('latitude')}
-                    longitude={editForm.watch('longitude')}
-                    radius={editForm.watch('radius') || 100}
-                    onLocationChange={handleEditLocationChange}
-                    className="mb-4"
-                  />
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={editForm.control}
-                      name="latitude"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Latitude</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              step="any" 
-                              readOnly
-                              className="bg-gray-50"
-                              {...field}
-                              data-testid="edit-input-latitude"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="longitude"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Longitude</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              step="any" 
-                              readOnly
-                              className="bg-gray-50"
-                              {...field}
-                              data-testid="edit-input-longitude"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={editForm.control}
-                    name="radius"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Raio da Cerca Virtual (metros)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="100"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            data-testid="edit-input-radius"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   
                   <div className="flex gap-2">
                     <Button type="submit" disabled={updateMutation.isPending} className="point-primary" data-testid="button-save-department">
@@ -611,11 +448,6 @@ export default function Departments() {
                       )}
                       
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <MapPin className="h-4 w-4" />
-                        <span>Raio: {department.radius}m</span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 text-sm text-gray-500">
                         <Users className="h-4 w-4" />
                         <span>Funcionários ativos</span>
                       </div>
@@ -623,7 +455,7 @@ export default function Departments() {
                       <div className="pt-2 border-t">
                         <div className="flex items-center justify-between">
                           <div className="text-xs text-gray-400">
-                            Localização: {department.latitude.toFixed(4)}, {department.longitude.toFixed(4)}
+                            Setor: {department.sectorId ? `ID ${department.sectorId}` : 'Não atribuído'}
                           </div>
                           <div className={`px-2 py-1 rounded-full text-xs ${
                             department.isActive 

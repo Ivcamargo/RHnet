@@ -67,6 +67,10 @@ export const sectors = pgTable("sectors", {
   companyId: integer("company_id").notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
+  // Geolocation for geofencing - moved from departments
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(), 
+  radius: integer("radius").default(100), // meters
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -86,9 +90,7 @@ export const departments = pgTable("departments", {
   description: text("description"),
   shiftStart: varchar("shift_start").notNull(), // "08:00" - kept for compatibility
   shiftEnd: varchar("shift_end").notNull(), // "17:00" - kept for compatibility
-  latitude: real("latitude").notNull(),
-  longitude: real("longitude").notNull(),
-  radius: integer("radius").default(100), // meters
+  // Note: geolocation moved to sectors table
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

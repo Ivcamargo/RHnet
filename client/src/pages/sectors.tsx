@@ -34,6 +34,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 const sectorFormSchema = z.object({
   name: z.string().min(1, "Nome do setor é obrigatório"),
   description: z.string().optional(),
+  latitude: z.coerce.number().min(-90).max(90, "Latitude deve estar entre -90 e 90"),
+  longitude: z.coerce.number().min(-180).max(180, "Longitude deve estar entre -180 e 180"),
+  radius: z.coerce.number().min(1).max(1000, "Raio deve estar entre 1 e 1000 metros").default(100),
 });
 
 // Schema for shift form validation  
@@ -52,6 +55,9 @@ interface Sector {
   id: number;
   name: string;
   description?: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
   companyId: number;
   createdAt: string;
   updatedAt: string;
@@ -61,11 +67,8 @@ interface Department {
   id: number;
   name: string;
   description?: string;
-  latitude?: number;
-  longitude?: number;
-  radius?: number;
   companyId: number;
-  sectorId?: number;
+  sectorId: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -118,6 +121,9 @@ export default function Sectors() {
     defaultValues: {
       name: "",
       description: "",
+      latitude: 0,
+      longitude: 0,
+      radius: 100,
     },
   });
 
@@ -297,6 +303,9 @@ export default function Sectors() {
     sectorForm.reset({
       name: sector.name,
       description: sector.description || "",
+      latitude: sector.latitude,
+      longitude: sector.longitude,
+      radius: sector.radius,
     });
   };
 
@@ -443,6 +452,73 @@ export default function Sectors() {
                               </FormItem>
                             )}
                           />
+
+                          <div className="space-y-4 border-t pt-4">
+                            <h4 className="text-sm font-medium text-gray-700">Localização da Cerca Virtual</h4>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={sectorForm.control}
+                                name="latitude"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Latitude</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number"
+                                        step="any"
+                                        placeholder="Ex: -23.5505"
+                                        data-testid="input-sector-latitude"
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={sectorForm.control}
+                                name="longitude"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Longitude</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number"
+                                        step="any"
+                                        placeholder="Ex: -46.6333"
+                                        data-testid="input-sector-longitude"
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <FormField
+                              control={sectorForm.control}
+                              name="radius"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Raio da Cerca Virtual (metros)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      min="1"
+                                      max="1000"
+                                      placeholder="Ex: 100"
+                                      data-testid="input-sector-radius"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
                           <div className="flex justify-end space-x-2 pt-4">
                             <Button 
