@@ -80,15 +80,29 @@ async function upsertUser(
     } else {
       // NEW user - assign to default company
       let defaultCompany = await storage.getCompanies().then(companies => 
-        companies.find(c => c.name === "Empresa Padrão")
+        companies.find(c => c.name === "Empresa Padrão" || c.cnpj === "00000000000000")
       );
       
       if (!defaultCompany) {
-        defaultCompany = await storage.createCompany({
-          name: "Empresa Padrão",
-          address: "Endereço não definido",
-          cnpj: "00000000000000"
-        });
+        try {
+          defaultCompany = await storage.createCompany({
+            name: "Empresa Padrão",
+            address: "Endereço não definido",
+            cnpj: "00000000000000"
+          });
+        } catch (error) {
+          // If company creation fails due to duplicate CNPJ, try to find it again
+          if (error instanceof Error && error.message.includes("companies_cnpj_unique")) {
+            defaultCompany = await storage.getCompanies().then(companies => 
+              companies.find(c => c.cnpj === "00000000000000")
+            );
+            if (!defaultCompany) {
+              throw new Error("Failed to create or find default company");
+            }
+          } else {
+            throw error;
+          }
+        }
       }
 
       await storage.upsertUser({
@@ -137,12 +151,17 @@ export async function setupAuth(app: Express) {
       updateUserSession(user, tokens);
       
       // CRITICAL: Handle database errors gracefully to prevent server crashes
-      const upsertResult = await upsertUser(tokens.claims());
+      const claims = tokens.claims();
+      if (!claims) {
+        return verified(new Error("Failed to retrieve user claims"), false);
+      }
+      
+      const upsertResult = await upsertUser(claims);
       
       if (!upsertResult.success) {
         console.error("Authentication failed due to database error:", {
           error: upsertResult.error,
-          userId: tokens.claims()["sub"],
+          userId: claims["sub"],
           timestamp: new Date().toISOString()
         });
         
