@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2 } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2, Key, Lock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useForm } from "react-hook-form";
@@ -62,6 +62,8 @@ export default function Employees() {
   const [deleteEmployee, setDeleteEmployee] = useState<any>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [managingUser, setManagingUser] = useState<any>(null);
+  const [isResetPasswordLoading, setIsResetPasswordLoading] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -377,6 +379,66 @@ export default function Employees() {
       role,
       companyId
     });
+  };
+
+  // Função para resetar senha de usuário pelo admin
+  const handleResetPassword = async () => {
+    if (!managingUser || !temporaryPassword.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite uma senha temporária válida.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (temporaryPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A senha temporária deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResetPasswordLoading(true);
+    try {
+      const response = await fetch("/api/auth/admin/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          userId: managingUser.id,
+          temporaryPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Erro ao resetar senha");
+      }
+
+      toast({
+        title: "Senha resetada!",
+        description: result.message,
+      });
+
+      setTemporaryPassword("");
+      setManagingUser(null);
+
+    } catch (error) {
+      console.error("Erro ao resetar senha:", error);
+      toast({
+        title: "Erro ao resetar senha",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetPasswordLoading(false);
+    }
   };
 
 
@@ -2342,6 +2404,142 @@ export default function Employees() {
           )}
         </main>
       </div>
+      
+      {/* Dialog para gerenciar usuário */}
+      <Dialog open={!!managingUser} onOpenChange={() => setManagingUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Gerenciar Usuário
+            </DialogTitle>
+            <DialogDescription>
+              {managingUser && `Gerenciando: ${managingUser.firstName} ${managingUser.lastName} (${managingUser.email})`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {managingUser && (
+            <div className="space-y-6">
+              {/* Seção de Informações do Usuário */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Informações Atuais</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p><strong>Role:</strong> {managingUser.role}</p>
+                  <p><strong>Status:</strong> {managingUser.isActive ? "Ativo" : "Inativo"}</p>
+                  {managingUser.companyId && (
+                    <p><strong>Empresa ID:</strong> {managingUser.companyId}</p>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Seção de Reset de Senha */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  <h4 className="text-sm font-medium">Resetar Senha</h4>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Defina uma senha temporária para o usuário. Ele será obrigado a alterar a senha no próximo login.
+                </p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="temporary-password">Senha Temporária</Label>
+                  <Input
+                    id="temporary-password"
+                    type="password"
+                    placeholder="Digite uma senha temporária (min. 6 caracteres)"
+                    value={temporaryPassword}
+                    onChange={(e) => setTemporaryPassword(e.target.value)}
+                    disabled={isResetPasswordLoading}
+                    data-testid="input-temporary-password"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleResetPassword}
+                  disabled={isResetPasswordLoading || temporaryPassword.length < 6}
+                  className="w-full"
+                  variant="outline"
+                  data-testid="button-reset-user-password"
+                >
+                  {isResetPasswordLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                      Resetando...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Resetar Senha
+                    </>
+                  )}
+                </Button>
+                
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    ⚠️ O usuário receberá uma senha temporária e deverá alterá-la no próximo login.
+                    Esta ação não pode ser desfeita.
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              <Separator />
+
+              {/* Seção de Alteração de Role (para superadmin) */}
+              {user?.role === 'superadmin' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <h4 className="text-sm font-medium">Alterar Privilégios</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant={managingUser.role === 'employee' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleUpdateUserRole('employee')}
+                      disabled={manageUserMutation.isPending}
+                      data-testid="button-set-employee"
+                    >
+                      Funcionário
+                    </Button>
+                    <Button
+                      variant={managingUser.role === 'admin' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleUpdateUserRole('admin')}
+                      disabled={manageUserMutation.isPending}
+                      data-testid="button-set-admin"
+                    >
+                      Admin
+                    </Button>
+                    <Button
+                      variant={managingUser.role === 'superadmin' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleUpdateUserRole('superadmin')}
+                      disabled={manageUserMutation.isPending}
+                      data-testid="button-set-superadmin"
+                    >
+                      SuperAdmin
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-start">
+            <Button 
+              variant="outline" 
+              onClick={() => setManagingUser(null)}
+              data-testid="button-close-manage-user"
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

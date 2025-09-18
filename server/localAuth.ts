@@ -1,4 +1,5 @@
 import * as argon2 from 'argon2';
+import * as crypto from 'crypto';
 import { z } from 'zod';
 import { Router } from 'express';
 import { storage } from './storage';
@@ -38,6 +39,24 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Email inválido'),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token é obrigatório'),
+  newPassword: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Senhas não conferem",
+  path: ["confirmPassword"],
+});
+
+const adminResetPasswordSchema = z.object({
+  userId: z.string().min(1, 'ID do usuário é obrigatório'),
+  temporaryPassword: z.string().min(6, 'Senha temporária deve ter pelo menos 6 caracteres'),
+});
+
 // Função para hash de senha
 export async function hashPassword(password: string): Promise<string> {
   return await argon2.hash(password, argon2Config);
@@ -50,6 +69,17 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
   } catch {
     return false;
   }
+}
+
+// Função para gerar token de reset seguro
+function generateResetToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Função para verificar se token de reset é válido (não expirou)
+function isResetTokenValid(expires: Date | null): boolean {
+  if (!expires) return false;
+  return new Date() < expires;
 }
 
 // Rate limiting para login
@@ -359,6 +389,154 @@ export function setupLocalAuth(app: any) {
     }
   });
 
+  // Esqueci minha senha - solicita reset
+  authRouter.post('/forgot-password', async (req, res) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      
+      // Busca usuário por email
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
+      // Sempre retorna sucesso (não revela se email existe - segurança)
+      if (!user || !user.isActive) {
+        return res.json({ 
+          message: 'Se o email existir em nosso sistema, você receberá instruções para redefinir sua senha.' 
+        });
+      }
+      
+      // Gera token de reset válido por 1 hora
+      const resetToken = generateResetToken();
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+      
+      // Atualiza usuário com token de reset
+      await storage.updateUser(user.id, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      });
+
+      // Em produção, aqui enviaria email com link de reset
+      // Para desenvolvimento, log no console
+      console.log(`Reset password link for ${email}: /reset-password?token=${resetToken}`);
+      
+      res.json({ 
+        message: 'Se o email existir em nosso sistema, você receberá instruções para redefinir sua senha.',
+        // Apenas para desenvolvimento - remover em produção
+        resetLink: `/reset-password?token=${resetToken}`
+      });
+
+    } catch (error) {
+      console.error('Erro ao solicitar reset:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Email inválido', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Reset de senha com token
+  authRouter.post('/reset-password', async (req, res) => {
+    try {
+      const { token, newPassword } = resetPasswordSchema.parse(req.body);
+      
+      // Busca usuário pelo token
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.passwordResetToken === token);
+      
+      if (!user) {
+        return res.status(400).json({ message: 'Token inválido ou expirado' });
+      }
+      
+      // Verifica se token não expirou
+      if (!isResetTokenValid(user.passwordResetExpires)) {
+        return res.status(400).json({ message: 'Token expirado' });
+      }
+      
+      // Hash da nova senha
+      const passwordHash = await hashPassword(newPassword);
+      
+      // Atualiza usuário com nova senha e limpa token
+      await storage.updateUser(user.id, {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        mustChangePassword: false,
+      });
+      
+      res.json({ message: 'Senha redefinida com sucesso!' });
+
+    } catch (error) {
+      console.error('Erro ao resetar senha:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Admin reseta senha de usuário (cria senha temporária)
+  authRouter.post('/admin/reset-password', isAuthenticatedHybrid, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      
+      // Verifica se é admin ou superadmin
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
+        return res.status(403).json({ message: 'Acesso negado. Apenas admins podem resetar senhas.' });
+      }
+      
+      const { userId, temporaryPassword } = adminResetPasswordSchema.parse(req.body);
+      
+      // Busca usuário alvo
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Verifica autorização: admin só pode resetar senha de funcionários da mesma empresa
+      if (currentUser.role === 'admin') {
+        if (!currentUser.companyId) {
+          return res.status(400).json({ message: 'Admin deve estar vinculado a uma empresa' });
+        }
+        if (targetUser.companyId !== currentUser.companyId) {
+          return res.status(403).json({ message: 'Admin só pode resetar senhas de funcionários da mesma empresa' });
+        }
+        if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
+          return res.status(403).json({ message: 'Admin não pode resetar senha de outros administradores' });
+        }
+      }
+      
+      // Hash da senha temporária
+      const passwordHash = await hashPassword(temporaryPassword);
+      
+      // Atualiza usuário com senha temporária e força troca
+      await storage.updateUser(userId, {
+        passwordHash,
+        mustChangePassword: true,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      });
+      
+      res.json({ 
+        message: `Senha temporária definida para ${targetUser.firstName} ${targetUser.lastName}. O usuário deverá alterar a senha no próximo login.` 
+      });
+
+    } catch (error) {
+      console.error('Erro ao resetar senha pelo admin:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
 
   app.use('/api/auth', authRouter);
 }

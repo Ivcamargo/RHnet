@@ -153,12 +153,21 @@ export default function LoginPage() {
           </form>
 
           {/* Link para registro apenas se não houver superadmin */}
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-muted-foreground">
               Não tem uma conta?{" "}
               <Link href="/register">
                 <Button variant="link" className="p-0 h-auto" data-testid="link-register">
                   Cadastre-se
+                </Button>
+              </Link>
+            </p>
+            
+            <p className="text-sm text-muted-foreground">
+              Esqueceu sua senha?{" "}
+              <Link href="/forgot-password">
+                <Button variant="link" className="p-0 h-auto text-primary" data-testid="link-forgot-password">
+                  Clique aqui
                 </Button>
               </Link>
             </p>

@@ -10,6 +10,8 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import SetPassword from "@/pages/set-password";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import TimeClock from "@/pages/time-clock";
 import Departments from "@/pages/departments";
@@ -39,6 +41,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/set-password" component={SetPassword} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       
       {!isAuthenticated ? (
         <Route path="/" component={Landing} />
