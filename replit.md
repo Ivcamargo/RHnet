@@ -28,18 +28,29 @@ Preferred communication style: Simple, everyday language.
 - **File Structure**: Organized into routes, storage layer, and database configuration
 
 ### Authentication System
-- **Provider**: Replit OIDC (OpenID Connect) integration
-- **Strategy**: Passport.js with OpenID Connect strategy
-- **Session Storage**: PostgreSQL-backed sessions using connect-pg-simple
-- **Authorization**: Role-based access control (employee/admin roles)
+- **Hybrid Architecture**: Supports both Replit OIDC and local email/password authentication
+- **Primary Strategy**: Local email/password with argon2id password hashing
+- **Fallback Strategy**: Replit OIDC (OpenID Connect) for migration compatibility
+- **Session Management**: Express sessions with memory store (development)
+- **Authorization**: Role-based access control (superadmin/admin/employee roles)
+- **Security Features**: Rate limiting, secure password hashing, session-based authentication
+- **Migration Path**: Gradual transition from OIDC to independent local authentication
 
 ### Database Schema
-- **Users**: Profile information, roles, department assignments
+- **Users**: Profile information, roles, department assignments, password hashing (passwordHash, mustChangePassword, passwordResetToken, passwordResetExpires)
 - **Departments**: Location-based work units with geofencing coordinates
 - **Time Entries**: Clock in/out records with geolocation and facial recognition data
 - **Break Entries**: Break time tracking linked to time entries
 - **Face Profiles**: Facial recognition data storage
 - **Sessions**: Authentication session persistence
+
+### Hybrid Authentication Implementation
+- **Backend Integration** (server/localAuth.ts): Complete local authentication system with argon2id password hashing
+- **Middleware Integration** (isAuthenticatedHybrid): Unified middleware supporting both OIDC and local auth
+- **Frontend Pages**: Login (/login), Registration (/register), Password Setup (/set-password)
+- **Migration Strategy**: Existing OIDC users can be migrated by setting passwordHash field
+- **Security Measures**: Rate limiting, secure session management, role-based authorization
+- **User Roles**: First user automatically becomes superadmin, subsequent users require superadmin approval
 
 ### Geolocation Features
 - **Browser Geolocation API**: Real-time location tracking
@@ -66,8 +77,19 @@ Preferred communication style: Simple, everyday language.
 - **Connection Pooling**: @neondatabase/serverless for optimized connections
 
 ### Authentication
-- **Replit OIDC**: Primary authentication provider
-- **OpenID Connect**: Standard authentication protocol implementation
+- **Hybrid System**: Local email/password authentication with OIDC fallback compatibility
+- **Local Authentication**: Independent system with argon2id password hashing
+- **Migration Support**: Gradual transition from Replit OIDC to self-hosted authentication
+
+### Production Considerations
+**Current Implementation Status**: Development-ready hybrid authentication system
+**Production Requirements** (for deployment):
+- Persistent session store (Redis/PostgreSQL instead of memory store)
+- Enhanced rate limiting with IP-based protection and shared storage
+- Secure cookie configuration (secure, httpOnly, sameSite attributes)
+- Error handling improvements (remove crash-on-error middleware)
+- TLS/SSL certificate configuration for secure authentication
+- Environment variable management for secrets and database connections
 
 ### UI and Styling
 - **Radix UI**: Comprehensive accessible component primitives
