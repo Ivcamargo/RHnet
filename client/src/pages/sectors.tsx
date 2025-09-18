@@ -34,6 +34,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 const sectorFormSchema = z.object({
   name: z.string().min(1, "Nome do setor é obrigatório"),
   description: z.string().optional(),
+  companyId: z.coerce.number().optional(), // Optional for regular admins, required for superadmins
   latitude: z.coerce.number().min(-90).max(90, "Latitude deve estar entre -90 e 90"),
   longitude: z.coerce.number().min(-180).max(180, "Longitude deve estar entre -180 e 180"),
   radius: z.coerce.number().min(1).max(1000, "Raio deve estar entre 1 e 1000 metros").default(100),
@@ -121,6 +122,7 @@ export default function Sectors() {
     defaultValues: {
       name: "",
       description: "",
+      companyId: undefined,
       latitude: 0,
       longitude: 0,
       radius: 100,
@@ -151,6 +153,17 @@ export default function Sectors() {
   // Fetch users for supervisor assignment
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+  });
+
+  // Fetch current user to check role
+  const { data: currentUser } = useQuery({
+    queryKey: ["/api/auth/user"],
+  });
+
+  // Fetch companies for superadmin company selector
+  const { data: companies = [] } = useQuery({
+    queryKey: ["/api/companies"],
+    enabled: (currentUser as any)?.role === 'superadmin'
   });
 
   // Fetch supervisor assignments (admin view)
@@ -287,6 +300,16 @@ export default function Sectors() {
   });
 
   const onSubmitSector = (data: SectorFormData) => {
+    // Validate companyId is required for superadmins
+    if ((currentUser as any)?.role === 'superadmin' && !data.companyId) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma empresa",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (editingSector) {
       updateSectorMutation.mutate({ id: editingSector.id, data });
     } else {
@@ -452,6 +475,37 @@ export default function Sectors() {
                               </FormItem>
                             )}
                           />
+
+                          {/* Company selector - only for superadmins */}
+                          {(currentUser as any)?.role === 'superadmin' && (
+                            <FormField
+                              control={sectorForm.control}
+                              name="companyId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Empresa *</FormLabel>
+                                  <Select 
+                                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                                    value={field.value?.toString()}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-company">
+                                        <SelectValue placeholder="Selecione uma empresa" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {companies.map((company: any) => (
+                                        <SelectItem key={company.id} value={company.id.toString()}>
+                                          {company.name} ({company.cnpj})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
 
                           <div className="space-y-4 border-t pt-4">
                             <h4 className="text-sm font-medium text-gray-700">Localização da Cerca Virtual</h4>

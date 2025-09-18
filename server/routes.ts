@@ -357,14 +357,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
-      if (!user?.companyId) {
-        return res.status(400).json({ message: "User must be assigned to a company" });
+
+      let targetCompanyId: number;
+      
+      if (user?.role === 'superadmin') {
+        // Superadmins can specify companyId in request body
+        if (!req.body.companyId) {
+          return res.status(400).json({ message: "Company ID is required for creating sectors" });
+        }
+        targetCompanyId = req.body.companyId;
+        
+        // Validate that the company exists
+        const company = await storage.getCompany(targetCompanyId);
+        if (!company) {
+          return res.status(400).json({ message: "Invalid company ID" });
+        }
+      } else {
+        // Regular admins can only create sectors in their own company
+        if (!user?.companyId) {
+          return res.status(400).json({ message: "User must be assigned to a company" });
+        }
+        targetCompanyId = user.companyId;
       }
 
-      // Add user's companyId to request body before validation - security critical
+      // Add validated companyId to request body before validation - security critical
       const bodyWithCompanyId = {
         ...req.body,
-        companyId: user.companyId
+        companyId: targetCompanyId
       };
       const sectorData = insertSectorSchema.parse(bodyWithCompanyId);
       const sector = await storage.createSector(sectorData);
@@ -385,9 +404,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
-      if (!user?.companyId) {
-        return res.status(400).json({ message: "User must be assigned to a company" });
-      }
 
       const id = parseInt(req.params.id);
       const sector = await storage.getSector(id);
@@ -395,9 +411,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Sector not found" });
       }
       
-      // CRITICAL SECURITY: Verify sector belongs to user's company
-      if (sector.companyId !== user.companyId) {
-        return res.status(403).json({ message: "Access denied: sector not accessible" });
+      // CRITICAL SECURITY: Verify sector access permissions
+      if (user?.role === 'superadmin') {
+        // Superadmins can edit any sector
+      } else {
+        // Regular admins can only edit sectors in their own company
+        if (!user?.companyId) {
+          return res.status(400).json({ message: "User must be assigned to a company" });
+        }
+        if (sector.companyId !== user.companyId) {
+          return res.status(403).json({ message: "Access denied: sector not accessible" });
+        }
       }
       
       const sectorData = insertSectorSchema.partial().parse(req.body);
