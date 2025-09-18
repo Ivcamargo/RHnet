@@ -13,7 +13,7 @@
   --card-foreground: hsl(20, 14.3%, 4.1%);
   --border: hsl(20, 5.9%, 90%);
   --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
+  --primary: hsl(17, 88%, 40%);
   --primary-foreground: hsl(211, 100%, 99%);
   --secondary: hsl(60, 4.8%, 95.9%);
   --secondary-foreground: hsl(24, 9.8%, 10%);
@@ -25,7 +25,7 @@
   --radius: 0.5rem;
   
   /* PointControl theme colors */
-  --point-primary: hsl(207, 90%, 54%);
+  --point-primary: hsl(17, 88%, 40%);
   --point-secondary: hsl(142, 69%, 58%);
   --point-accent: hsl(38, 100%, 50%);
   --point-success: hsl(122, 39%, 49%);
@@ -69,7 +69,7 @@
 
 @layer components {
   .point-primary {
-    @apply bg-[hsl(207,90%,54%)] text-white;
+    @apply bg-[hsl(17,88%,40%)] text-white;
   }
   
   .point-secondary {
@@ -101,7 +101,7 @@
   }
   
   .clock-display {
-    @apply text-4xl font-bold text-[hsl(207,90%,54%)] mb-4;
+    @apply text-4xl font-bold text-[hsl(17,88%,40%)] mb-4;
   }
   
   .status-active {
