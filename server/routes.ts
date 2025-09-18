@@ -361,9 +361,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
-      const sectorData = insertSectorSchema.parse(req.body);
-      // Force companyId to be the user's company - security critical
-      sectorData.companyId = user.companyId;
+      // Add user's companyId to request body before validation - security critical
+      const bodyWithCompanyId = {
+        ...req.body,
+        companyId: user.companyId
+      };
+      const sectorData = insertSectorSchema.parse(bodyWithCompanyId);
       const sector = await storage.createSector(sectorData);
       res.json(sector);
     } catch (error) {
