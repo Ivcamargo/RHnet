@@ -206,15 +206,11 @@ export function setupLocalAuth(app: any) {
   // Registro (apenas se não houver superadmin ou se for superadmin)
   authRouter.post('/register', async (req, res) => {
     try {
-      console.log('🔍 REGISTER: Iniciando processo de registro...');
       const { email, firstName, lastName, password } = registerSchema.parse(req.body);
-      console.log('📧 REGISTER: Email:', email);
       
       // Verifica se já existe um superadmin
       const users = await storage.getAllUsers();
-      console.log('👥 REGISTER: Total usuários encontrados:', users.length);
       const hasSuperadmin = users.some(u => u.role === 'superadmin');
-      console.log('🔐 REGISTER: Já existe superadmin?', hasSuperadmin);
       
       // Se já existe superadmin, apenas superadmin pode criar novos usuários
       if (hasSuperadmin) {
@@ -362,6 +358,7 @@ export function setupLocalAuth(app: any) {
       res.status(500).json({ message: 'Erro interno do servidor' });
     }
   });
+
 
   app.use('/api/auth', authRouter);
 }
