@@ -79,11 +79,16 @@ async function upsertUser(
       });
     } else {
       // NEW user - assign to default company (use any company with the default CNPJ)
-      let defaultCompany = await storage.getCompanies().then(companies => 
-        companies.find(c => c.cnpj === "00000000000000")
-      );
+      console.log("DEBUG: Looking for default company for new user", claims["sub"]);
+      
+      const allCompanies = await storage.getCompanies();
+      console.log("DEBUG: Found companies:", allCompanies.map(c => ({ id: c.id, name: c.name, cnpj: c.cnpj })));
+      
+      let defaultCompany = allCompanies.find(c => c.cnpj === "00000000000000");
+      console.log("DEBUG: Default company found:", defaultCompany);
       
       if (!defaultCompany) {
+        console.log("DEBUG: No default company found, attempting to create one");
         try {
           defaultCompany = await storage.createCompany({
             name: "Empresa Padrão",
