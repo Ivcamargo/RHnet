@@ -1013,7 +1013,7 @@ export default function Employees() {
                               <FormLabel>Departamento</FormLabel>
                               <Select 
                                 onValueChange={(value) => {
-                                  field.onChange(value === "none" ? "" : value);
+                                  field.onChange(value === "none" ? "" : parseInt(value));
                                 }} 
                                 value={field.value?.toString() || ""}
                               >
@@ -1840,7 +1840,7 @@ export default function Employees() {
                                 <FormLabel>Departamento</FormLabel>
                                 <Select 
                                   onValueChange={(value) => {
-                                    field.onChange(value === "none" ? "" : value);
+                                    field.onChange(value === "none" ? "" : parseInt(value));
                                   }} 
                                   value={field.value?.toString() || ""}
                                 >
