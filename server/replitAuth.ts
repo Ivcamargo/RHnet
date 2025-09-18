@@ -78,9 +78,9 @@ async function upsertUser(
         departmentId: existingUser.departmentId, // PRESERVE existing departmentId
       });
     } else {
-      // NEW user - assign to default company
+      // NEW user - assign to default company (use any company with the default CNPJ)
       let defaultCompany = await storage.getCompanies().then(companies => 
-        companies.find(c => c.name === "Empresa Padrão" || c.cnpj === "00000000000000")
+        companies.find(c => c.cnpj === "00000000000000")
       );
       
       if (!defaultCompany) {
