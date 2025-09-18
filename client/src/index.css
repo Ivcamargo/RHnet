@@ -13,21 +13,21 @@
   --card-foreground: hsl(20, 14.3%, 4.1%);
   --border: hsl(20, 5.9%, 90%);
   --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(25, 30%, 35%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
+  --primary: hsl(210, 100%, 25%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(180, 60%, 70%);
+  --secondary-foreground: hsl(210, 100%, 25%);
+  --accent: hsl(120, 50%, 70%);
+  --accent-foreground: hsl(210, 100%, 25%);
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
+  --ring: hsl(210, 100%, 25%);
   --radius: 0.5rem;
   
-  /* PointControl theme colors */
-  --point-primary: hsl(25, 30%, 35%);
-  --point-secondary: hsl(142, 69%, 58%);
-  --point-accent: hsl(38, 100%, 50%);
+  /* RHNet theme colors - Logomarca */
+  --point-primary: hsl(210, 100%, 25%);
+  --point-secondary: hsl(180, 60%, 70%);
+  --point-accent: hsl(120, 50%, 70%);
   --point-success: hsl(122, 39%, 49%);
   --point-error: hsl(4, 90%, 58%);
   --point-warning: hsl(36, 100%, 50%);
@@ -44,15 +44,15 @@
   --card-foreground: hsl(25, 30%, 35%);
   --border: hsl(33, 54%, 91%);
   --input: hsl(33, 54%, 91%);
-  --primary: hsl(25, 30%, 35%);
+  --primary: hsl(210, 100%, 30%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(33, 54%, 91%);
-  --secondary-foreground: hsl(25, 30%, 35%);
-  --accent: hsl(33, 54%, 91%);
-  --accent-foreground: hsl(25, 30%, 35%);
+  --secondary: hsl(180, 50%, 60%);
+  --secondary-foreground: hsl(210, 100%, 30%);
+  --accent: hsl(120, 40%, 60%);
+  --accent-foreground: hsl(210, 100%, 30%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(25, 30%, 35%);
+  --ring: hsl(210, 100%, 30%);
   --radius: 0.5rem;
 }
 
@@ -69,15 +69,15 @@
 
 @layer components {
   .point-primary {
-    @apply bg-[hsl(25,30%,35%)] text-white;
+    @apply bg-[hsl(210,100%,25%)] text-white;
   }
   
   .point-secondary {
-    @apply bg-[hsl(142,69%,58%)] text-white;
+    @apply bg-[hsl(180,60%,70%)] text-[hsl(210,100%,25%)];
   }
   
   .point-accent {
-    @apply bg-[hsl(38,100%,50%)] text-white;
+    @apply bg-[hsl(120,50%,70%)] text-[hsl(210,100%,25%)];
   }
   
   .point-success {
@@ -101,7 +101,7 @@
   }
   
   .clock-display {
-    @apply text-4xl font-bold text-[hsl(25,30%,35%)] mb-4;
+    @apply text-4xl font-bold text-[hsl(210,100%,25%)] mb-4;
   }
   
   .status-active {

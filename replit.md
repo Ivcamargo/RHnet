@@ -73,6 +73,11 @@ Preferred communication style: Simple, everyday language.
 - **Radix UI**: Comprehensive accessible component primitives
 - **Tailwind CSS**: Utility-first CSS framework
 - **Lucide React**: Icon library for consistent iconography
+- **Color Palette**: Reflects logomarca colors
+  - Primary: Azul escuro (hsl(210, 100%, 25%))
+  - Secondary: Verde água/azul claro (hsl(180, 60%, 70%))
+  - Accent: Verde claro (hsl(120, 50%, 70%))
+  - Consistent application across all internal pages and components
 
 ### Development Tools
 - **TypeScript**: Type safety across frontend and backend
