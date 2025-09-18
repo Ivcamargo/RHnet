@@ -61,14 +61,31 @@ export const holidays = pgTable("holidays", {
   }),
 }));
 
-// Departments table
-export const departments = pgTable("departments", {
+// Sectors table - organizational divisions within companies
+export const sectors = pgTable("sectors", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
-  shiftStart: varchar("shift_start").notNull(), // "08:00"
-  shiftEnd: varchar("shift_end").notNull(), // "17:00"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
+// Departments table
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  sectorId: integer("sector_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  shiftStart: varchar("shift_start").notNull(), // "08:00" - kept for compatibility
+  shiftEnd: varchar("shift_end").notNull(), // "17:00" - kept for compatibility
   latitude: real("latitude").notNull(),
   longitude: real("longitude").notNull(),
   radius: integer("radius").default(100), // meters
@@ -80,6 +97,46 @@ export const departments = pgTable("departments", {
     columns: [table.companyId],
     foreignColumns: [companies.id],
   }),
+  sectorReference: foreignKey({
+    columns: [table.sectorId],
+    foreignColumns: [sectors.id],
+  }),
+}));
+
+// Department shifts - flexible shift management
+export const departmentShifts = pgTable("department_shifts", {
+  id: serial("id").primaryKey(),
+  departmentId: integer("department_id").notNull(),
+  name: varchar("name").notNull(), // "Turno da Manhã", "Turno da Tarde"
+  startTime: varchar("start_time").notNull(), // "08:00"
+  endTime: varchar("end_time").notNull(), // "17:00"
+  daysOfWeek: integer("days_of_week").array(), // [1,2,3,4,5] for Mon-Fri
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  departmentReference: foreignKey({
+    columns: [table.departmentId],
+    foreignColumns: [departments.id],
+  }).onDelete('cascade'),
+}));
+
+// Supervisor assignments - which supervisors manage which sectors
+export const supervisorAssignments = pgTable("supervisor_assignments", {
+  id: serial("id").primaryKey(),
+  supervisorId: varchar("supervisor_id").notNull(),
+  sectorId: integer("sector_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  supervisorReference: foreignKey({
+    columns: [table.supervisorId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  sectorReference: foreignKey({
+    columns: [table.sectorId],
+    foreignColumns: [sectors.id],
+  }).onDelete('cascade'),
+  uniqueSupervisorSector: uniqueIndex("unique_supervisor_sector").on(table.supervisorId, table.sectorId),
 }));
 
 // User storage table for Replit Auth
@@ -123,7 +180,7 @@ export const users = pgTable("users", {
   emergencyContactRelationship: varchar("emergency_contact_relationship"),
   
   // Dados profissionais
-  role: varchar("role").default("employee"), // employee, admin, superadmin
+  role: varchar("role").default("employee"), // employee, admin, supervisor, superadmin
   companyId: integer("company_id"), // Nullable for superadmins
   departmentId: integer("department_id"),
   position: varchar("position"), // Cargo
@@ -531,7 +588,10 @@ export const auditLog = pgTable("audit_log", {
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Company = typeof companies.$inferSelect;
+export type Sector = typeof sectors.$inferSelect;
 export type Department = typeof departments.$inferSelect;
+export type DepartmentShift = typeof departmentShifts.$inferSelect;
+export type SupervisorAssignment = typeof supervisorAssignments.$inferSelect;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type Holiday = typeof holidays.$inferSelect;
 export type Message = typeof messages.$inferSelect;
@@ -552,6 +612,27 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+export const insertSectorSchema = createInsertSchema(sectors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertSector = z.infer<typeof insertSectorSchema>;
+
+
+export const insertDepartmentShiftSchema = createInsertSchema(departmentShifts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDepartmentShift = z.infer<typeof insertDepartmentShiftSchema>;
+
+export const insertSupervisorAssignmentSchema = createInsertSchema(supervisorAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSupervisorAssignment = z.infer<typeof insertSupervisorAssignmentSchema>;
 
 // Complete employee registration schema for HR
 export const insertCompleteEmployeeSchema = insertUserSchema.extend({
