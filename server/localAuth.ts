@@ -1,0 +1,350 @@
+import * as argon2 from 'argon2';
+import { z } from 'zod';
+import { Router } from 'express';
+import { storage } from './storage';
+import { insertUserSchema } from '../shared/schema';
+
+// Rate limiting simple em memória (produção usaria Redis)
+const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutos
+
+// Configurações do Argon2 (seguras para produção)
+const argon2Config = {
+  type: argon2.argon2id,
+  memoryCost: 2 ** 16, // 64 MB
+  timeCost: 3,
+  parallelism: 1,
+};
+
+// Schemas de validação
+const loginSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+});
+
+const setPasswordSchema = z.object({
+  newPassword: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Senhas não conferem",
+  path: ["confirmPassword"],
+});
+
+const registerSchema = z.object({
+  email: z.string().email('Email inválido'),
+  firstName: z.string().min(1, 'Nome é obrigatório'),
+  lastName: z.string().min(1, 'Sobrenome é obrigatório'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+});
+
+// Função para hash de senha
+export async function hashPassword(password: string): Promise<string> {
+  return await argon2.hash(password, argon2Config);
+}
+
+// Função para verificar senha
+export async function verifyPassword(hash: string, password: string): Promise<boolean> {
+  try {
+    return await argon2.verify(hash, password);
+  } catch {
+    return false;
+  }
+}
+
+// Rate limiting para login
+function checkRateLimit(email: string): boolean {
+  const now = Date.now();
+  const attempts = loginAttempts.get(email);
+  
+  if (!attempts) return true;
+  
+  // Reset se passou do tempo de lockout
+  if (now - attempts.lastAttempt > LOCKOUT_TIME) {
+    loginAttempts.delete(email);
+    return true;
+  }
+  
+  return attempts.count < MAX_LOGIN_ATTEMPTS;
+}
+
+function recordFailedAttempt(email: string): void {
+  const now = Date.now();
+  const attempts = loginAttempts.get(email) || { count: 0, lastAttempt: now };
+  
+  attempts.count += 1;
+  attempts.lastAttempt = now;
+  loginAttempts.set(email, attempts);
+}
+
+function clearFailedAttempts(email: string): void {
+  loginAttempts.delete(email);
+}
+
+// Middleware de autenticação híbrido
+export function isAuthenticatedHybrid(req: any, res: any, next: any) {
+  // Primeiro verifica se tem autenticação OIDC (compatibilidade)
+  if (req.user?.claims?.sub) {
+    return next();
+  }
+  
+  // Verifica autenticação local via sessão
+  if (req.session?.userId) {
+    // Carrega usuário da sessão local
+    storage.getUser(req.session.userId)
+      .then(user => {
+        if (user && user.isActive) {
+          // Simula a estrutura OIDC para compatibilidade
+          req.user = {
+            claims: {
+              sub: user.id,
+              email: user.email,
+              first_name: user.firstName,
+              last_name: user.lastName,
+            }
+          };
+          return next();
+        } else {
+          // Usuário não encontrado ou inativo, limpa sessão
+          req.session.destroy(() => {
+            return res.status(401).json({ message: "Unauthorized" });
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading user from session:', error);
+        return res.status(401).json({ message: "Unauthorized" });
+      });
+  } else {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+}
+
+// Endpoints de autenticação
+export function setupLocalAuth(app: any) {
+  const authRouter = Router();
+
+  // Login
+  authRouter.post('/login', async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      // Verifica rate limiting
+      if (!checkRateLimit(email)) {
+        return res.status(429).json({ 
+          message: 'Muitas tentativas de login. Tente novamente em 15 minutos.' 
+        });
+      }
+
+      // Busca usuário por email
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      
+      if (!user || !user.passwordHash) {
+        recordFailedAttempt(email);
+        return res.status(401).json({ message: 'Email ou senha inválidos' });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: 'Usuário inativo' });
+      }
+
+      // Verifica senha
+      const isValidPassword = await verifyPassword(user.passwordHash, password);
+      if (!isValidPassword) {
+        recordFailedAttempt(email);
+        return res.status(401).json({ message: 'Email ou senha inválidos' });
+      }
+
+      // Login bem-sucedido
+      clearFailedAttempts(email);
+      
+      // Cria sessão
+      req.session.userId = user.id;
+      req.session.save((err: any) => {
+        if (err) {
+          console.error('Erro ao salvar sessão:', err);
+          return res.status(500).json({ message: 'Erro interno do servidor' });
+        }
+        
+        res.json({
+          message: 'Login realizado com sucesso',
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            mustChangePassword: user.mustChangePassword,
+          }
+        });
+      });
+
+    } catch (error) {
+      console.error('Erro no login:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Logout
+  authRouter.post('/logout', (req, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error('Erro ao destruir sessão:', err);
+        return res.status(500).json({ message: 'Erro ao fazer logout' });
+      }
+      res.json({ message: 'Logout realizado com sucesso' });
+    });
+  });
+
+  // Registro (apenas se não houver superadmin ou se for superadmin)
+  authRouter.post('/register', async (req, res) => {
+    try {
+      const { email, firstName, lastName, password } = registerSchema.parse(req.body);
+      
+      // Verifica se já existe um superadmin
+      const users = await storage.getAllUsers();
+      const hasSuperadmin = users.some(u => u.role === 'superadmin');
+      
+      // Se já existe superadmin, apenas superadmin pode criar novos usuários
+      if (hasSuperadmin) {
+        // Verifica se o usuário atual é superadmin
+        if (!req.session?.userId) {
+          return res.status(401).json({ message: 'Não autorizado' });
+        }
+        
+        const currentUser = users.find(u => u.id === req.session.userId);
+        if (!currentUser || currentUser.role !== 'superadmin') {
+          return res.status(403).json({ message: 'Apenas superadmins podem criar usuários' });
+        }
+      }
+
+      // Verifica se email já existe
+      const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email já cadastrado' });
+      }
+
+      // Hash da senha
+      const passwordHash = await hashPassword(password);
+      
+      // Cria usuário
+      const userId = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const role = hasSuperadmin ? 'employee' : 'superadmin'; // Primeiro usuário é superadmin
+      
+      const newUser = await storage.upsertUser({
+        id: userId,
+        email,
+        firstName,
+        lastName,
+        passwordHash,
+        role,
+        mustChangePassword: false,
+        isActive: true,
+      });
+
+      res.status(201).json({
+        message: 'Usuário criado com sucesso',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role,
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro no registro:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Definir senha (para usuários que devem trocar senha)
+  authRouter.post('/set-password', isAuthenticatedHybrid, async (req, res) => {
+    try {
+      const { newPassword } = setPasswordSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      // Hash da nova senha
+      const passwordHash = await hashPassword(newPassword);
+      
+      // Atualiza usuário
+      await storage.updateUser(userId, {
+        passwordHash,
+        mustChangePassword: false,
+      });
+
+      res.json({ message: 'Senha atualizada com sucesso' });
+
+    } catch (error) {
+      console.error('Erro ao definir senha:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Status da autenticação (compatibilidade com /api/auth/user)
+  authRouter.get('/user', isAuthenticatedHybrid, async (req, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        companyId: user.companyId,
+        departmentId: user.departmentId,
+        mustChangePassword: user.mustChangePassword,
+        isActive: user.isActive,
+      });
+
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error);
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Verifica se tem superadmin (compatibilidade)
+  authRouter.get('/has-superadmin', async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const hasSuperadmin = users.some(u => u.role === 'superadmin');
+      res.json({ hasSuperadmin });
+    } catch (error) {
+      console.error('Erro ao verificar superadmin:', error);
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  app.use('/api/auth', authRouter);
+}
