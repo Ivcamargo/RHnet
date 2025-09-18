@@ -17,6 +17,7 @@ import SuperAdmin from "@/pages/superadmin";
 import Messages from "@/pages/messages";
 import Documents from "@/pages/documents";
 import Training from "@/pages/training";
+import Sectors from "@/pages/sectors";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -45,6 +46,7 @@ function Router() {
           <Route path="/superadmin" component={SuperAdmin} />
           <Route path="/reports" component={Reports} />
           <Route path="/employees" component={Employees} />
+          <Route path="/sectors" component={Sectors} />
         </>
       )}
       <Route component={NotFound} />

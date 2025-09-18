@@ -46,6 +46,7 @@ export default function Sidebar() {
   const adminNavigation = [
     { name: "Funcionários", href: "/employees", icon: Users },
     { name: "Departamentos", href: "/departments", icon: Building },
+    { name: "Setores", href: "/sectors", icon: Building },
     { name: "Feriados", href: "/holidays", icon: Calendar },
   ];
 

@@ -584,6 +584,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all company supervisor assignments (admin only)
+  app.get('/api/admin/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const assignments = await storage.getAllCompanySupervisorAssignments(user.companyId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching company supervisor assignments:", error);
+      res.status(500).json({ message: "Failed to fetch company supervisor assignments" });
+    }
+  });
+
   // Create supervisor assignment (admin only)
   app.post('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
     try {

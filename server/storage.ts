@@ -101,6 +101,7 @@ export interface IStorage {
   // Supervisor assignment operations
   getSupervisorAssignments(supervisorId: string): Promise<SupervisorAssignment[]>;
   getSupervisorsBySector(sectorId: number): Promise<SupervisorAssignment[]>;
+  getAllCompanySupervisorAssignments(companyId: number): Promise<(SupervisorAssignment & { supervisor: User; sector: Sector })[]>;
   createSupervisorAssignment(assignment: InsertSupervisorAssignment): Promise<SupervisorAssignment>;
   deleteSupervisorAssignment(supervisorId: string, sectorId: number): Promise<void>;
   
@@ -469,6 +470,41 @@ export class DatabaseStorage implements IStorage {
 
   async getSupervisorsBySector(sectorId: number): Promise<SupervisorAssignment[]> {
     return await db.select().from(supervisorAssignments).where(eq(supervisorAssignments.sectorId, sectorId));
+  }
+
+  async getAllCompanySupervisorAssignments(companyId: number): Promise<(SupervisorAssignment & { supervisor: User; sector: Sector })[]> {
+    return await db
+      .select({
+        id: supervisorAssignments.id,
+        supervisorId: supervisorAssignments.supervisorId,
+        sectorId: supervisorAssignments.sectorId,
+        createdAt: supervisorAssignments.createdAt,
+        updatedAt: supervisorAssignments.updatedAt,
+        supervisor: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          role: users.role,
+          companyId: users.companyId,
+          departmentId: users.departmentId,
+          isActive: users.isActive,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+        sector: {
+          id: sectors.id,
+          name: sectors.name,
+          description: sectors.description,
+          companyId: sectors.companyId,
+          createdAt: sectors.createdAt,
+          updatedAt: sectors.updatedAt,
+        },
+      })
+      .from(supervisorAssignments)
+      .innerJoin(users, eq(supervisorAssignments.supervisorId, users.id))
+      .innerJoin(sectors, eq(supervisorAssignments.sectorId, sectors.id))
+      .where(eq(sectors.companyId, companyId));
   }
 
   async createSupervisorAssignment(assignment: InsertSupervisorAssignment): Promise<SupervisorAssignment> {

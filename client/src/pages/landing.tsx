@@ -79,8 +79,7 @@ export default function Landing() {
           <p className="text-xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed">
             Sistema de gestão de recursos humanos que integra <strong>controle de ponto eletrônico</strong>, 
             <strong> mensageria corporativa</strong>, <strong>gestão de documentos</strong> e 
-            <strong> capacitação de funcionários</strong>. Uma solução unificada para comunicação entre RH e colaboradores, 
-            com funcionalidades avançadas de geolocalização, reconhecimento facial e relatórios abrangentes.
+            <strong> capacitação de funcionários</strong>.
           </p>
         </div>
 
