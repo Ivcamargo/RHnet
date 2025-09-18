@@ -52,6 +52,11 @@ const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
+  newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
+});
+
 const adminResetPasswordSchema = z.object({
   userId: z.string().min(1, 'ID do usuário é obrigatório'),
   temporaryPassword: z.string().min(6, 'Senha temporária deve ter pelo menos 6 caracteres'),
@@ -339,6 +344,55 @@ export function setupLocalAuth(app: any) {
 
     } catch (error) {
       console.error('Erro ao definir senha:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
+  // Alterar senha (usuário muda sua própria senha)
+  authRouter.post('/change-password', isAuthenticatedHybrid, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      // Verifica se usuário tem senha definida (necessário para autenticação local)
+      if (!user.passwordHash) {
+        return res.status(400).json({ 
+          message: 'Usuário deve definir uma senha antes de alterá-la' 
+        });
+      }
+
+      // Verifica senha atual
+      const isCurrentPasswordValid = await verifyPassword(user.passwordHash, currentPassword);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ 
+          message: 'Senha atual incorreta' 
+        });
+      }
+
+      // Hash da nova senha
+      const passwordHash = await hashPassword(newPassword);
+      
+      // Atualiza usuário
+      await storage.updateUser(userId, {
+        passwordHash,
+        mustChangePassword: false,
+      });
+
+      res.json({ message: 'Senha alterada com sucesso' });
+
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: 'Dados inválidos', 
