@@ -60,7 +60,7 @@ export default function Landing() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-[hsl(25,30%,35%)]">Sistema de gestão de recursos humanos</h1>
+              <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</h1>
             </div>
             <Button 
               onClick={handleLogin} 
@@ -86,7 +86,7 @@ export default function Landing() {
 
         {/* Core Features - Sistema Integrado */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-[hsl(25,30%,35%)] mb-12">
+          <h3 className="text-3xl font-bold text-center text-[hsl(215,80%,25%)] mb-12">
             Principais Funcionalidades
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -95,7 +95,7 @@ export default function Landing() {
                 <div className="w-16 h-16 bg-orange-600 rounded-lg flex items-center justify-center mb-4">
                   <MessageSquare className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-xl">Mensageria Corporativa Integrada</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-xl">Mensageria Corporativa Integrada</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
@@ -110,7 +110,7 @@ export default function Landing() {
                 <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mb-4">
                   <FileText className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-xl">Gestão de Documentos</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-xl">Gestão de Documentos</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
@@ -125,7 +125,7 @@ export default function Landing() {
                 <div className="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
                   <GraduationCap className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-xl">Capacitação e Certificação</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-xl">Capacitação e Certificação</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
@@ -139,7 +139,7 @@ export default function Landing() {
 
         {/* Advanced Features Grid */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-[hsl(25,30%,35%)] mb-12">
+          <h3 className="text-3xl font-bold text-center text-[hsl(215,80%,25%)] mb-12">
             Funcionalidades Avançadas
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -148,7 +148,7 @@ export default function Landing() {
                 <div className="w-14 h-14 bg-orange-600 rounded-lg flex items-center justify-center mb-4">
                   <Clock className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-lg leading-tight">Controle de Ponto Eletrônico</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-lg leading-tight">Controle de Ponto Eletrônico</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -162,7 +162,7 @@ export default function Landing() {
                 <div className="w-14 h-14 bg-red-600 rounded-lg flex items-center justify-center mb-4">
                   <MapPin className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-lg leading-tight">Geolocalização Avançada</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-lg leading-tight">Geolocalização Avançada</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -176,7 +176,7 @@ export default function Landing() {
                 <div className="w-14 h-14 bg-yellow-600 rounded-lg flex items-center justify-center mb-4">
                   <Camera className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-lg leading-tight">Reconhecimento Facial</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-lg leading-tight">Reconhecimento Facial</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -190,7 +190,7 @@ export default function Landing() {
                 <div className="w-14 h-14 bg-green-600 rounded-lg flex items-center justify-center mb-4">
                   <BarChart3 className="h-7 w-7 text-white" />
                 </div>
-                <CardTitle className="text-[hsl(25,30%,35%)] text-lg leading-tight">Relatórios Abrangentes</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)] text-lg leading-tight">Relatórios Abrangentes</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -204,14 +204,14 @@ export default function Landing() {
 
         {/* Security & Compliance */}
         <div className="mb-20">
-          <h3 className="text-3xl font-bold text-center text-[hsl(25,30%,35%)] mb-12">
+          <h3 className="text-3xl font-bold text-center text-[hsl(215,80%,25%)] mb-12">
             Segurança e Conformidade
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="bg-white/70 backdrop-blur-sm border-red-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <Lock className="h-12 w-12 text-red-500 mb-4" />
-                <CardTitle className="text-[hsl(25,30%,35%)]">Segurança Avançada</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)]">Segurança Avançada</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-gray-600 space-y-2">
@@ -226,7 +226,7 @@ export default function Landing() {
             <Card className="bg-white/70 backdrop-blur-sm border-orange-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <Shield className="h-12 w-12 text-orange-500 mb-4" />
-                <CardTitle className="text-[hsl(25,30%,35%)]">Proteção de Dados</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)]">Proteção de Dados</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-gray-600 space-y-2">
@@ -241,7 +241,7 @@ export default function Landing() {
             <Card className="bg-white/70 backdrop-blur-sm border-green-200 shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <UserCheck className="h-12 w-12 text-green-500 mb-4" />
-                <CardTitle className="text-[hsl(25,30%,35%)]">Controles de Acesso</CardTitle>
+                <CardTitle className="text-[hsl(215,80%,25%)]">Controles de Acesso</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-gray-600 space-y-2">
@@ -290,7 +290,7 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img src={rhnetLogo} alt="RHNet" className="h-11 w-11 mr-3 rounded" />
-              <span className="text-xl font-bold text-[hsl(25,30%,35%)]">Sistema de gestão de recursos humanos</span>
+              <span className="text-xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</span>
             </div>
             <div className="text-gray-600">
               <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
