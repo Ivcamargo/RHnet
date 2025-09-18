@@ -636,8 +636,8 @@ export const insertSupervisorAssignmentSchema = createInsertSchema(supervisorAss
 });
 export type InsertSupervisorAssignment = z.infer<typeof insertSupervisorAssignmentSchema>;
 
-// Complete employee registration schema for HR
-export const insertCompleteEmployeeSchema = insertUserSchema.extend({
+// Base complete employee registration schema for HR
+export const baseCompleteEmployeeSchema = insertUserSchema.extend({
   // Dados pessoais obrigatórios
   firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
@@ -704,6 +704,22 @@ export const insertCompleteEmployeeSchema = insertUserSchema.extend({
   // Escolaridade
   educationLevel: z.enum(["fundamental", "medio", "superior", "pos_graduacao", "mestrado", "doutorado"]),
 });
+
+// Complete employee registration schema with conditional validation for departmentId
+export const insertCompleteEmployeeSchema = baseCompleteEmployeeSchema.refine(
+  (data) => {
+    // If role is 'admin', departmentId is optional (can be null)
+    if (data.role === 'admin') {
+      return true;
+    }
+    // For non-admin roles, departmentId is required
+    return data.departmentId !== null && data.departmentId !== undefined;
+  },
+  {
+    message: "Departamento é obrigatório para funcionários",
+    path: ["departmentId"]
+  }
+);
 
 export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,

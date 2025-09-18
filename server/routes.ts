@@ -19,6 +19,7 @@ import {
   updateCourseSchema,
   updateEmployeeCourseSchema,
   insertCompleteEmployeeSchema,
+  baseCompleteEmployeeSchema,
   insertAuditLogSchema,
   insertSectorSchema,
   insertDepartmentShiftSchema,
@@ -1628,8 +1629,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
-      if (!currentUser?.companyId) {
-        return res.status(400).json({ message: "Admin must be assigned to a company" });
+
+      let targetCompanyId: number;
+
+      if (currentUser?.role === 'superadmin') {
+        // Superadmins can specify companyId in request body
+        if (!req.body.companyId) {
+          return res.status(400).json({ message: "Company ID is required for creating users as superadmin" });
+        }
+        targetCompanyId = req.body.companyId;
+        
+        // Validate that the company exists
+        const company = await storage.getCompany(targetCompanyId);
+        if (!company) {
+          return res.status(400).json({ message: "Invalid company ID" });
+        }
+      } else {
+        // Regular admins can only create users in their own company
+        if (!currentUser?.companyId) {
+          return res.status(400).json({ message: "Admin must be assigned to a company" });
+        }
+        targetCompanyId = currentUser.companyId;
       }
 
       // Transform and validate request body using complete employee schema
@@ -1647,8 +1667,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestData.salary = typeof requestData.salary === 'number' ? requestData.salary.toFixed(2) : requestData.salary;
       }
 
-      // Set companyId from current user
-      requestData.companyId = currentUser.companyId;
+      // Set companyId from validated target
+      requestData.companyId = targetCompanyId;
 
       const validationResult = insertCompleteEmployeeSchema.safeParse(requestData);
       if (!validationResult.success) {
@@ -1745,7 +1765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       requestData.companyId = currentUser.companyId;
 
       // Make some fields optional for updates (like email, required only for creation)
-      const updateEmployeeSchema = insertCompleteEmployeeSchema.partial().extend({
+      const updateEmployeeSchema = baseCompleteEmployeeSchema.partial().extend({
         email: z.string().email("Invalid email format").optional(),
         firstName: z.string().min(1, "First name is required").optional(),
         lastName: z.string().min(1, "Last name is required").optional(),

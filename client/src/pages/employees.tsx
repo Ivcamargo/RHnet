@@ -1011,13 +1011,19 @@ export default function Employees() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Departamento</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
+                              <Select 
+                                onValueChange={(value) => {
+                                  field.onChange(value === "none" ? "" : value);
+                                }} 
+                                value={field.value?.toString() || ""}
+                              >
                                 <FormControl>
                                   <SelectTrigger data-testid="select-department-create">
                                     <SelectValue placeholder="Selecione um departamento" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                  <SelectItem value="none">Sem departamento</SelectItem>
                                   {departments?.map((dept: any) => (
                                     <SelectItem key={dept.id} value={dept.id.toString()}>
                                       {dept.name}
@@ -1135,6 +1141,37 @@ export default function Employees() {
                             )}
                           />
                         </div>
+
+                        {/* Company selector - only for superadmins */}
+                        {user?.role === 'superadmin' && (
+                          <FormField
+                            control={addForm.control}
+                            name="companyId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Empresa *</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  value={field.value?.toString() || ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-company-create">
+                                      <SelectValue placeholder="Selecione uma empresa" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {companies?.map((company: any) => (
+                                      <SelectItem key={company.id} value={company.id.toString()}>
+                                        {company.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <FormField
                           control={addForm.control}
