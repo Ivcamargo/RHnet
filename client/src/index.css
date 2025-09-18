@@ -13,7 +13,7 @@
   --card-foreground: hsl(20, 14.3%, 4.1%);
   --border: hsl(20, 5.9%, 90%);
   --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(17, 88%, 40%);
+  --primary: hsl(25, 30%, 35%);
   --primary-foreground: hsl(211, 100%, 99%);
   --secondary: hsl(60, 4.8%, 95.9%);
   --secondary-foreground: hsl(24, 9.8%, 10%);
@@ -25,7 +25,7 @@
   --radius: 0.5rem;
   
   /* PointControl theme colors */
-  --point-primary: hsl(17, 88%, 40%);
+  --point-primary: hsl(25, 30%, 35%);
   --point-secondary: hsl(142, 69%, 58%);
   --point-accent: hsl(38, 100%, 50%);
   --point-success: hsl(122, 39%, 49%);
@@ -35,24 +35,24 @@
 
 .dark {
   --background: hsl(33, 100%, 96%);
-  --foreground: hsl(17, 88%, 40%);
+  --foreground: hsl(25, 30%, 35%);
   --muted: hsl(33, 54%, 91%);
-  --muted-foreground: hsl(17, 30%, 50%);
+  --muted-foreground: hsl(25, 30%, 35%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(17, 88%, 40%);
+  --popover-foreground: hsl(25, 30%, 35%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(17, 88%, 40%);
+  --card-foreground: hsl(25, 30%, 35%);
   --border: hsl(33, 54%, 91%);
   --input: hsl(33, 54%, 91%);
-  --primary: hsl(17, 88%, 40%);
+  --primary: hsl(25, 30%, 35%);
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(33, 54%, 91%);
-  --secondary-foreground: hsl(17, 88%, 40%);
+  --secondary-foreground: hsl(25, 30%, 35%);
   --accent: hsl(33, 54%, 91%);
-  --accent-foreground: hsl(17, 88%, 40%);
+  --accent-foreground: hsl(25, 30%, 35%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(17, 88%, 40%);
+  --ring: hsl(25, 30%, 35%);
   --radius: 0.5rem;
 }
 
@@ -69,7 +69,7 @@
 
 @layer components {
   .point-primary {
-    @apply bg-[hsl(17,88%,40%)] text-white;
+    @apply bg-[hsl(25,30%,35%)] text-white;
   }
   
   .point-secondary {
@@ -101,7 +101,7 @@
   }
   
   .clock-display {
-    @apply text-4xl font-bold text-[hsl(17,88%,40%)] mb-4;
+    @apply text-4xl font-bold text-[hsl(25,30%,35%)] mb-4;
   }
   
   .status-active {
