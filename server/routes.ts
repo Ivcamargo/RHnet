@@ -245,13 +245,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
         return res.status(403).json({ message: "Admin access required" });
       }
-      if (!user?.companyId) {
-        return res.status(400).json({ message: "User must be assigned to a company" });
-      }
 
       const departmentData = insertDepartmentSchema.parse(req.body);
-      // Force companyId to be the user's company - security critical
-      departmentData.companyId = user.companyId;
+      
+      // Handle companyId assignment based on user role
+      if (user?.role === 'superadmin') {
+        // For superadmins, derive companyId from the selected sector
+        if (!departmentData.sectorId) {
+          return res.status(400).json({ message: "Sector must be selected for department" });
+        }
+        
+        const sector = await storage.getSector(departmentData.sectorId);
+        if (!sector) {
+          return res.status(400).json({ message: "Selected sector not found" });
+        }
+        
+        departmentData.companyId = sector.companyId;
+      } else {
+        // For regular admins, use their company
+        if (!user?.companyId) {
+          return res.status(400).json({ message: "User must be assigned to a company" });
+        }
+        departmentData.companyId = user.companyId;
+      }
+
       const department = await storage.createDepartment(departmentData);
       res.json(department);
     } catch (error) {
