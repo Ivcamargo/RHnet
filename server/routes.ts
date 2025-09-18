@@ -1698,10 +1698,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const employeeData = validationResult.data;
       
-      // Validate department belongs to current user's company
+      // Validate department belongs to current user's company (superadmins can create in any department)
       if (employeeData.departmentId) {
         const department = await storage.getDepartment(employeeData.departmentId);
-        if (!department || department.companyId !== currentUser.companyId) {
+        if (!department) {
+          return res.status(400).json({ message: "Invalid department: department not found" });
+        }
+        
+        // Only enforce company validation for non-superadmins
+        if (currentUser.role !== 'superadmin' && department.companyId !== currentUser.companyId) {
           return res.status(400).json({ message: "Invalid department or department not in your company" });
         }
       }
@@ -1799,10 +1804,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updateData = validationResult.data;
 
-      // Validate department belongs to current user's company
+      // Validate department belongs to current user's company (superadmins can update to any department)
       if (updateData.departmentId) {
         const department = await storage.getDepartment(updateData.departmentId);
-        if (!department || department.companyId !== currentUser.companyId) {
+        if (!department) {
+          return res.status(400).json({ message: "Invalid department: department not found" });
+        }
+        
+        // Only enforce company validation for non-superadmins
+        if (currentUser.role !== 'superadmin' && department.companyId !== currentUser.companyId) {
           return res.status(400).json({ message: "Invalid department or department not in your company" });
         }
       }
