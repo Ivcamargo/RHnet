@@ -15,9 +15,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Building, MapPin, Users, Plus, Edit, Trash2, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
-import { LocationMap } from "@/components/ui/location-map";
 
 export default function Departments() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -32,6 +32,11 @@ export default function Departments() {
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
+  });
+
+  // Fetch sectors for the selector
+  const { data: sectors = [] } = useQuery({
+    queryKey: ["/api/sectors"],
   });
 
   const form = useForm<InsertDepartment>({
@@ -225,6 +230,34 @@ export default function Departments() {
                         )}
                       />
                       
+                      <FormField
+                        control={form.control}
+                        name="sectorId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Setor</FormLabel>
+                            <Select 
+                              onValueChange={(value) => field.onChange(parseInt(value))} 
+                              value={field.value?.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger data-testid="select-sector">
+                                  <SelectValue placeholder="Selecione um setor" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {sectors.map((sector: any) => (
+                                  <SelectItem key={sector.id} value={sector.id.toString()}>
+                                    {sector.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -301,6 +334,34 @@ export default function Departments() {
                         <FormControl>
                           <Textarea placeholder="Descrição do departamento..." {...field} value={field.value || ''} data-testid="edit-input-description" />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editForm.control}
+                    name="sectorId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Setor</FormLabel>
+                        <Select 
+                          onValueChange={(value) => field.onChange(parseInt(value))} 
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger data-testid="edit-select-sector">
+                              <SelectValue placeholder="Selecione um setor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {sectors.map((sector: any) => (
+                              <SelectItem key={sector.id} value={sector.id.toString()}>
+                                {sector.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
