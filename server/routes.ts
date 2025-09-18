@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./replitAuth";
+import { setupLocalAuth, isAuthenticatedHybrid } from "./localAuth";
 import { 
   insertDepartmentSchema, 
   clockInSchema, 
@@ -113,8 +114,9 @@ async function getUserScope(userId: string) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
+  // Auth middleware - sistema híbrido (OIDC + Local)
   await setupAuth(app);
+  setupLocalAuth(app);
 
   // Configure multer for file uploads
   const upload = multer({
@@ -168,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -208,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Department routes
-  app.get('/api/departments', isAuthenticated, async (req: any, res) => {
+  app.get('/api/departments', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
@@ -239,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/departments', isAuthenticated, async (req: any, res) => {
+  app.post('/api/departments', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -280,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/departments/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/departments/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
@@ -326,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==== SECTOR ROUTES ====
   
   // Get sectors for current user's company
-  app.get('/api/sectors', isAuthenticated, async (req: any, res) => {
+  app.get('/api/sectors', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
@@ -369,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new sector (admin only)
-  app.post('/api/sectors', isAuthenticated, async (req: any, res) => {
+  app.post('/api/sectors', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -416,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update sector (admin only)
-  app.put('/api/sectors/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/sectors/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -459,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==== DEPARTMENT SHIFT ROUTES ====
   
   // Get shifts for a department
-  app.get('/api/departments/:id/shifts', isAuthenticated, async (req: any, res) => {
+  app.get('/api/departments/:id/shifts', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
@@ -503,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create department shift (admin only)
-  app.post('/api/departments/:id/shifts', isAuthenticated, async (req: any, res) => {
+  app.post('/api/departments/:id/shifts', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -538,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update department shift (admin only)
-  app.put('/api/department-shifts/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/department-shifts/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -575,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete department shift (admin only)
-  app.delete('/api/department-shifts/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/department-shifts/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -608,7 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==== SUPERVISOR ASSIGNMENT ROUTES ====
   
   // Get supervisor assignments for current user
-  app.get('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+  app.get('/api/supervisor-assignments', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -630,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all company supervisor assignments (admin only)
-  app.get('/api/admin/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/supervisor-assignments', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -649,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create supervisor assignment (admin only)
-  app.post('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+  app.post('/api/supervisor-assignments', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -694,7 +696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete supervisor assignment (admin only)
-  app.delete('/api/supervisor-assignments', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/supervisor-assignments', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -731,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Special route to claim superadmin access (only works if no superadmin exists)
-  app.post('/api/claim-superadmin', isAuthenticated, async (req: any, res) => {
+  app.post('/api/claim-superadmin', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -763,7 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Superadmin routes - Full system access
-  app.get('/api/superadmin/companies', isAuthenticated, async (req: any, res) => {
+  app.get('/api/superadmin/companies', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'superadmin') {
@@ -778,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/superadmin/companies', isAuthenticated, async (req: any, res) => {
+  app.post('/api/superadmin/companies', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'superadmin') {
@@ -797,7 +799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/superadmin/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/superadmin/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'superadmin') {
@@ -812,7 +814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/superadmin/users/:id/role', isAuthenticated, async (req: any, res) => {
+  app.put('/api/superadmin/users/:id/role', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'superadmin') {
@@ -878,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/superadmin/companies/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/superadmin/companies/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'superadmin') {
@@ -898,7 +900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/superadmin/companies/:id/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/superadmin/companies/:id/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'superadmin') {
@@ -915,7 +917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Company routes
-  app.get('/api/companies', isAuthenticated, async (req: any, res) => {
+  app.get('/api/companies', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -937,7 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/companies', isAuthenticated, async (req: any, res) => {
+  app.post('/api/companies', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -956,7 +958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/companies/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -983,7 +985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/companies/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -1012,7 +1014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Holiday routes
-  app.get('/api/holidays', isAuthenticated, async (req: any, res) => {
+  app.get('/api/holidays', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user?.companyId) {
@@ -1027,7 +1029,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/holidays', isAuthenticated, async (req: any, res) => {
+  app.post('/api/holidays', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       
@@ -1052,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/holidays/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/holidays/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -1083,7 +1085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/holidays/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/holidays/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (user?.role !== 'admin' && user?.role !== 'superadmin') {
@@ -1108,7 +1110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/holidays/check/:date', isAuthenticated, async (req: any, res) => {
+  app.get('/api/holidays/check/:date', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
       if (!user?.companyId) {
@@ -1125,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management routes (admin and supervisor)
-  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
@@ -1167,7 +1169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/users/:id/company', isAuthenticated, async (req: any, res) => {
+  app.put('/api/users/:id/company', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin') {
@@ -1214,7 +1216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Time clock routes
-  app.get('/api/time-clock/status', isAuthenticated, async (req: any, res) => {
+  app.get('/api/time-clock/status', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const activeEntry = await storage.getActiveTimeEntry(userId);
@@ -1229,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/time-clock/clock-in', isAuthenticated, async (req: any, res) => {
+  app.post('/api/time-clock/clock-in', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1290,7 +1292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/time-clock/clock-out', isAuthenticated, async (req: any, res) => {
+  app.post('/api/time-clock/clock-out', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1346,7 +1348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Time entries and reports
-  app.get('/api/time-entries', isAuthenticated, async (req: any, res) => {
+  app.get('/api/time-entries', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { startDate, endDate } = req.query;
@@ -1364,7 +1366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/reports/monthly', isAuthenticated, async (req: any, res) => {
+  app.get('/api/reports/monthly', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { year, month } = req.query;
@@ -1395,7 +1397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Face profile routes
-  app.get('/api/face-profile', isAuthenticated, async (req: any, res) => {
+  app.get('/api/face-profile', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const profile = await storage.getFaceProfile(userId);
@@ -1406,7 +1408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/face-profile', isAuthenticated, async (req: any, res) => {
+  app.post('/api/face-profile', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const profileData = insertFaceProfileSchema.parse({
@@ -1434,7 +1436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.put('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/users/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
@@ -1465,7 +1467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete user (admin only) - Uses soft delete for data integrity
-  app.delete('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/admin/users/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
@@ -1517,7 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Hard delete route - PERMANENT deletion (separate from soft delete)
-  app.post('/api/admin/users/:id/hard-delete', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/users/:id/hard-delete', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
@@ -1640,7 +1642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new employee with complete HR data (admin only)
-  app.post('/api/admin/users', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
@@ -1747,7 +1749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update employee with complete HR data (admin only)
-  app.put('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/admin/users/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
       if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
@@ -1846,7 +1848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard stats
-  app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/dashboard/stats', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1908,7 +1910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== MESSAGE ROUTES =====
   
   // Get messages for current user based on type (inbox, sent, archived)
-  app.get('/api/messages/:type', isAuthenticated, async (req: any, res) => {
+  app.get('/api/messages/:type', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const type = req.params.type;
@@ -1941,7 +1943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get messages for current user (default to inbox)
-  app.get('/api/messages', isAuthenticated, async (req: any, res) => {
+  app.get('/api/messages', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -1959,7 +1961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send new message
-  app.post('/api/messages', isAuthenticated, async (req: any, res) => {
+  app.post('/api/messages', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2010,7 +2012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark message as read
-  app.patch('/api/messages/:id/read', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/messages/:id/read', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const messageId = parseInt(req.params.id);
@@ -2024,7 +2026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get message categories
-  app.get('/api/message-categories', isAuthenticated, async (req: any, res) => {
+  app.get('/api/message-categories', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2042,7 +2044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create message category
-  app.post('/api/message-categories', isAuthenticated, async (req: any, res) => {
+  app.post('/api/message-categories', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2067,7 +2069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get users (for recipient selection)
-  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
@@ -2101,7 +2103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DOCUMENTS API ROUTES
   
   // Get documents
-  app.get('/api/documents', isAuthenticated, async (req: any, res) => {
+  app.get('/api/documents', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2119,7 +2121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get document by ID
-  app.get('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/documents/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const documentId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -2153,7 +2155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload document
-  app.post('/api/documents/upload', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  app.post('/api/documents/upload', isAuthenticatedHybrid, upload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2194,7 +2196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create document
-  app.post('/api/documents', isAuthenticated, async (req: any, res) => {
+  app.post('/api/documents', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2218,7 +2220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update document
-  app.put('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/documents/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const documentId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -2258,7 +2260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete document
-  app.delete('/api/documents/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/documents/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const documentId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -2289,7 +2291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // COURSES API ROUTES
   
   // Get courses
-  app.get('/api/courses', isAuthenticated, async (req: any, res) => {
+  app.get('/api/courses', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2307,7 +2309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get course by ID
-  app.get('/api/courses/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/courses/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const courseId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -2336,7 +2338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create course (admin only)
-  app.post('/api/courses', isAuthenticated, async (req: any, res) => {
+  app.post('/api/courses', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2365,7 +2367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // EMPLOYEE COURSES API ROUTES
   
   // Get employee courses (progress)
-  app.get('/api/employee-courses', isAuthenticated, async (req: any, res) => {
+  app.get('/api/employee-courses', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2383,7 +2385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Start a course
-  app.post('/api/employee-courses/start', isAuthenticated, async (req: any, res) => {
+  app.post('/api/employee-courses/start', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2407,7 +2409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update course progress
-  app.put('/api/employee-courses/progress', isAuthenticated, async (req: any, res) => {
+  app.put('/api/employee-courses/progress', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { courseId, progress } = req.body;
@@ -2425,7 +2427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete a course
-  app.post('/api/employee-courses/complete', isAuthenticated, async (req: any, res) => {
+  app.post('/api/employee-courses/complete', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { courseId, score } = req.body;
@@ -2445,7 +2447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CERTIFICATES API ROUTES
   
   // Get user certificates
-  app.get('/api/certificates', isAuthenticated, async (req: any, res) => {
+  app.get('/api/certificates', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2463,7 +2465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create certificate (admin only)
-  app.post('/api/certificates', isAuthenticated, async (req: any, res) => {
+  app.post('/api/certificates', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -2490,7 +2492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Verify certificate (admin only)
-  app.put('/api/certificates/:id/verify', isAuthenticated, async (req: any, res) => {
+  app.put('/api/certificates/:id/verify', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
