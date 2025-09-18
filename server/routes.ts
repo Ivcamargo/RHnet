@@ -362,10 +362,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Add user's companyId to request body before validation - security critical
+      console.log("DEBUG: user.companyId =", user.companyId, "type =", typeof user.companyId);
+      console.log("DEBUG: req.body =", req.body);
+      
       const bodyWithCompanyId = {
         ...req.body,
         companyId: user.companyId
       };
+      
+      console.log("DEBUG: bodyWithCompanyId =", bodyWithCompanyId);
+      
       const sectorData = insertSectorSchema.parse(bodyWithCompanyId);
       const sector = await storage.createSector(sectorData);
       res.json(sector);
