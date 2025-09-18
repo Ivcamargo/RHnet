@@ -169,33 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticatedHybrid, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Get department info if user has one
-      let department = null;
-      if (user.departmentId) {
-        department = await storage.getDepartment(user.departmentId);
-      }
-      
-      // Get company info if user has one
-      let company = null;
-      if (user.companyId) {
-        company = await storage.getCompany(user.companyId);
-      }
-      
-      res.json({ ...user, department, company });
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Rota /api/auth/user removida - agora está no localAuth.ts
 
   // Check if any superadmin exists in the system
   app.get('/api/auth/has-superadmin', async (req, res) => {

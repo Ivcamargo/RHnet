@@ -7,6 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
+import SetPassword from "@/pages/set-password";
 import Dashboard from "@/pages/dashboard";
 import TimeClock from "@/pages/time-clock";
 import Departments from "@/pages/departments";
@@ -32,6 +35,11 @@ function Router() {
 
   return (
     <Switch>
+      {/* Rotas públicas (não requer autenticação) */}
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/set-password" component={SetPassword} />
+      
       {!isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

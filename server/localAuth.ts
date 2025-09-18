@@ -206,17 +206,21 @@ export function setupLocalAuth(app: any) {
   // Registro (apenas se não houver superadmin ou se for superadmin)
   authRouter.post('/register', async (req, res) => {
     try {
+      console.log('🔍 REGISTER: Iniciando processo de registro...');
       const { email, firstName, lastName, password } = registerSchema.parse(req.body);
+      console.log('📧 REGISTER: Email:', email);
       
       // Verifica se já existe um superadmin
       const users = await storage.getAllUsers();
+      console.log('👥 REGISTER: Total usuários encontrados:', users.length);
       const hasSuperadmin = users.some(u => u.role === 'superadmin');
+      console.log('🔐 REGISTER: Já existe superadmin?', hasSuperadmin);
       
       // Se já existe superadmin, apenas superadmin pode criar novos usuários
       if (hasSuperadmin) {
-        // Verifica se o usuário atual é superadmin
+        // Verifica se o usuário atual está logado e é superadmin
         if (!req.session?.userId) {
-          return res.status(401).json({ message: 'Não autorizado' });
+          return res.status(401).json({ message: 'É necessário fazer login para criar usuários' });
         }
         
         const currentUser = users.find(u => u.id === req.session.userId);
@@ -224,6 +228,7 @@ export function setupLocalAuth(app: any) {
           return res.status(403).json({ message: 'Apenas superadmins podem criar usuários' });
         }
       }
+      // Se não há superadmin, permite registro público (primeiro usuário)
 
       // Verifica se email já existe
       const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
@@ -249,6 +254,17 @@ export function setupLocalAuth(app: any) {
         isActive: true,
       });
 
+      // Se é o primeiro usuário (superadmin), faz login automático
+      if (!hasSuperadmin) {
+        req.session.userId = newUser.id;
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err: any) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+
       res.status(201).json({
         message: 'Usuário criado com sucesso',
         user: {
@@ -257,6 +273,7 @@ export function setupLocalAuth(app: any) {
           firstName: newUser.firstName,
           lastName: newUser.lastName,
           role: newUser.role,
+          mustChangePassword: newUser.mustChangePassword,
         }
       });
 
