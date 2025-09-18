@@ -66,7 +66,7 @@ async function upsertUser(
     }
     
     if (existingUser) {
-      // User exists (by ID or email) - update profile info and role from claims if available
+      // User exists (by ID or email) - update profile info but PRESERVE role (security)
       await storage.upsertUser({
         id: claims["sub"], // Use the new ID from claims (important for OIDC consistency)
         companyId: existingUser.companyId, // PRESERVE existing companyId
@@ -74,42 +74,31 @@ async function upsertUser(
         firstName: claims["first_name"],
         lastName: claims["last_name"],
         profileImageUrl: claims["profile_image_url"],
-        role: claims["role"] || existingUser.role, // USE role from claims if available, otherwise preserve existing
+        role: existingUser.role, // ALWAYS preserve existing role for security
         departmentId: existingUser.departmentId, // PRESERVE existing departmentId
       });
     } else {
-      // NEW user - assign to default company (use any company with the default CNPJ)
-      console.log("DEBUG: Looking for default company for new user", claims["sub"]);
-      
+      // NEW user - assign to default company (SECURITY: only use default CNPJ company)
       const allCompanies = await storage.getCompanies();
-      console.log("DEBUG: Found companies:", allCompanies.map(c => ({ id: c.id, name: c.name, cnpj: c.cnpj })));
       
-      // Try to find company with default CNPJ
+      // SECURITY: Only look for default company with specific CNPJ - no fallbacks
       let defaultCompany = allCompanies.find(c => c.cnpj === "00000000000000");
-      console.log("DEBUG: Default company found:", defaultCompany);
-      
-      // If not found, use the first company available (fallback)
-      if (!defaultCompany && allCompanies.length > 0) {
-        defaultCompany = allCompanies[0];
-        console.log("DEBUG: Using first available company as fallback:", defaultCompany);
-      }
       
       if (!defaultCompany) {
-        console.log("DEBUG: No companies found, attempting to create default company");
         try {
           defaultCompany = await storage.createCompany({
             name: "Empresa Padrão",
             address: "Endereço não definido",
             cnpj: "00000000000000"
           });
-        } catch (error) {
-          // If company creation fails due to duplicate CNPJ, try to find it again
-          if (error instanceof Error && error.message.includes("companies_cnpj_unique")) {
-            defaultCompany = await storage.getCompanies().then(companies => 
-              companies.find(c => c.cnpj === "00000000000000")
-            );
+        } catch (error: any) {
+          // SECURITY: Improved error handling using proper error detection
+          if (error?.code === "23505" || (error instanceof Error && error.message.includes("companies_cnpj_unique"))) {
+            // Try to find the company again after failed creation
+            const companiesRetry = await storage.getCompanies();
+            defaultCompany = companiesRetry.find(c => c.cnpj === "00000000000000");
             if (!defaultCompany) {
-              throw new Error("Failed to create or find default company");
+              throw new Error("System configuration error: Default company not found. Contact administrator.");
             }
           } else {
             throw error;
@@ -117,6 +106,7 @@ async function upsertUser(
         }
       }
 
+      // SECURITY: Always assign new users as "employee" - roles managed server-side only
       await storage.upsertUser({
         id: claims["sub"],
         companyId: defaultCompany.id,
@@ -124,7 +114,7 @@ async function upsertUser(
         firstName: claims["first_name"],
         lastName: claims["last_name"],
         profileImageUrl: claims["profile_image_url"],
-        role: claims["role"] || "employee", // USE role from claims if available, default to employee
+        role: "employee", // SECURITY: Never trust role from external claims
       });
     }
     
