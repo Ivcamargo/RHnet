@@ -123,7 +123,7 @@ export default function Employees() {
       
       // Dados profissionais
       role: "employee",
-      departmentId: "",
+      departmentId: null,
       position: "",
       admissionDate: "",
       contractType: "clt",
@@ -189,7 +189,7 @@ export default function Employees() {
       
       // Dados profissionais
       role: "employee",
-      departmentId: "",
+      departmentId: null,
       position: "",
       admissionDate: "",
       contractType: "clt",
@@ -428,7 +428,7 @@ export default function Employees() {
       
       // Dados profissionais
       role: employee.role || "employee",
-      departmentId: employee.departmentId?.toString() || "",
+      departmentId: employee.departmentId ?? null,
       position: employee.position || "",
       admissionDate: employee.admissionDate || "",
       contractType: employee.contractType || "clt",
@@ -1013,9 +1013,9 @@ export default function Employees() {
                               <FormLabel>Departamento</FormLabel>
                               <Select 
                                 onValueChange={(value) => {
-                                  field.onChange(value === "none" ? "" : parseInt(value));
+                                  field.onChange(value === "none" ? null : parseInt(value));
                                 }} 
-                                value={field.value?.toString() || ""}
+                                value={field.value === null ? "none" : String(field.value)}
                               >
                                 <FormControl>
                                   <SelectTrigger data-testid="select-department-create">
@@ -1840,9 +1840,9 @@ export default function Employees() {
                                 <FormLabel>Departamento</FormLabel>
                                 <Select 
                                   onValueChange={(value) => {
-                                    field.onChange(value === "none" ? "" : parseInt(value));
+                                    field.onChange(value === "none" ? null : parseInt(value));
                                   }} 
-                                  value={field.value?.toString() || ""}
+                                  value={field.value === null ? "none" : String(field.value)}
                                 >
                                   <FormControl>
                                     <SelectTrigger data-testid="select-department-edit">
