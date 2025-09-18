@@ -209,6 +209,12 @@ export const users = pgTable("users", {
   // Dependentes (armazenado como JSON)
   dependents: jsonb("dependents"), // Array de objetos com nome, parentesco, data nascimento, CPF
   
+  // Autenticação local
+  passwordHash: varchar("password_hash"), // Hash da senha (argon2id)
+  mustChangePassword: boolean("must_change_password").default(false),
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
+  
   // Sistema
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
