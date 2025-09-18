@@ -1,6 +1,9 @@
 import {
   users,
   departments,
+  sectors,
+  departmentShifts,
+  supervisorAssignments,
   timeEntries,
   breakEntries,
   faceProfiles,
@@ -18,6 +21,12 @@ import {
   type UpsertUser,
   type Department,
   type InsertDepartment,
+  type Sector,
+  type InsertSector,
+  type DepartmentShift,
+  type InsertDepartmentShift,
+  type SupervisorAssignment,
+  type InsertSupervisorAssignment,
   type TimeEntry,
   type Company,
   type InsertCompany,
@@ -50,6 +59,13 @@ type InsertBreakEntry = typeof breakEntries.$inferInsert;
 type FaceProfile = typeof faceProfiles.$inferSelect;
 type InsertFaceProfile = typeof faceProfiles.$inferInsert;
 
+// Supervisor scope type for access control
+type SupervisorScope = {
+  companyId: number;
+  sectorIds: number[];
+  departmentIds: number[];
+};
+
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
@@ -67,6 +83,31 @@ export interface IStorage {
   getDepartment(id: number): Promise<Department | undefined>;
   createDepartment(department: InsertDepartment): Promise<Department>;
   updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department>;
+  
+  // Sector operations
+  getSectors(): Promise<Sector[]>;
+  getSectorsByCompany(companyId: number): Promise<Sector[]>;
+  getSector(id: number): Promise<Sector | undefined>;
+  createSector(sector: InsertSector): Promise<Sector>;
+  updateSector(id: number, sector: Partial<InsertSector>): Promise<Sector>;
+  
+  // Department shift operations
+  getDepartmentShifts(departmentId: number): Promise<DepartmentShift[]>;
+  getDepartmentShift(id: number): Promise<DepartmentShift | undefined>;
+  createDepartmentShift(shift: InsertDepartmentShift): Promise<DepartmentShift>;
+  updateDepartmentShift(id: number, shift: Partial<InsertDepartmentShift>): Promise<DepartmentShift>;
+  deleteDepartmentShift(id: number): Promise<void>;
+  
+  // Supervisor assignment operations
+  getSupervisorAssignments(supervisorId: string): Promise<SupervisorAssignment[]>;
+  getSupervisorsBySector(sectorId: number): Promise<SupervisorAssignment[]>;
+  createSupervisorAssignment(assignment: InsertSupervisorAssignment): Promise<SupervisorAssignment>;
+  deleteSupervisorAssignment(supervisorId: string, sectorId: number): Promise<void>;
+  
+  // Access control and scope operations
+  getSupervisorScope(userId: string): Promise<SupervisorScope | null>;
+  getUsersByScope(companyId: number, departmentIds: number[]): Promise<User[]>;
+  getDepartmentsByScope(departmentIds: number[]): Promise<Department[]>;
   
   // Time entry operations
   getActiveTimeEntry(userId: string): Promise<TimeEntry | undefined>;
@@ -353,6 +394,180 @@ export class DatabaseStorage implements IStorage {
       .where(eq(departments.id, id))
       .returning();
     return updatedDepartment;
+  }
+
+  // Sector operations
+  async getSectors(): Promise<Sector[]> {
+    return await db.select().from(sectors).where(eq(sectors.isActive, true));
+  }
+
+  async getSectorsByCompany(companyId: number): Promise<Sector[]> {
+    return await db.select().from(sectors).where(
+      and(
+        eq(sectors.companyId, companyId),
+        eq(sectors.isActive, true)
+      )
+    );
+  }
+
+  async getSector(id: number): Promise<Sector | undefined> {
+    const [sector] = await db.select().from(sectors).where(eq(sectors.id, id));
+    return sector;
+  }
+
+  async createSector(sector: InsertSector): Promise<Sector> {
+    const [newSector] = await db.insert(sectors).values(sector).returning();
+    return newSector;
+  }
+
+  async updateSector(id: number, sector: Partial<InsertSector>): Promise<Sector> {
+    const [updatedSector] = await db
+      .update(sectors)
+      .set({ ...sector, updatedAt: new Date() })
+      .where(eq(sectors.id, id))
+      .returning();
+    return updatedSector;
+  }
+
+  // Department shift operations
+  async getDepartmentShifts(departmentId: number): Promise<DepartmentShift[]> {
+    return await db.select().from(departmentShifts).where(
+      and(
+        eq(departmentShifts.departmentId, departmentId),
+        eq(departmentShifts.isActive, true)
+      )
+    );
+  }
+
+  async getDepartmentShift(id: number): Promise<DepartmentShift | undefined> {
+    const [shift] = await db.select().from(departmentShifts).where(eq(departmentShifts.id, id));
+    return shift;
+  }
+
+  async createDepartmentShift(shift: InsertDepartmentShift): Promise<DepartmentShift> {
+    const [newShift] = await db.insert(departmentShifts).values(shift).returning();
+    return newShift;
+  }
+
+  async updateDepartmentShift(id: number, shift: Partial<InsertDepartmentShift>): Promise<DepartmentShift> {
+    const [updatedShift] = await db
+      .update(departmentShifts)
+      .set({ ...shift, updatedAt: new Date() })
+      .where(eq(departmentShifts.id, id))
+      .returning();
+    return updatedShift;
+  }
+
+  async deleteDepartmentShift(id: number): Promise<void> {
+    await db.delete(departmentShifts).where(eq(departmentShifts.id, id));
+  }
+
+  // Supervisor assignment operations
+  async getSupervisorAssignments(supervisorId: string): Promise<SupervisorAssignment[]> {
+    return await db.select().from(supervisorAssignments).where(eq(supervisorAssignments.supervisorId, supervisorId));
+  }
+
+  async getSupervisorsBySector(sectorId: number): Promise<SupervisorAssignment[]> {
+    return await db.select().from(supervisorAssignments).where(eq(supervisorAssignments.sectorId, sectorId));
+  }
+
+  async createSupervisorAssignment(assignment: InsertSupervisorAssignment): Promise<SupervisorAssignment> {
+    // Validate company consistency - supervisor and sector must be in same company
+    const [supervisor] = await db.select({ companyId: users.companyId }).from(users).where(eq(users.id, assignment.supervisorId));
+    const [sector] = await db.select({ companyId: sectors.companyId }).from(sectors).where(eq(sectors.id, assignment.sectorId));
+    
+    if (!supervisor || !sector) {
+      throw new Error("Supervisor or sector not found");
+    }
+    
+    if (supervisor.companyId !== sector.companyId) {
+      throw new Error("Supervisor and sector must be in the same company");
+    }
+    
+    const [newAssignment] = await db.insert(supervisorAssignments).values(assignment).returning();
+    return newAssignment;
+  }
+
+  async deleteSupervisorAssignment(supervisorId: string, sectorId: number): Promise<void> {
+    await db.delete(supervisorAssignments).where(
+      and(
+        eq(supervisorAssignments.supervisorId, supervisorId),
+        eq(supervisorAssignments.sectorId, sectorId)
+      )
+    );
+  }
+
+  // Access control and scope operations
+  async getSupervisorScope(userId: string): Promise<SupervisorScope | null> {
+    // Get supervisor assignments and related data
+    const assignments = await db
+      .select({
+        sectorId: supervisorAssignments.sectorId,
+        companyId: sectors.companyId,
+      })
+      .from(supervisorAssignments)
+      .innerJoin(sectors, eq(supervisorAssignments.sectorId, sectors.id))
+      .where(eq(supervisorAssignments.supervisorId, userId));
+
+    if (assignments.length === 0) {
+      return null;
+    }
+
+    const companyId = assignments[0].companyId;
+    const sectorIds = assignments.map(a => a.sectorId);
+
+    // Get all department IDs in the supervisor's sectors
+    const depts = await db
+      .select({ id: departments.id })
+      .from(departments)
+      .where(
+        and(
+          eq(departments.companyId, companyId),
+          sql`${departments.sectorId} = ANY(${sectorIds})`
+        )
+      );
+
+    const departmentIds = depts.map(d => d.id);
+
+    return {
+      companyId,
+      sectorIds,
+      departmentIds,
+    };
+  }
+
+  async getUsersByScope(companyId: number, departmentIds: number[]): Promise<User[]> {
+    if (departmentIds.length === 0) {
+      return [];
+    }
+    
+    let conditions = [
+      eq(users.companyId, companyId), 
+      eq(users.isActive, true),
+      sql`${users.departmentId} = ANY(${departmentIds})`
+    ];
+
+    return await db
+      .select()
+      .from(users)
+      .where(and(...conditions))
+      .orderBy(users.firstName, users.lastName);
+  }
+
+  async getDepartmentsByScope(departmentIds: number[]): Promise<Department[]> {
+    if (departmentIds.length === 0) {
+      return [];
+    }
+    
+    return await db
+      .select()
+      .from(departments)
+      .where(
+        and(
+          sql`${departments.id} = ANY(${departmentIds})`,
+          eq(departments.isActive, true)
+        )
+      );
   }
 
   // Time entry operations
