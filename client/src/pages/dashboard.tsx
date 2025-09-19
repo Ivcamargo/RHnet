@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import logoImage from "@assets/generated_images/RHNet_company_logo_design_27776a18.png";
@@ -40,7 +41,7 @@ interface HRDashboardData {
     priority: string;
   }>;
   pendingTasks: Array<{
-    id: number;
+    id: string;
     title: string;
     type: 'document' | 'course' | 'message';
     dueDate?: string;
@@ -55,6 +56,7 @@ interface HRDashboardData {
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Mutation to claim superadmin access
   const claimSuperadminMutation = useMutation({
@@ -96,48 +98,40 @@ export default function Dashboard() {
     queryKey: ["/api/auth/has-superadmin"],
   });
 
-  // Mock data for HR dashboard - will be replaced with real API calls
+  // Real data queries for HR dashboard
+  const { data: dashboardSummary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["/api/dashboard/summary"],
+  });
+
+  const { data: recentMessages, isLoading: messagesLoading } = useQuery({
+    queryKey: ["/api/dashboard/messages/recent"],
+  });
+
+  const { data: pendingTasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ["/api/dashboard/tasks/pending"],
+  });
+
+  const { data: employeeCourses } = useQuery({
+    queryKey: [`/api/courses/employee`],
+  });
+
+  // Combine real data with fallbacks
   const hrData: HRDashboardData = {
-    unreadMessages: 5,
-    pendingDocuments: 3,
-    activeCourses: 2,
-    completedCourses: 8,
-    recentMessages: [
-      {
-        id: 1,
-        subject: "Atualização de documentos necessária",
-        senderName: "RH - Maria Silva",
-        createdAt: "2025-01-13T10:30:00Z",
-        isRead: false,
-        priority: "high"
-      },
-      {
-        id: 2,
-        subject: "Novo programa de capacitação disponível",
-        senderName: "RH - João Santos", 
-        createdAt: "2025-01-13T09:15:00Z",
-        isRead: false,
-        priority: "normal"
-      },
-      {
-        id: 3,
-        subject: "Comunicado: Política de trabalho remoto",
-        senderName: "RH - Ana Costa",
-        createdAt: "2025-01-12T16:45:00Z",
-        isRead: true,
-        priority: "normal"
-      }
-    ],
-    pendingTasks: [
-      { id: 1, title: "Enviar documentação pessoal atualizada", type: "document", dueDate: "2025-01-15" },
-      { id: 2, title: "Concluir programa de capacitação obrigatório", type: "course", dueDate: "2025-01-20" },
-      { id: 3, title: "Responder mensagem sobre benefícios", type: "message", dueDate: "2025-01-18" }
-    ],
-    courseProgress: [
-      { id: 1, title: "Gestão de Pessoas e Liderança", progress: 75, status: "in_progress" },
-      { id: 2, title: "Comunicação Corporativa Eficaz", progress: 30, status: "in_progress" }
-    ]
+    unreadMessages: dashboardSummary?.unreadMessages || 0,
+    pendingDocuments: dashboardSummary?.pendingDocuments || 0,
+    activeCourses: dashboardSummary?.activeCourses || 0,
+    completedCourses: dashboardSummary?.completedCourses || 0,
+    recentMessages: recentMessages || [],
+    pendingTasks: pendingTasks || [],
+    courseProgress: employeeCourses?.filter((course: any) => course.status === 'in_progress').map((course: any) => ({
+      id: course.id,
+      title: course.courseTitle,
+      progress: course.progress || 0,
+      status: course.status
+    })) || []
   };
+
+  const isLoading = summaryLoading || messagesLoading || tasksLoading;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -213,9 +207,6 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Bem-vindo ao RHNet
               </h1>
-              <p className="text-muted-foreground text-lg mb-4">
-                "A Rede do RH" - Sistema completo de gestão de recursos humanos
-              </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <MessageSquare className="h-4 w-4 text-primary" />
@@ -235,49 +226,89 @@ export default function Dashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+            <Card 
+              className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setLocation('/messages')}
+              data-testid="card-messages"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Mensagens</CardTitle>
                 <MessageSquare className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-800">{hrData.unreadMessages}</div>
-                <p className="text-xs text-muted-foreground">Não lidas</p>
-                {hrData.unreadMessages > 0 && (
-                  <Badge variant="destructive" className="mt-2">
-                    Requer atenção
-                  </Badge>
+                {isLoading ? (
+                  <>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-orange-800" data-testid="text-unread-count">{hrData.unreadMessages}</div>
+                    <p className="text-xs text-muted-foreground">Não lidas</p>
+                    {hrData.unreadMessages > 0 && (
+                      <Badge variant="destructive" className="mt-2">
+                        Requer atenção
+                      </Badge>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+            <Card 
+              className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setLocation('/documents')}
+              data-testid="card-documents"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Documentos</CardTitle>
                 <FileText className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-800">{hrData.pendingDocuments}</div>
-                <p className="text-xs text-muted-foreground">Pendentes</p>
-                {hrData.pendingDocuments > 0 && (
-                  <Badge variant="outline" className="mt-2">
-                    Para enviar
-                  </Badge>
+                {isLoading ? (
+                  <>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-orange-800" data-testid="text-pending-documents">{hrData.pendingDocuments}</div>
+                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                    {hrData.pendingDocuments > 0 && (
+                      <Badge variant="outline" className="mt-2">
+                        Para enviar
+                      </Badge>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+            <Card 
+              className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setLocation('/training')}
+              data-testid="card-training"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Cursos Ativos</CardTitle>
                 <GraduationCap className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{hrData.activeCourses}</div>
-                <p className="text-xs text-muted-foreground">Em andamento</p>
-                <Badge variant="secondary" className="mt-2">
-                  {hrData.completedCourses} concluídos
-                </Badge>
+                {isLoading ? (
+                  <>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                    <div className="h-5 bg-gray-200 rounded animate-pulse w-24 mt-2"></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold" data-testid="text-active-courses">{hrData.activeCourses}</div>
+                    <p className="text-xs text-muted-foreground">Em andamento</p>
+                    <Badge variant="secondary" className="mt-2">
+                      {hrData.completedCourses} concluídos
+                    </Badge>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -288,11 +319,23 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => setLocation('/messages')}
+                    data-testid="button-new-message"
+                  >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Nova Mensagem
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => setLocation('/documents')}
+                    data-testid="button-upload-document"
+                  >
                     <Upload className="h-4 w-4 mr-2" />
                     Enviar Documento
                   </Button>
@@ -309,7 +352,12 @@ export default function Dashboard() {
                   <Mail className="h-5 w-5 mr-2 text-orange-600" />
                   Mensagens Recentes
                 </CardTitle>
-                <Button variant="ghost" size="sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setLocation('/messages')}
+                  data-testid="button-view-all-messages"
+                >
                   Ver todas
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -364,7 +412,21 @@ export default function Dashboard() {
                         </p>
                       )}
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (task.type === 'document') {
+                          setLocation('/documents');
+                        } else if (task.type === 'course') {
+                          setLocation('/training');
+                        } else if (task.type === 'message') {
+                          setLocation('/messages');
+                        }
+                      }}
+                      data-testid={`button-task-${task.id}`}
+                    >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>

@@ -1881,6 +1881,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard summary - real data for dashboard overview
+  app.get('/api/dashboard/summary', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // For superadmin without companyId, return empty stats
+      if (!user.companyId && user.role !== 'superadmin') {
+        return res.status(400).json({ message: "User not assigned to company" });
+      }
+      
+      if (!user.companyId && user.role === 'superadmin') {
+        return res.json({
+          unreadMessages: 0,
+          pendingDocuments: 0,
+          activeCourses: 0,
+          completedCourses: 0,
+        });
+      }
+
+      // Get unread messages count
+      const receivedMessages = await storage.getReceivedMessages(userId, user.companyId);
+      const unreadMessages = receivedMessages.filter(msg => !msg.isRead).length;
+      
+      // Get pending documents count (documents assigned to user or all if admin)
+      let pendingDocuments = 0;
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        const allDocuments = await storage.getDocuments(user.companyId);
+        pendingDocuments = allDocuments.length; // All documents for admin
+      } else {
+        const assignedDocs = await storage.getDocumentsAssignedToUser(userId);
+        pendingDocuments = assignedDocs.length;
+      }
+      
+      // Get course statistics
+      const employeeCourses = await storage.getEmployeeCourses(userId, user.companyId);
+      const activeCourses = employeeCourses.filter(ec => ec.status === 'in_progress').length;
+      const completedCourses = employeeCourses.filter(ec => ec.status === 'completed').length;
+      
+      res.json({
+        unreadMessages,
+        pendingDocuments,
+        activeCourses,
+        completedCourses,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard summary:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard summary" });
+    }
+  });
+
+  // Dashboard recent messages
+  app.get('/api/dashboard/messages/recent', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // For superadmin without companyId, return empty messages
+      if (!user.companyId && user.role !== 'superadmin') {
+        return res.status(400).json({ message: "User not assigned to company" });
+      }
+      
+      if (!user.companyId && user.role === 'superadmin') {
+        return res.json([]);
+      }
+
+      // Get recent messages (limit to last 5, sorted by date)
+      const recentMessages = await storage.getReceivedMessages(userId, user.companyId);
+      const sortedMessages = recentMessages.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      const limitedMessages = sortedMessages.slice(0, 5).map(msg => ({
+        id: msg.id,
+        subject: msg.subject,
+        senderName: msg.senderName,
+        createdAt: msg.createdAt,
+        isRead: msg.isRead,
+        priority: msg.priority || 'normal'
+      }));
+      
+      res.json(limitedMessages);
+    } catch (error) {
+      console.error("Error fetching recent messages:", error);
+      res.status(500).json({ message: "Failed to fetch recent messages" });
+    }
+  });
+
+  // Dashboard pending tasks
+  app.get('/api/dashboard/tasks/pending', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // For superadmin without companyId, return empty tasks
+      if (!user.companyId && user.role !== 'superadmin') {
+        return res.status(400).json({ message: "User not assigned to company" });
+      }
+      
+      if (!user.companyId && user.role === 'superadmin') {
+        return res.json([]);
+      }
+
+      const pendingTasks = [];
+      
+      // Add unread messages as tasks
+      const receivedMessages = await storage.getReceivedMessages(userId, user.companyId);
+      const unreadMessages = receivedMessages.filter(msg => !msg.isRead).slice(0, 2);
+      unreadMessages.forEach(msg => {
+        pendingTasks.push({
+          id: `message-${msg.id}`,
+          title: `Responder: ${msg.subject}`,
+          type: 'message' as const,
+          dueDate: msg.createdAt
+        });
+      });
+      
+      // Add assigned documents as tasks  
+      let assignedDocs = [];
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        const allDocs = await storage.getDocuments(user.companyId);
+        assignedDocs = allDocs.slice(0, 2);
+      } else {
+        assignedDocs = await storage.getDocumentsAssignedToUser(userId);
+        assignedDocs = assignedDocs.slice(0, 2);
+      }
+      
+      assignedDocs.forEach(doc => {
+        pendingTasks.push({
+          id: `document-${doc.id}`,
+          title: `Revisar documento: ${doc.title}`,
+          type: 'document' as const,
+          dueDate: doc.expirationDate || doc.createdAt
+        });
+      });
+      
+      // Add in-progress courses as tasks
+      const employeeCourses = await storage.getEmployeeCourses(userId, user.companyId);
+      const inProgressCourses = employeeCourses
+        .filter(ec => ec.status === 'in_progress')
+        .slice(0, 2);
+      
+      inProgressCourses.forEach(course => {
+        pendingTasks.push({
+          id: `course-${course.id}`,
+          title: `Continuar curso: ${course.courseTitle}`,
+          type: 'course' as const,
+          dueDate: course.validUntil
+        });
+      });
+      
+      // Sort by date and limit to 5 tasks
+      const sortedTasks = pendingTasks
+        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+        .slice(0, 5);
+      
+      res.json(sortedTasks);
+    } catch (error) {
+      console.error("Error fetching pending tasks:", error);
+      res.status(500).json({ message: "Failed to fetch pending tasks" });
+    }
+  });
+
   // ===== MESSAGE ROUTES =====
   
   // Get messages for current user based on type (inbox, sent, archived)
