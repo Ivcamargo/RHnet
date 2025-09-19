@@ -413,6 +413,19 @@ export function setupLocalAuth(app: any) {
         return res.status(404).json({ message: 'Usuário não encontrado' });
       }
 
+      // Buscar dados mínimos da empresa (apenas campos não-sensíveis)
+      let company = null;
+      if (user.companyId) {
+        const companyData = await storage.getCompany(user.companyId);
+        if (companyData) {
+          company = {
+            id: companyData.id,
+            name: companyData.name,
+            logoUrl: companyData.logoUrl,
+          };
+        }
+      }
+
       res.json({
         id: user.id,
         email: user.email,
@@ -423,6 +436,7 @@ export function setupLocalAuth(app: any) {
         departmentId: user.departmentId,
         mustChangePassword: user.mustChangePassword,
         isActive: user.isActive,
+        company: company,
       });
 
     } catch (error) {

@@ -46,7 +46,14 @@ export default function TopBar({ title }: TopBarProps) {
           <Menu className="h-5 w-5" />
         </Button>
         
-        <h2 className="text-xl font-semibold text-blue-800">{title}</h2>
+        <div className="flex flex-col">
+          <h2 className="text-xl font-semibold text-blue-800" data-testid="page-title">{title}</h2>
+          {user && (user as any).company && (
+            <p className="text-sm text-blue-600 font-medium" data-testid="company-name">
+              {(user as any).company.name}
+            </p>
+          )}
+        </div>
       </div>
       
       <div className="flex items-center space-x-4">
