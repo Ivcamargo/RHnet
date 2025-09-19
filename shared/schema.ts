@@ -244,6 +244,19 @@ export const timeEntries = pgTable("time_entries", {
   totalHours: decimal("total_hours", { precision: 4, scale: 2 }),
   status: varchar("status").default("active"), // active, completed, incomplete
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
+  
+  // Fotos de reconhecimento facial
+  clockInPhotoUrl: varchar("clock_in_photo_url"), // URL da foto na entrada
+  clockOutPhotoUrl: varchar("clock_out_photo_url"), // URL da foto na saída
+  
+  // Sistema de inclusão manual e aprovação
+  entryType: varchar("entry_type").default("automatic"), // automatic, manual_insertion, manual_edit
+  insertedBy: varchar("inserted_by"), // ID do usuário que incluiu/editou manualmente
+  approvedBy: varchar("approved_by"), // ID do supervisor que aprovou
+  approvalStatus: varchar("approval_status").default("approved"), // pending, approved, rejected
+  justification: text("justification"), // Justificativa para inclusão/alteração manual
+  supportDocumentUrl: varchar("support_document_url"), // URL do documento anexado (atestado, etc)
+  
   date: varchar("date").notNull(), // YYYY-MM-DD format
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -804,6 +817,12 @@ export const insertJobTrainingTrackSchema = createInsertSchema(jobTrainingTracks
   createdAt: true,
 });
 
+export const insertFaceProfileSchema = createInsertSchema(faceProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Update schemas (partial versions for PUT requests)
 export const updateDocumentSchema = insertDocumentSchema.partial().omit({
   companyId: true,
@@ -837,6 +856,7 @@ export type InsertEmployeeCourse = z.infer<typeof insertEmployeeCourseSchema>;
 export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type InsertFaceProfile = z.infer<typeof insertFaceProfileSchema>;
 
 
 // Clock in/out request schemas
