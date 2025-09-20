@@ -28,6 +28,7 @@ import {
   insertDepartmentShiftSchema,
   insertSupervisorAssignmentSchema,
   insertFaceProfileSchema,
+  insertTimePeriodSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -41,7 +42,8 @@ import {
   type InsertSector,
   type InsertDepartmentShift,
   type InsertSupervisorAssignment,
-  type InsertFaceProfile
+  type InsertFaceProfile,
+  type InsertTimePeriod
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -1634,6 +1636,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Time Period Management Routes (Admin/SuperAdmin only)
+  
+  // Helper function to check admin/superadmin role
+  const requireAdminRole = (req: any, res: any, next: any) => {
+    const userRole = req.user.claims.role;
+    if (!userRole || !['admin', 'superadmin'].includes(userRole)) {
+      return res.status(403).json({ message: "Access denied: admin privileges required" });
+    }
+    next();
+  };
+
+  // Get all time periods for company
+  app.get('/api/time-periods', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+      
+      const periods = await storage.getTimePeriods(companyId);
+      res.json(periods);
+    } catch (error) {
+      console.error("Error fetching time periods:", error);
+      res.status(500).json({ message: "Failed to fetch time periods" });
+    }
+  });
+
+  // Create new time period
+  app.post('/api/time-periods', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companyId = req.user.claims.companyId;
+      
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+
+      const periodData = insertTimePeriodSchema.parse({
+        ...req.body,
+        companyId,
+      });
+      
+      const period = await storage.createTimePeriod(periodData);
+      
+      // Log audit trail
+      await storage.createAuditLog({
+        action: 'create_time_period',
+        performedBy: userId,
+        companyId,
+        targetResource: period.id.toString(),
+        details: { periodData },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        success: true,
+      });
+      
+      res.status(201).json(period);
+    } catch (error) {
+      console.error("Error creating time period:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid period data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create time period" });
+    }
+  });
+
+  // Close time period
+  app.post('/api/time-periods/:id/close', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companyId = req.user.claims.companyId;
+      const periodId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ message: "Reason for closing is required" });
+      }
+      
+      const period = await storage.closeTimePeriod(periodId, userId, reason);
+      
+      // Log audit trail
+      await storage.createAuditLog({
+        action: 'close_time_period',
+        performedBy: userId,
+        companyId,
+        targetResource: periodId.toString(),
+        details: { reason, periodName: period.name },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        success: true,
+      });
+      
+      res.json(period);
+    } catch (error) {
+      console.error("Error closing time period:", error);
+      res.status(500).json({ message: "Failed to close time period" });
+    }
+  });
+
+  // Reopen time period
+  app.post('/api/time-periods/:id/reopen', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companyId = req.user.claims.companyId;
+      const periodId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ message: "Reason for reopening is required" });
+      }
+      
+      const period = await storage.reopenTimePeriod(periodId, userId, reason);
+      
+      // Log audit trail
+      await storage.createAuditLog({
+        action: 'reopen_time_period',
+        performedBy: userId,
+        companyId,
+        targetResource: periodId.toString(),
+        details: { reason, periodName: period.name },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        success: true,
+      });
+      
+      res.json(period);
+    } catch (error) {
+      console.error("Error reopening time period:", error);
+      res.status(500).json({ message: "Failed to reopen time period" });
+    }
+  });
+
+  // Get audit log for time periods and entries
+  app.get('/api/audit-log', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      const { limit = 100, offset = 0, action, startDate, endDate } = req.query;
+      
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+      
+      const logs = await storage.getAuditLog(companyId, {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        action: action as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+      });
+      
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit log:", error);
+      res.status(500).json({ message: "Failed to fetch audit log" });
+    }
+  });
+
+  // Check if time entries can be modified (period not closed)
+  app.get('/api/time-periods/can-modify/:date', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      const date = req.params.date;
+      
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+      
+      const canModify = await storage.canModifyTimeEntries(companyId, date);
+      res.json({ canModify, date });
+    } catch (error) {
+      console.error("Error checking modification permission:", error);
+      res.status(500).json({ message: "Failed to check modification permission" });
+    }
+  });
 
   app.put('/api/admin/users/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
