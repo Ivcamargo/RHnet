@@ -31,14 +31,14 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-blue-50 text-gray-800 relative">
       {/* Logo Watermark */}
       <div 
-        className="fixed inset-0 pointer-events-none z-0"
+        className="fixed inset-0 pointer-events-none z-5"
         style={{
           backgroundImage: `url(${rhnetLogo})`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
-          backgroundSize: '280px 280px',
-          opacity: 0.675,
-          filter: 'brightness(1.5)'
+          backgroundSize: '320px 320px',
+          opacity: 0.08,
+          filter: 'brightness(1.8) contrast(1.2)'
         }}
       ></div>
       
@@ -50,8 +50,8 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: 'cover',
-          opacity: 0.29,
-          filter: 'brightness(1.2)'
+          opacity: 0.25,
+          filter: 'brightness(1.1)'
         }}
       ></div>
       {/* Header */}
