@@ -83,16 +83,17 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-teal-700 p-4 relative">
       {/* Logo Watermark */}
       <div 
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: `url(${rhnetLogo})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center center',
-          backgroundSize: '350px 350px',
-          opacity: 0.25,
-          filter: 'brightness(2.5) contrast(1.4) saturate(0.6) grayscale(0.3)'
-        }}
-      ></div>
+        className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center"
+      >
+        <img 
+          src={rhnetLogo} 
+          alt="RHNet Logo Watermark"
+          className="w-80 h-80 opacity-20 brightness-200 contrast-125 grayscale-50"
+          style={{
+            filter: 'brightness(2) contrast(1.2) grayscale(0.5)'
+          }}
+        />
+      </div>
       
       <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center">
