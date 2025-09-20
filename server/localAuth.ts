@@ -125,7 +125,7 @@ export function isAuthenticatedHybrid(req: any, res: any, next: any) {
   
   // Verifica autenticação local via sessão
   if (req.session?.userId) {
-    // Carrega usuário da sessão local
+    // Carrega usuário da sessão local (async)
     storage.getUser(req.session.userId)
       .then(user => {
         if (user && user.isActive) {
@@ -138,20 +138,20 @@ export function isAuthenticatedHybrid(req: any, res: any, next: any) {
               last_name: user.lastName,
             }
           };
-          return next();
+          next(); // Remove return para evitar double response
         } else {
           // Usuário não encontrado ou inativo, limpa sessão
           req.session.destroy(() => {
-            return res.status(401).json({ message: "Unauthorized" });
+            res.status(401).json({ message: "Unauthorized" });
           });
         }
       })
       .catch(error => {
         console.error('Error loading user from session:', error);
-        return res.status(401).json({ message: "Unauthorized" });
+        res.status(401).json({ message: "Unauthorized" });
       });
   } else {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
   }
 }
 
