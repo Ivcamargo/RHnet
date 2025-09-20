@@ -12,7 +12,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
-import loginLogo from "@assets/image_1758392327216.png";
+import loginLogo from "@assets/generated_images/RHNet_company_logo_design_27776a18.png";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
