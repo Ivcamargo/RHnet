@@ -36,9 +36,9 @@ export default function Landing() {
           backgroundImage: `url(${rhnetLogo})`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
-          backgroundSize: '320px 320px',
-          opacity: 0.08,
-          filter: 'brightness(1.8) contrast(1.2)'
+          backgroundSize: '350px 350px',
+          opacity: 0.15,
+          filter: 'brightness(1.6) contrast(1.1) saturate(0.8)'
         }}
       ></div>
       
@@ -50,8 +50,8 @@ export default function Landing() {
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
           backgroundSize: 'cover',
-          opacity: 0.25,
-          filter: 'brightness(1.1)'
+          opacity: 0.35,
+          filter: 'brightness(1.2) contrast(1.05)'
         }}
       ></div>
       {/* Header */}
