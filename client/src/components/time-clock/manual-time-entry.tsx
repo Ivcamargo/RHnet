@@ -91,9 +91,12 @@ export default function ManualTimeEntry() {
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
     },
     onError: (error: any) => {
+      const isPeriodClosed = error.code === "PERIOD_CLOSED";
       toast({
-        title: "Erro ao criar entrada manual",
-        description: error.message || "Tente novamente.",
+        title: isPeriodClosed ? "Período Fechado" : "Erro ao criar entrada manual",
+        description: isPeriodClosed 
+          ? "Este período foi fechado pelo administrador. Não é possível registrar ponto para esta data."
+          : error.message || "Tente novamente.",
         variant: "destructive",
       });
     },

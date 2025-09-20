@@ -55,16 +55,21 @@ export function useTimeClock() {
       }
 
       let errorMessage = "Erro ao registrar entrada";
+      let errorCode = null;
       try {
         const errorData = JSON.parse(error.message);
         errorMessage = errorData.message || errorMessage;
+        errorCode = errorData.code;
       } catch {
         errorMessage = error.message || errorMessage;
       }
 
+      const isPeriodClosed = errorCode === "PERIOD_CLOSED";
       toast({
-        title: "Erro",
-        description: errorMessage,
+        title: isPeriodClosed ? "Período Fechado" : "Erro",
+        description: isPeriodClosed 
+          ? "Este período foi fechado pelo administrador. Não é possível registrar ponto."
+          : errorMessage,
         variant: "destructive",
       });
     },
@@ -109,16 +114,21 @@ export function useTimeClock() {
       }
 
       let errorMessage = "Erro ao registrar saída";
+      let errorCode = null;
       try {
         const errorData = JSON.parse(error.message);
         errorMessage = errorData.message || errorMessage;
+        errorCode = errorData.code;
       } catch {
         errorMessage = error.message || errorMessage;
       }
 
+      const isPeriodClosed = errorCode === "PERIOD_CLOSED";
       toast({
-        title: "Erro",
-        description: errorMessage,
+        title: isPeriodClosed ? "Período Fechado" : "Erro",
+        description: isPeriodClosed 
+          ? "Este período foi fechado pelo administrador. Não é possível registrar ponto."
+          : errorMessage,
         variant: "destructive",
       });
     },

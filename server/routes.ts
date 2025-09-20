@@ -1216,8 +1216,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.departmentId) {
-        return res.status(400).json({ message: "User must be assigned to a department" });
+      if (!user || !user.departmentId || !user.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a department and company" });
+      }
+
+      // Check if the current date is within a closed period
+      const today = new Date().toISOString().split('T')[0];
+      const canModify = await storage.canModifyTimeEntries(user.companyId, today);
+      if (!canModify) {
+        return res.status(403).json({ 
+          message: "Período fechado - não é possível registrar ponto nesta data",
+          code: "PERIOD_CLOSED"
+        });
       }
 
       // Check if user is already clocked in
@@ -1279,14 +1289,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.departmentId) {
-        return res.status(400).json({ message: "User must be assigned to a department" });
+      if (!user || !user.departmentId || !user.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a department and company" });
       }
 
       // Check if user is clocked in
       const activeEntry = await storage.getActiveTimeEntry(userId);
       if (!activeEntry) {
         return res.status(400).json({ message: "Not currently clocked in" });
+      }
+
+      // Check if the current date is within a closed period
+      const today = new Date().toISOString().split('T')[0];
+      const canModify = await storage.canModifyTimeEntries(user.companyId, today);
+      if (!canModify) {
+        return res.status(403).json({ 
+          message: "Período fechado - não é possível registrar ponto nesta data",
+          code: "PERIOD_CLOSED"
+        });
       }
 
       const { latitude, longitude, faceRecognitionData }: ClockOutRequest = clockOutSchema.parse(req.body);
@@ -1349,11 +1369,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.departmentId) {
-        return res.status(400).json({ message: "User must be assigned to a department" });
+      if (!user || !user.departmentId || !user.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a department and company" });
       }
 
       const { clockInTime, clockOutTime, justification, supportDocumentUrl, date } = manualTimeEntrySchema.parse(req.body);
+      
+      // Check if the requested date is within a closed period
+      const canModify = await storage.canModifyTimeEntries(user.companyId, date);
+      if (!canModify) {
+        return res.status(403).json({ 
+          message: "Período fechado - não é possível criar entrada manual para esta data",
+          code: "PERIOD_CLOSED"
+        });
+      }
       
       // Convert string dates to Date objects
       const clockInDate = new Date(clockInTime);
