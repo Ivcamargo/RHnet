@@ -59,6 +59,10 @@ localPort = 43647
 externalPort = 3003
 
 [[ports]]
+localPort = 44399
+externalPort = 8099
+
+[[ports]]
 localPort = 44527
 externalPort = 5000
 
@@ -92,4 +96,4 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_database:1.0.0"]
+integrations = ["javascript_database:1.0.0", "javascript_sendgrid:1.0.0"]

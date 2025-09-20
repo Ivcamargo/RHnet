@@ -1,6 +1,7 @@
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import { z } from 'zod';
+import { sendPasswordResetEmail } from './emailService';
 import { Router } from 'express';
 import { storage } from './storage';
 import { insertUserSchema } from '../shared/schema';
@@ -464,7 +465,7 @@ export function setupLocalAuth(app: any) {
       
       // Busca usuário por email
       const users = await storage.getAllUsers();
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const user = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
       
       // Sempre retorna sucesso (não revela se email existe - segurança)
       if (!user || !user.isActive) {
@@ -483,14 +484,29 @@ export function setupLocalAuth(app: any) {
         passwordResetExpires: resetExpires,
       });
 
-      // Em produção, aqui enviaria email com link de reset
-      // Para desenvolvimento, log no console
-      console.log(`Reset password link for ${email}: /reset-password?token=${resetToken}`);
+      // Tenta enviar email de reset
+      try {
+        const emailSent = await sendPasswordResetEmail(
+          user.email!, 
+          resetToken, 
+          user.firstName
+        );
+        
+        if (emailSent) {
+          console.log(`Password reset email sent to: ${email}`);
+        } else {
+          console.error(`Failed to send password reset email to: ${email}`);
+          // Log para desenvolvimento
+          console.log(`Reset password link for ${email}: /reset-password?token=${resetToken}`);
+        }
+      } catch (error) {
+        console.error('Error sending password reset email:', error);
+        // Log para desenvolvimento se email falhar
+        console.log(`Reset password link for ${email}: /reset-password?token=${resetToken}`);
+      }
       
       res.json({ 
-        message: 'Se o email existir em nosso sistema, você receberá instruções para redefinir sua senha.',
-        // Apenas para desenvolvimento - remover em produção
-        resetLink: `/reset-password?token=${resetToken}`
+        message: 'Se o email existir em nosso sistema, você receberá instruções para redefinir sua senha.'
       });
 
     } catch (error) {
