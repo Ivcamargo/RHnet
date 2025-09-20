@@ -7,9 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 
 export default function TimeClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const tabFromUrl = params.get('tab') || 'clock';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -69,7 +74,7 @@ export default function TimeClock() {
               </div>
             </div>
 
-            <Tabs defaultValue="clock" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-6 bg-[hsl(210,100%,25%)] border-[hsl(210,100%,25%)]">
                 <TabsTrigger value="clock" data-testid="tab-clock" className="text-white data-[state=active]:bg-[hsl(180,60%,70%)] data-[state=active]:text-[hsl(210,100%,25%)] hover:bg-[hsl(210,100%,35%)] hover:text-white">
                   Relógio de Ponto

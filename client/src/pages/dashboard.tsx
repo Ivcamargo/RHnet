@@ -375,7 +375,7 @@ export default function Dashboard() {
                   <Button 
                     variant="outline" 
                     className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => setLocation('/time-clock')}
+                    onClick={() => setLocation('/time-clock?tab=manual')}
                     data-testid="button-manual-entry"
                   >
                     <FileText className="h-4 w-4 mr-2" />
