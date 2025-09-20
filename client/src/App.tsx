@@ -23,6 +23,7 @@ import Messages from "@/pages/messages";
 import Documents from "@/pages/documents";
 import Training from "@/pages/training";
 import Sectors from "@/pages/sectors";
+import TimePeriods from "@/pages/admin/time-periods";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -59,6 +60,7 @@ function Router() {
           <Route path="/reports" component={Reports} />
           <Route path="/employees" component={Employees} />
           <Route path="/sectors" component={Sectors} />
+          <Route path="/admin/time-periods" component={TimePeriods} />
         </>
       )}
       <Route component={NotFound} />

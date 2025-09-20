@@ -14,7 +14,8 @@ import {
   FileText,
   GraduationCap,
   Calendar,
-  Upload
+  Upload,
+  Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ export default function Sidebar() {
     { name: "Departamentos", href: "/departments", icon: Building },
     { name: "Setores", href: "/sectors", icon: Building },
     { name: "Feriados", href: "/holidays", icon: Calendar },
+    { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer },
   ];
 
   // Superadmin-only navigation items
