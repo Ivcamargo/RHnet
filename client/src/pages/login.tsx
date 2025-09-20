@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -79,8 +80,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-teal-700 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-teal-700 p-4 relative">
+      {/* Logo Watermark */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage: `url(${rhnetLogo})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center center',
+          backgroundSize: '300px 300px',
+          opacity: 0.08,
+          filter: 'brightness(2.0) contrast(1.3)'
+        }}
+      ></div>
+      
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-primary">RHNet</CardTitle>
           <CardDescription>
