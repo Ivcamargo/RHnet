@@ -18,6 +18,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { TimePeriod } from "@shared/schema";
+import Sidebar from "@/components/layout/sidebar";
+import TopBar from "@/components/layout/top-bar";
 
 const createPeriodSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -187,27 +189,44 @@ export default function TimePeriodsAdmin() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Gestão de Períodos</h1>
-            <p className="text-muted-foreground">Controle os períodos de registro de ponto eletrônico</p>
-          </div>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="h-24 bg-gray-200 dark:bg-gray-700" />
-              <CardContent className="h-32 bg-gray-100 dark:bg-gray-800" />
-            </Card>
-          ))}
+      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+        <Sidebar />
+        
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <TopBar title="Gestão de Períodos" />
+          
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold">Gestão de Períodos</h1>
+                  <p className="text-muted-foreground">Controle os períodos de registro de ponto eletrônico</p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader className="h-24 bg-gray-200 dark:bg-gray-700" />
+                    <CardContent className="h-32 bg-gray-100 dark:bg-gray-800" />
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+      <Sidebar />
+      
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar title="Gestão de Períodos" />
+        
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+          <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gestão de Períodos</h1>
@@ -535,6 +554,9 @@ export default function TimePeriodsAdmin() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+            </div>
+          </main>
+        </div>
+      </div>
   );
 }
