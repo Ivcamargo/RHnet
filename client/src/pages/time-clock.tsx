@@ -60,25 +60,25 @@ export default function TimeClock() {
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-orange-800 mb-2">Controle de Ponto</h1>
+              <h1 className="text-3xl font-bold text-black mb-2">Controle de Ponto</h1>
               <div className="clock-display">
                 {formatTime(currentTime)}
               </div>
-              <div className="text-orange-700 mb-4">
+              <div className="text-black mb-4">
                 {formatDate(currentTime)}
               </div>
             </div>
 
             <Tabs defaultValue="clock" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="clock" data-testid="tab-clock">
+              <TabsList className="grid w-full grid-cols-3 mb-6 bg-[hsl(210,100%,25%)] border-[hsl(210,100%,25%)]">
+                <TabsTrigger value="clock" data-testid="tab-clock" className="text-white data-[state=active]:bg-[hsl(180,60%,70%)] data-[state=active]:text-[hsl(210,100%,25%)] hover:bg-[hsl(210,100%,35%)] hover:text-white">
                   Relógio de Ponto
                 </TabsTrigger>
-                <TabsTrigger value="manual" data-testid="tab-manual">
+                <TabsTrigger value="manual" data-testid="tab-manual" className="text-white data-[state=active]:bg-[hsl(180,60%,70%)] data-[state=active]:text-[hsl(210,100%,25%)] hover:bg-[hsl(210,100%,35%)] hover:text-white">
                   Entrada Manual
                 </TabsTrigger>
                 {supervisorScope && (
-                  <TabsTrigger value="approvals" data-testid="tab-approvals">
+                  <TabsTrigger value="approvals" data-testid="tab-approvals" className="text-white data-[state=active]:bg-[hsl(180,60%,70%)] data-[state=active]:text-[hsl(210,100%,25%)] hover:bg-[hsl(210,100%,35%)] hover:text-white">
                     Aprovações
                   </TabsTrigger>
                 )}

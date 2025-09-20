@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth } from "./replitAuth";
 import { setupLocalAuth, isAuthenticatedHybrid } from "./localAuth";
