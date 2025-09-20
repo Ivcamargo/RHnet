@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -50,7 +50,9 @@ export default function LoginPage() {
         throw new Error(result.message || "Erro no login");
       }
 
-      // Login bem-sucedido
+      // Login bem-sucedido - invalida cache de autenticação
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
       toast({
         title: "Login realizado com sucesso!",
         description: `Bem-vindo(a), ${result.user.firstName}!`,
