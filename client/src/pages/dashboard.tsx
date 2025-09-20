@@ -339,15 +339,47 @@ export default function Dashboard() {
                     <Upload className="h-4 w-4 mr-2" />
                     Enviar Documento
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Time Clock Quick Access */}
+          <div className="mb-8">
+            <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center text-blue-800">
+                  <Clock className="h-5 w-5 mr-2" />
+                  Controle de Ponto
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full justify-start"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => setLocation('/time-clock')}
-                    data-testid="button-time-clock"
+                    data-testid="button-time-clock-access"
                   >
                     <Clock className="h-4 w-4 mr-2" />
-                    Controle de Ponto
+                    Acessar Controle de Ponto
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => setLocation('/time-clock')}
+                    data-testid="button-view-entries"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Ver Registros
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => setLocation('/time-clock')}
+                    data-testid="button-time-reports"
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Relatórios
                   </Button>
                 </div>
               </CardContent>
