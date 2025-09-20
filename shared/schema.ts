@@ -626,6 +626,7 @@ export type EmployeeCourse = typeof employeeCourses.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
+export type TimePeriod = typeof timePeriods.$inferSelect;
 
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -839,6 +840,45 @@ export const updateEmployeeCourseSchema = insertEmployeeCourseSchema.partial().o
   companyId: true,
 });
 
+// Time periods for controlling open/closed time tracking periods
+export const timePeriods = pgTable("time_periods", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(), // "Janeiro 2024", "Período 15/01 a 31/01"
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  status: varchar("status").default("open"), // open, closed
+  closedBy: varchar("closed_by"), // User ID who closed the period
+  closedAt: timestamp("closed_at"),
+  reopenedBy: varchar("reopened_by"), // User ID who reopened the period
+  reopenedAt: timestamp("reopened_at"),
+  reason: text("reason"), // Reason for closing/reopening
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  closedByReference: foreignKey({
+    columns: [table.closedBy],
+    foreignColumns: [users.id],
+  }),
+  reopenedByReference: foreignKey({
+    columns: [table.reopenedBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Insert schemas for new tables
+export const insertTimePeriodSchema = createInsertSchema(timePeriods).omit({
+  id: true,
+  closedAt: true,
+  reopenedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCompleteEmployee = z.infer<typeof insertCompleteEmployeeSchema>;
@@ -857,6 +897,7 @@ export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type InsertFaceProfile = z.infer<typeof insertFaceProfileSchema>;
+export type InsertTimePeriod = z.infer<typeof insertTimePeriodSchema>;
 
 
 // Clock in/out request schemas
