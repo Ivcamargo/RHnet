@@ -48,6 +48,33 @@ import {
 import { z } from "zod";
 import multer from "multer";
 
+// Helper function to create audit logs
+async function createAuditLog(
+  userId: string, 
+  companyId: number, 
+  action: string, 
+  targetType: string, 
+  targetId: string, 
+  details?: any,
+  targetUserId?: string
+) {
+  try {
+    await storage.createAuditLog({
+      userId,
+      companyId,
+      action,
+      targetType,
+      targetId,
+      details: details ? JSON.stringify(details) : null,
+      targetUserId,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to create audit log:", error);
+    // Don't throw error to avoid disrupting main operation
+  }
+}
+
 // Helper function to calculate distance between two coordinates
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3; // Earth's radius in meters
@@ -1220,16 +1247,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User must be assigned to a department and company" });
       }
 
-      // Check if the current date is within a closed period
-      const today = new Date().toISOString().split('T')[0];
-      const canModify = await storage.canModifyTimeEntries(user.companyId, today);
-      if (!canModify) {
-        return res.status(403).json({ 
-          message: "Período fechado - não é possível registrar ponto nesta data",
-          code: "PERIOD_CLOSED"
-        });
-      }
-
       // Check if user is already clocked in
       const activeEntry = await storage.getActiveTimeEntry(userId);
       if (activeEntry) {
@@ -1237,6 +1254,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { latitude, longitude, faceRecognitionData }: ClockInRequest = clockInSchema.parse(req.body);
+      
+      // Get current date and check if period is closed
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const canModify = await storage.canModifyTimeEntries(user.companyId, today);
+      if (!canModify) {
+        return res.status(403).json({ 
+          message: "Período fechado - não é possível registrar ponto nesta data",
+          code: "PERIOD_CLOSED"
+        });
+      }
       
       // Get department for geofence validation
       const department = await storage.getDepartment(user.departmentId);
@@ -1259,9 +1287,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const faceRecognitionVerified = !!faceRecognitionData;
       const clockInPhotoUrl = faceRecognitionData?.photoUrl || null;
 
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-
       const timeEntry = await storage.createTimeEntry({
         userId,
         departmentId: user.departmentId,
@@ -1273,6 +1298,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: today,
         status: 'active',
       });
+
+      // Create audit log for clock-in
+      await createAuditLog(
+        userId,
+        user.companyId,
+        'time_entry_clock_in',
+        'time_entry',
+        timeEntry.id.toString(),
+        {
+          date: today,
+          clockInTime: now,
+          latitude,
+          longitude,
+          faceRecognitionVerified
+        },
+        userId
+      );
 
       res.json(timeEntry);
     } catch (error) {
@@ -1338,6 +1380,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalHours: totalHours.toString(),
         status: 'completed',
       });
+
+      // Create audit log for clock-out
+      await createAuditLog(
+        userId,
+        user.companyId,
+        'time_entry_clock_out',
+        'time_entry',
+        activeEntry.id.toString(),
+        {
+          date: today,
+          clockOutTime: now,
+          latitude,
+          longitude,
+          totalHours: totalHours.toString()
+        },
+        userId
+      );
 
       res.json(updatedEntry);
     } catch (error) {
@@ -1408,6 +1467,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supportDocumentUrl,
         approvalStatus: 'pending',
       });
+
+      // Create audit log for manual time entry
+      await createAuditLog(
+        userId,
+        user.companyId,
+        'time_entry_manual_create',
+        'time_entry',
+        timeEntry.id.toString(),
+        {
+          date,
+          clockInTime: clockInDate,
+          clockOutTime: clockOutDate,
+          justification,
+          approvalStatus: 'pending'
+        },
+        userId
+      );
 
       res.json(timeEntry);
     } catch (error) {
@@ -3089,6 +3165,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error verifying certificate:", error);
       res.status(500).json({ message: "Failed to verify certificate" });
+    }
+  });
+
+  // TIME PERIODS API ROUTES (Admin only)
+  
+  // Get time periods
+  app.get('/api/admin/time-periods', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const periods = await storage.getTimePeriods(user.companyId);
+      res.json(periods);
+    } catch (error) {
+      console.error("Error fetching time periods:", error);
+      res.status(500).json({ message: "Failed to fetch time periods" });
+    }
+  });
+
+  // Create time period
+  app.post('/api/admin/time-periods', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const periodData: InsertTimePeriod = insertTimePeriodSchema.parse({
+        ...req.body,
+        companyId: user.companyId,
+        status: 'open',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const period = await storage.createTimePeriod(periodData);
+      
+      // Create audit log for period creation
+      await createAuditLog(
+        req.user.claims.sub,
+        user.companyId,
+        'time_period_create',
+        'time_period',
+        period.id.toString(),
+        {
+          name: period.name,
+          startDate: period.startDate,
+          endDate: period.endDate,
+          status: 'open'
+        }
+      );
+
+      res.status(201).json(period);
+    } catch (error) {
+      console.error("Error creating time period:", error);
+      res.status(500).json({ message: "Failed to create time period" });
+    }
+  });
+
+  // Close time period
+  app.post('/api/admin/time-periods/:id/close', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const periodId = parseInt(req.params.id);
+      const { reason } = req.body;
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ message: "Reason is required to close period" });
+      }
+
+      const closedPeriod = await storage.closeTimePeriod(periodId, req.user.claims.sub, reason);
+      
+      // Create audit log for period closure
+      await createAuditLog(
+        req.user.claims.sub,
+        user.companyId,
+        'time_period_close',
+        'time_period',
+        periodId.toString(),
+        {
+          reason,
+          closedBy: req.user.claims.sub,
+          closedAt: new Date()
+        }
+      );
+
+      res.json(closedPeriod);
+    } catch (error) {
+      console.error("Error closing time period:", error);
+      res.status(500).json({ message: "Failed to close time period" });
+    }
+  });
+
+  // Reopen time period
+  app.post('/api/admin/time-periods/:id/reopen', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const periodId = parseInt(req.params.id);
+      const { reason } = req.body;
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ message: "Reason is required to reopen period" });
+      }
+
+      const reopenedPeriod = await storage.reopenTimePeriod(periodId, req.user.claims.sub, reason);
+      
+      // Create audit log for period reopening
+      await createAuditLog(
+        req.user.claims.sub,
+        user.companyId,
+        'time_period_reopen',
+        'time_period',
+        periodId.toString(),
+        {
+          reason,
+          reopenedBy: req.user.claims.sub,
+          reopenedAt: new Date()
+        }
+      );
+
+      res.json(reopenedPeriod);
+    } catch (error) {
+      console.error("Error reopening time period:", error);
+      res.status(500).json({ message: "Failed to reopen time period" });
+    }
+  });
+
+  // AUDIT LOG API ROUTES (Admin only)
+  
+  // Get audit logs
+  app.get('/api/admin/audit-logs', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { limit, offset, action, startDate, endDate } = req.query;
+      
+      const filters = {
+        limit: limit ? parseInt(limit as string) : 50,
+        offset: offset ? parseInt(offset as string) : 0,
+        action: action as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+      };
+
+      const auditLogs = await storage.getAuditLog(user.companyId, filters);
+      res.json(auditLogs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
 
