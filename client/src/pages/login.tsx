@@ -88,9 +88,9 @@ export default function LoginPage() {
           backgroundImage: `url(${rhnetLogo})`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center center',
-          backgroundSize: '300px 300px',
-          opacity: 0.08,
-          filter: 'brightness(2.0) contrast(1.3)'
+          backgroundSize: '280px 280px',
+          opacity: 0.12,
+          filter: 'brightness(1.8) contrast(1.2) saturate(0.7)'
         }}
       ></div>
       
