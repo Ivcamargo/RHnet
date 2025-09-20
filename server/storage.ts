@@ -17,6 +17,7 @@ import {
   employeeCourses,
   certificates,
   auditLog,
+  timePeriods,
   type User,
   type UpsertUser,
   type Department,
@@ -48,6 +49,8 @@ import {
   type InsertCertificate,
   type AuditLog,
   type InsertAuditLog,
+  type TimePeriod,
+  type InsertTimePeriod,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql } from "drizzle-orm";
@@ -205,6 +208,21 @@ export interface IStorage {
   // Audit operations
   createAuditLog(auditEntry: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(companyId?: number, targetUserId?: string, action?: string): Promise<AuditLog[]>;
+  getAuditLog(companyId?: number, filters?: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<AuditLog[]>;
+  
+  // Time period operations
+  getTimePeriods(companyId: number): Promise<TimePeriod[]>;
+  getTimePeriod(id: number): Promise<TimePeriod | undefined>;
+  createTimePeriod(period: InsertTimePeriod): Promise<TimePeriod>;
+  closeTimePeriod(id: number, closedBy: string, reason: string): Promise<TimePeriod>;
+  reopenTimePeriod(id: number, reopenedBy: string, reason: string): Promise<TimePeriod>;
+  canModifyTimeEntries(companyId: number, date: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1397,6 +1415,120 @@ export class DatabaseStorage implements IStorage {
       .from(auditLog)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(auditLog.createdAt));
+  }
+
+  async getAuditLog(companyId?: number, filters?: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<AuditLog[]> {
+    let conditions = [];
+    
+    if (companyId) {
+      conditions.push(eq(auditLog.companyId, companyId));
+    }
+    
+    if (filters?.action) {
+      conditions.push(eq(auditLog.action, filters.action));
+    }
+    
+    if (filters?.startDate) {
+      conditions.push(gte(auditLog.createdAt, new Date(filters.startDate)));
+    }
+    
+    if (filters?.endDate) {
+      conditions.push(lte(auditLog.createdAt, new Date(filters.endDate)));
+    }
+    
+    let query = db
+      .select()
+      .from(auditLog)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(auditLog.createdAt));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    if (filters?.offset) {
+      query = query.offset(filters.offset);
+    }
+    
+    return await query;
+  }
+
+  // Time period operations
+  async getTimePeriods(companyId: number): Promise<TimePeriod[]> {
+    return await db
+      .select()
+      .from(timePeriods)
+      .where(eq(timePeriods.companyId, companyId))
+      .orderBy(desc(timePeriods.endDate));
+  }
+
+  async getTimePeriod(id: number): Promise<TimePeriod | undefined> {
+    const [period] = await db
+      .select()
+      .from(timePeriods)
+      .where(eq(timePeriods.id, id));
+    return period;
+  }
+
+  async createTimePeriod(period: InsertTimePeriod): Promise<TimePeriod> {
+    const [newPeriod] = await db
+      .insert(timePeriods)
+      .values(period)
+      .returning();
+    return newPeriod;
+  }
+
+  async closeTimePeriod(id: number, closedBy: string, reason: string): Promise<TimePeriod> {
+    const [closedPeriod] = await db
+      .update(timePeriods)
+      .set({
+        status: 'closed',
+        closedBy,
+        closedAt: new Date(),
+        reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(timePeriods.id, id))
+      .returning();
+    return closedPeriod;
+  }
+
+  async reopenTimePeriod(id: number, reopenedBy: string, reason: string): Promise<TimePeriod> {
+    const [reopenedPeriod] = await db
+      .update(timePeriods)
+      .set({
+        status: 'open',
+        reopenedBy,
+        reopenedAt: new Date(),
+        reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(timePeriods.id, id))
+      .returning();
+    return reopenedPeriod;
+  }
+
+  async canModifyTimeEntries(companyId: number, date: string): Promise<boolean> {
+    // Check if there's a closed period that contains this date
+    const closedPeriods = await db
+      .select()
+      .from(timePeriods)
+      .where(
+        and(
+          eq(timePeriods.companyId, companyId),
+          eq(timePeriods.status, 'closed'),
+          lte(timePeriods.startDate, date),
+          gte(timePeriods.endDate, date)
+        )
+      );
+    
+    return closedPeriods.length === 0;
   }
 }
 
