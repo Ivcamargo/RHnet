@@ -12,6 +12,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
+import loginLogo from "@assets/image_1758392327216.png";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -100,10 +101,11 @@ export default function LoginPage() {
       
       <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary">RHNet</CardTitle>
-          <CardDescription>
-            Sistema de Gestão de Recursos Humanos
-          </CardDescription>
+          <img 
+            src={loginLogo} 
+            alt="RHNet Logo"
+            className="mx-auto mb-4 max-w-[280px] h-auto"
+          />
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -172,17 +174,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Link para registro apenas se não houver superadmin */}
-          <div className="mt-6 text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Não tem uma conta?{" "}
-              <Link href="/register">
-                <Button variant="link" className="p-0 h-auto" data-testid="link-register">
-                  Cadastre-se
-                </Button>
-              </Link>
-            </p>
-            
+          <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Esqueceu sua senha?{" "}
               <Link href="/forgot-password">
@@ -192,14 +184,6 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-
-          {/* Informação para admins */}
-          <Alert className="mt-4">
-            <AlertDescription className="text-sm">
-              <strong>Para administradores:</strong> Se você foi criado pelo sistema, 
-              use o email cadastrado e solicite uma senha ao superadmin.
-            </AlertDescription>
-          </Alert>
         </CardContent>
       </Card>
     </div>
