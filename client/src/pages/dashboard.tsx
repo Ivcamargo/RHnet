@@ -366,7 +366,7 @@ export default function Dashboard() {
                   <Button 
                     variant="outline" 
                     className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => setLocation('/time-clock')}
+                    onClick={() => setLocation('/reports')}
                     data-testid="button-view-entries"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
@@ -376,10 +376,10 @@ export default function Dashboard() {
                     variant="outline" 
                     className="border-blue-300 text-blue-700 hover:bg-blue-50"
                     onClick={() => setLocation('/time-clock')}
-                    data-testid="button-time-reports"
+                    data-testid="button-manual-entry"
                   >
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Relatórios
+                    <FileText className="h-4 w-4 mr-2" />
+                    Entrada Manual
                   </Button>
                 </div>
               </CardContent>
