@@ -1325,6 +1325,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual time entry schemas
+  const manualTimeEntrySchema = z.object({
+    clockInTime: z.string().refine(date => !isNaN(Date.parse(date)), "Invalid clock in time"),
+    clockOutTime: z.string().refine(date => !isNaN(Date.parse(date)), "Invalid clock out time").optional(),
+    justification: z.string().min(10, "Justification must be at least 10 characters"),
+    supportDocumentUrl: z.string().optional(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  });
+
+  const approvalSchema = z.object({
+    action: z.enum(['approve', 'reject']),
+    reason: z.string().optional(),
+  });
+
+  // Manual time entry endpoints
+  app.post('/api/time-clock/manual-entry', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.departmentId) {
+        return res.status(400).json({ message: "User must be assigned to a department" });
+      }
+
+      const { clockInTime, clockOutTime, justification, supportDocumentUrl, date } = manualTimeEntrySchema.parse(req.body);
+      
+      // Convert string dates to Date objects
+      const clockInDate = new Date(clockInTime);
+      const clockOutDate = clockOutTime ? new Date(clockOutTime) : null;
+      
+      // Calculate total hours if both times provided
+      let totalHours = null;
+      if (clockOutDate) {
+        totalHours = calculateHours(clockInDate, clockOutDate).toString();
+      }
+
+      const timeEntry = await storage.createManualTimeEntry({
+        userId,
+        departmentId: user.departmentId,
+        clockInTime: clockInDate,
+        clockOutTime: clockOutDate,
+        totalHours,
+        date,
+        status: clockOutDate ? 'completed' : 'active',
+        entryType: 'manual_insertion',
+        insertedBy: userId,
+        justification,
+        supportDocumentUrl,
+        approvalStatus: 'pending',
+      });
+
+      res.json(timeEntry);
+    } catch (error) {
+      console.error("Error creating manual time entry:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid manual entry data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create manual time entry" });
+    }
+  });
+
+  app.get('/api/time-clock/pending-approval', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.companyId) {
+        return res.status(400).json({ message: "User not found or not assigned to company" });
+      }
+
+      // Check if user is a supervisor
+      const scope = await storage.getSupervisorScope(userId);
+      if (!scope) {
+        return res.status(403).json({ message: "Access denied: supervisor privileges required" });
+      }
+
+      const pendingEntries = await storage.getTimeEntriesForApproval(userId);
+      res.json(pendingEntries);
+    } catch (error) {
+      console.error("Error fetching pending approvals:", error);
+      res.status(500).json({ message: "Failed to fetch pending approvals" });
+    }
+  });
+
+  app.post('/api/time-clock/approve/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const entryId = parseInt(req.params.id);
+      const { action, reason } = approvalSchema.parse(req.body);
+
+      // Check if user is a supervisor
+      const scope = await storage.getSupervisorScope(userId);
+      if (!scope) {
+        return res.status(403).json({ message: "Access denied: supervisor privileges required" });
+      }
+
+      let updatedEntry;
+      if (action === 'approve') {
+        updatedEntry = await storage.approveTimeEntry(entryId, userId);
+      } else {
+        if (!reason) {
+          return res.status(400).json({ message: "Reason is required for rejection" });
+        }
+        updatedEntry = await storage.rejectTimeEntry(entryId, userId, reason);
+      }
+
+      res.json(updatedEntry);
+    } catch (error) {
+      console.error("Error processing approval:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid approval data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to process approval" });
+    }
+  });
+
+  // Medical certificate upload endpoint
+  app.post('/api/time-clock/upload-certificate', isAuthenticatedHybrid, upload.single('certificate'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'certificates');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const filename = `${userId}_${Date.now()}_${req.file.originalname}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      // Save file
+      fs.writeFileSync(filepath, req.file.buffer);
+
+      // Return URL
+      const certificateUrl = `/uploads/certificates/${filename}`;
+      
+      res.json({ 
+        url: certificateUrl,
+        filename: filename,
+        originalName: req.file.originalname,
+        size: req.file.size
+      });
+    } catch (error) {
+      console.error("Error uploading certificate:", error);
+      res.status(500).json({ message: "Failed to upload certificate" });
+    }
+  });
+
   // Time entries and reports
   app.get('/api/time-entries', isAuthenticatedHybrid, async (req: any, res) => {
     try {

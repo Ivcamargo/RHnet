@@ -1,7 +1,10 @@
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import ClockInterface from "@/components/time-clock/clock-interface";
+import ManualTimeEntry from "@/components/time-clock/manual-time-entry";
+import SupervisorApprovals from "@/components/time-clock/supervisor-approvals";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
@@ -18,6 +21,16 @@ export default function TimeClock() {
 
   const { data: clockStatus } = useQuery({
     queryKey: ["/api/time-clock/status"],
+  });
+
+  const { data: userInfo } = useQuery({
+    queryKey: ["/api/auth/user"],
+  });
+
+  // Check if user is supervisor by checking if they have supervisor scope
+  const { data: supervisorScope } = useQuery({
+    queryKey: ["/api/supervisor/scope"],
+    enabled: !!userInfo,
   });
 
   const formatTime = (date: Date) => {
@@ -45,46 +58,76 @@ export default function TimeClock() {
         <TopBar title="Controle de Ponto" />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          <div className="max-w-2xl mx-auto">
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200 shadow-lg">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <h1 className="text-3xl font-bold text-orange-800 mb-2">Controle de Ponto</h1>
-                  <div className="clock-display">
-                    {formatTime(currentTime)}
-                  </div>
-                  <div className="text-orange-700 mb-8">
-                    {formatDate(currentTime)}
-                  </div>
-                  
-                  {/* Status Indicator */}
-                  <div className="flex items-center justify-center mb-8">
-                    <div className={clockStatus?.isClocked ? "status-active" : "status-inactive"}>
-                      <div className="w-3 h-3 bg-white rounded-full animate-pulse-dot"></div>
-                      <span>
-                        {clockStatus?.isClocked ? "Ponto Batido - Entrada" : "Fora do Expediente"}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <ClockInterface />
-                  
-                  {/* Current Session Info */}
-                  {clockStatus?.activeEntry && (
-                    <div className="mt-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <h3 className="font-medium text-orange-800 mb-2">Sessão Atual</h3>
-                      <div className="text-sm text-orange-600">
-                        <p>Entrada: {new Date(clockStatus.activeEntry.clockInTime).toLocaleTimeString('pt-BR')}</p>
-                        <p>Data: {new Date(clockStatus.activeEntry.clockInTime).toLocaleDateString('pt-BR')}</p>
-                        {clockStatus.activeEntry.faceRecognitionVerified && (
-                          <p className="text-green-600">✓ Reconhecimento facial verificado</p>
-                        )}
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold text-orange-800 mb-2">Controle de Ponto</h1>
+              <div className="clock-display">
+                {formatTime(currentTime)}
+              </div>
+              <div className="text-orange-700 mb-4">
+                {formatDate(currentTime)}
+              </div>
+            </div>
+
+            <Tabs defaultValue="clock" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="clock" data-testid="tab-clock">
+                  Relógio de Ponto
+                </TabsTrigger>
+                <TabsTrigger value="manual" data-testid="tab-manual">
+                  Entrada Manual
+                </TabsTrigger>
+                {supervisorScope && (
+                  <TabsTrigger value="approvals" data-testid="tab-approvals">
+                    Aprovações
+                  </TabsTrigger>
+                )}
+              </TabsList>
+
+              <TabsContent value="clock" className="space-y-6">
+                <Card className="bg-white/90 backdrop-blur-sm border-orange-200 shadow-lg">
+                  <CardContent className="p-8">
+                    <div className="text-center">
+                      {/* Status Indicator */}
+                      <div className="flex items-center justify-center mb-8">
+                        <div className={clockStatus?.isClocked ? "status-active" : "status-inactive"}>
+                          <div className="w-3 h-3 bg-white rounded-full animate-pulse-dot"></div>
+                          <span>
+                            {clockStatus?.isClocked ? "Ponto Batido - Entrada" : "Fora do Expediente"}
+                          </span>
+                        </div>
                       </div>
+                      
+                      <ClockInterface />
+                      
+                      {/* Current Session Info */}
+                      {clockStatus?.activeEntry && (
+                        <div className="mt-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                          <h3 className="font-medium text-orange-800 mb-2">Sessão Atual</h3>
+                          <div className="text-sm text-orange-600">
+                            <p>Entrada: {new Date(clockStatus.activeEntry.clockInTime).toLocaleTimeString('pt-BR')}</p>
+                            <p>Data: {new Date(clockStatus.activeEntry.clockInTime).toLocaleDateString('pt-BR')}</p>
+                            {clockStatus.activeEntry.faceRecognitionVerified && (
+                              <p className="text-green-600">✓ Reconhecimento facial verificado</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="manual" className="space-y-6">
+                <ManualTimeEntry />
+              </TabsContent>
+
+              {supervisorScope && (
+                <TabsContent value="approvals" className="space-y-6">
+                  <SupervisorApprovals />
+                </TabsContent>
+              )}
+            </Tabs>
           </div>
         </main>
       </div>

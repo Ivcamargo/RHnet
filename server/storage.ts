@@ -117,6 +117,13 @@ export interface IStorage {
   getTimeEntriesByUser(userId: string, startDate?: string, endDate?: string): Promise<TimeEntry[]>;
   getTimeEntriesByDateRange(startDate: string, endDate: string): Promise<TimeEntry[]>;
   
+  // Manual time entry operations
+  createManualTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
+  getPendingTimeEntries(companyId: number): Promise<TimeEntry[]>;
+  getTimeEntriesForApproval(supervisorId: string): Promise<TimeEntry[]>;
+  approveTimeEntry(entryId: number, supervisorId: string): Promise<TimeEntry>;
+  rejectTimeEntry(entryId: number, supervisorId: string, reason: string): Promise<TimeEntry>;
+  
   // Break entry operations
   createBreakEntry(breakEntry: InsertBreakEntry): Promise<BreakEntry>;
   updateBreakEntry(id: number, breakEntry: Partial<InsertBreakEntry>): Promise<BreakEntry>;
@@ -651,6 +658,73 @@ export class DatabaseStorage implements IStorage {
       .from(timeEntries)
       .where(and(gte(timeEntries.date, startDate), lte(timeEntries.date, endDate)))
       .orderBy(desc(timeEntries.date));
+  }
+
+  // Manual time entry operations
+  async createManualTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
+    const [newEntry] = await db.insert(timeEntries).values({
+      ...timeEntry,
+      entryType: 'manual_insertion',
+      approvalStatus: 'pending',
+    }).returning();
+    return newEntry;
+  }
+
+  async getPendingTimeEntries(companyId: number): Promise<TimeEntry[]> {
+    return await db
+      .select()
+      .from(timeEntries)
+      .leftJoin(users, eq(timeEntries.userId, users.id))
+      .where(and(
+        eq(timeEntries.approvalStatus, 'pending'),
+        eq(users.companyId, companyId)
+      ))
+      .orderBy(desc(timeEntries.createdAt));
+  }
+
+  async getTimeEntriesForApproval(supervisorId: string): Promise<TimeEntry[]> {
+    // Get supervisor scope to determine which entries they can approve
+    const scope = await this.getSupervisorScope(supervisorId);
+    if (!scope) return [];
+
+    return await db
+      .select()
+      .from(timeEntries)
+      .leftJoin(users, eq(timeEntries.userId, users.id))
+      .leftJoin(departments, eq(timeEntries.departmentId, departments.id))
+      .where(and(
+        eq(timeEntries.approvalStatus, 'pending'),
+        sql`${departments.id} = ANY(${scope.departmentIds})`,
+        eq(users.companyId, scope.companyId)
+      ))
+      .orderBy(desc(timeEntries.createdAt));
+  }
+
+  async approveTimeEntry(entryId: number, supervisorId: string): Promise<TimeEntry> {
+    const [updatedEntry] = await db
+      .update(timeEntries)
+      .set({ 
+        approvalStatus: 'approved',
+        approvedBy: supervisorId,
+        updatedAt: new Date()
+      })
+      .where(eq(timeEntries.id, entryId))
+      .returning();
+    return updatedEntry;
+  }
+
+  async rejectTimeEntry(entryId: number, supervisorId: string, reason: string): Promise<TimeEntry> {
+    const [updatedEntry] = await db
+      .update(timeEntries)
+      .set({ 
+        approvalStatus: 'rejected',
+        approvedBy: supervisorId,
+        justification: reason,
+        updatedAt: new Date()
+      })
+      .where(eq(timeEntries.id, entryId))
+      .returning();
+    return updatedEntry;
   }
 
   // Break entry operations
