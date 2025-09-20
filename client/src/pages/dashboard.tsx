@@ -339,6 +339,16 @@ export default function Dashboard() {
                     <Upload className="h-4 w-4 mr-2" />
                     Enviar Documento
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => setLocation('/time-clock')}
+                    data-testid="button-time-clock"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Controle de Ponto
+                  </Button>
                 </div>
               </CardContent>
             </Card>

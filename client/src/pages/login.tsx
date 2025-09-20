@@ -88,10 +88,13 @@ export default function LoginPage() {
         <img 
           src={rhnetLogo} 
           alt="RHNet Logo Watermark"
-          className="w-80 h-80 opacity-20 brightness-200 contrast-125 grayscale-50"
+          className="w-96 h-96 opacity-30"
           style={{
-            filter: 'brightness(2) contrast(1.2) grayscale(0.5)'
+            filter: 'brightness(1.5) contrast(1.2)',
+            mixBlendMode: 'overlay'
           }}
+          onError={(e) => console.error('Erro carregando logo:', e)}
+          onLoad={() => console.log('Logo carregada com sucesso')}
         />
       </div>
       
