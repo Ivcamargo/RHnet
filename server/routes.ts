@@ -1481,6 +1481,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Department shift break management routes - API CRUD
+  // Get breaks for a specific shift
+  app.get('/api/department-shifts/:shiftId/breaks', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const shiftId = parseInt(req.params.shiftId);
+      const breaks = await storage.getShiftBreaks(shiftId);
+      
+      res.json(breaks);
+    } catch (error) {
+      console.error("Error fetching shift breaks:", error);
+      res.status(500).json({ message: "Failed to fetch shift breaks" });
+    }
+  });
+
+  // Get specific break
+  app.get('/api/shift-breaks/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const breakId = parseInt(req.params.id);
+      const shiftBreak = await storage.getShiftBreak(breakId);
+      
+      if (!shiftBreak) {
+        return res.status(404).json({ message: "Shift break not found" });
+      }
+      
+      res.json(shiftBreak);
+    } catch (error) {
+      console.error("Error fetching shift break:", error);
+      res.status(500).json({ message: "Failed to fetch shift break" });
+    }
+  });
+
+  // Create new shift break
+  app.post('/api/department-shifts/:shiftId/breaks', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const shiftId = parseInt(req.params.shiftId);
+      
+      // Validate input data using insertDepartmentShiftBreakSchema
+      const breakData = insertDepartmentShiftBreakSchema.parse({
+        ...req.body,
+        shiftId
+      });
+      
+      const newBreak = await storage.createShiftBreak({
+        ...breakData,
+        shiftId
+      });
+      
+      res.status(201).json(newBreak);
+    } catch (error) {
+      console.error("Error creating shift break:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid break data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create shift break" });
+    }
+  });
+
+  // Update shift break
+  app.patch('/api/shift-breaks/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const breakId = parseInt(req.params.id);
+      
+      // Validate partial update data
+      const updateData = insertDepartmentShiftBreakSchema.partial().parse(req.body);
+      
+      const updatedBreak = await storage.updateShiftBreak(breakId, updateData);
+      
+      res.json(updatedBreak);
+    } catch (error) {
+      console.error("Error updating shift break:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update shift break" });
+    }
+  });
+
+  // Delete shift break
+  app.delete('/api/shift-breaks/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const breakId = parseInt(req.params.id);
+      
+      await storage.deleteShiftBreak(breakId);
+      
+      res.json({ message: "Shift break deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting shift break:", error);
+      res.status(500).json({ message: "Failed to delete shift break" });
+    }
+  });
+
   // Break management routes
   app.post('/api/time-clock/break-start', isAuthenticatedHybrid, async (req: any, res) => {
     try {
