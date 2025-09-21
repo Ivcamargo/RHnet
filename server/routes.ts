@@ -61,13 +61,13 @@ async function createAuditLog(
 ) {
   try {
     await storage.createAuditLog({
-      userId,
+      performedBy: userId, // Fixed: use performedBy instead of userId
       companyId,
       action,
-      targetType,
-      targetId,
+      targetResource: targetId, // Fixed: use targetResource instead of targetId
       details: details ? JSON.stringify(details) : null,
       targetUserId,
+      success: true, // Mark as successful
       createdAt: new Date(),
     });
   } catch (error) {
