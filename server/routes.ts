@@ -98,12 +98,86 @@ function calculateHours(start: Date, end: Date): number {
   return Number((diffMs / (1000 * 60 * 60)).toFixed(2));
 }
 
-// Helper function to calculate regular vs overtime hours
-async function calculateOvertimeHours(
-  totalHours: number, 
-  departmentId: number, 
+// Helper function to compute net worked hours considering breaks
+async function computeNetWorkedHours(
+  timeEntry: any, // TimeEntry with break entries
   storage: Storage
-): Promise<{ regularHours: number; overtimeHours: number }> {
+): Promise<number> {
+  // Calculate gross hours (total time between clock-in and clock-out)
+  if (!timeEntry.clockInTime || !timeEntry.clockOutTime) {
+    return 0;
+  }
+  
+  const grossHours = calculateHours(
+    new Date(timeEntry.clockInTime),
+    new Date(timeEntry.clockOutTime)
+  );
+  
+  let totalBreakMinutes = 0;
+  
+  // 1. Subtract unpaid manual breaks (from breakEntries table)
+  const manualBreaks = await storage.getBreakEntriesByTimeEntry(timeEntry.id);
+  for (const breakEntry of manualBreaks) {
+    if (breakEntry.breakStart && breakEntry.breakEnd) {
+      const breakDuration = calculateHours(
+        new Date(breakEntry.breakStart),
+        new Date(breakEntry.breakEnd)
+      );
+      totalBreakMinutes += breakDuration * 60; // Convert to minutes
+    }
+  }
+  
+  // 2. Subtract automatic unpaid breaks (from department shift configuration)
+  if (timeEntry.departmentId) {
+    const shifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+    
+    for (const shift of shifts) {
+      const shiftBreaks = await storage.getShiftBreaks(shift.id);
+      
+      for (const shiftBreak of shiftBreaks) {
+        // Only process unpaid breaks that are set to auto-deduct
+        if (!shiftBreak.isPaid && shiftBreak.autoDeduct && shiftBreak.isActive) {
+          // Check if minimum work time requirement is met
+          const minWorkHours = (shiftBreak.minWorkMinutes || 360) / 60; // Default 6 hours
+          
+          if (grossHours >= minWorkHours) {
+            // Check if there's already a manual break overlapping with this scheduled break
+            let hasOverlappingManualBreak = false;
+            
+            if (shiftBreak.scheduledStart && shiftBreak.scheduledEnd) {
+              // More sophisticated overlap detection could be implemented here
+              // For now, we'll just check if the break names match
+              const matchingManualBreak = manualBreaks.find(mb => 
+                mb.type && 
+                (mb.type.toLowerCase().includes('almoço') && shiftBreak.name.toLowerCase().includes('almoço')) ||
+                (mb.type.toLowerCase().includes('lanche') && shiftBreak.name.toLowerCase().includes('lanche'))
+              );
+              
+              if (matchingManualBreak) {
+                hasOverlappingManualBreak = true;
+              }
+            }
+            
+            // Only deduct if no overlapping manual break exists
+            if (!hasOverlappingManualBreak) {
+              totalBreakMinutes += shiftBreak.durationMinutes;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Calculate net hours
+  const netHours = grossHours - (totalBreakMinutes / 60);
+  return Math.max(0, Number(netHours.toFixed(2))); // Ensure non-negative result
+}
+
+// Helper function to calculate standard working hours for a shift (considering unpaid breaks)
+async function calculateStandardWorkingHours(
+  departmentId: number,
+  storage: Storage
+): Promise<number> {
   try {
     // Get department shifts
     const shifts = await storage.getDepartmentShifts(departmentId);
@@ -122,31 +196,58 @@ async function calculateOvertimeHours(
         const endMinutes = endHour * 60 + endMin;
         
         // Handle shifts that cross midnight
-        const totalMinutes = endMinutes >= startMinutes 
+        const totalShiftMinutes = endMinutes >= startMinutes 
           ? endMinutes - startMinutes 
           : (24 * 60) - startMinutes + endMinutes;
           
-        standardHours = totalMinutes / 60;
+        // Subtract unpaid breaks from standard hours
+        const shiftBreaks = await storage.getShiftBreaks(shift.id);
+        let unpaidBreakMinutes = 0;
+        
+        for (const shiftBreak of shiftBreaks) {
+          if (!shiftBreak.isPaid && shiftBreak.isActive) {
+            unpaidBreakMinutes += shiftBreak.durationMinutes;
+          }
+        }
+        
+        // Standard working hours = shift duration - unpaid breaks
+        standardHours = (totalShiftMinutes - unpaidBreakMinutes) / 60;
       }
     }
     
+    return Math.max(0, Number(standardHours.toFixed(2)));
+  } catch (error) {
+    console.error('Error calculating standard working hours:', error);
+    return 8; // Fallback to 8 hours
+  }
+}
+
+// Helper function to calculate regular vs overtime hours using net worked hours
+async function calculateOvertimeHours(
+  netWorkedHours: number, 
+  departmentId: number, 
+  storage: Storage
+): Promise<{ regularHours: number; overtimeHours: number }> {
+  try {
+    const standardHours = await calculateStandardWorkingHours(departmentId, storage);
+    
     // Calculate regular vs overtime hours
-    if (totalHours <= standardHours) {
+    if (netWorkedHours <= standardHours) {
       return {
-        regularHours: Number(totalHours.toFixed(2)),
+        regularHours: Number(netWorkedHours.toFixed(2)),
         overtimeHours: 0
       };
     } else {
       return {
         regularHours: Number(standardHours.toFixed(2)),
-        overtimeHours: Number((totalHours - standardHours).toFixed(2))
+        overtimeHours: Number((netWorkedHours - standardHours).toFixed(2))
       };
     }
   } catch (error) {
     console.error('Error calculating overtime hours:', error);
     // Fallback: treat all hours as regular if calculation fails
     return {
-      regularHours: Number(totalHours.toFixed(2)),
+      regularHours: Number(netWorkedHours.toFixed(2)),
       overtimeHours: 0
     };
   }
@@ -1346,20 +1447,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Calculate current hours worked
+      // Calculate current hours worked (gross)
       const now = getBrazilianTime();
-      const currentHours = calculateHours(new Date(activeEntry.clockInTime!), now);
+      const grossHours = calculateHours(new Date(activeEntry.clockInTime!), now);
       
-      // Calculate estimated overtime if worked until now
+      // Create a temporary time entry for net hours calculation
+      const tempTimeEntry = {
+        ...activeEntry,
+        clockOutTime: now
+      };
+      
+      // Calculate net worked hours (considering breaks) - using proper storage instance
+      const netWorkedHours = await computeNetWorkedHours(tempTimeEntry, storage as any);
+      
+      // Calculate estimated overtime based on net hours
       const { regularHours: estimatedRegular, overtimeHours: estimatedOvertime } = await calculateOvertimeHours(
-        currentHours, 
+        netWorkedHours, 
         activeEntry.departmentId, 
-        storage
+        storage as any
       );
       
       return res.json({
         isActive: true,
-        totalHours: Number(currentHours.toFixed(2)),
+        totalHours: Number(netWorkedHours.toFixed(2)), // Net hours (after breaks)
         regularHours: Number(estimatedRegular.toFixed(2)),
         overtimeHours: Number(estimatedOvertime.toFixed(2)),
         estimatedOvertimeHours: Number(estimatedOvertime.toFixed(2)) // For current session
@@ -1594,23 +1704,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const now = getBrazilianTime();
-      const totalHours = calculateHours(new Date(activeEntry.clockInTime!), now);
+      const grossHours = calculateHours(new Date(activeEntry.clockInTime!), now);
 
-      // Calculate overtime hours based on department shifts
-      const { regularHours, overtimeHours } = await calculateOvertimeHours(
-        totalHours, 
-        activeEntry.departmentId, 
-        storage
-      );
-
-      const updatedEntry = await storage.updateTimeEntry(activeEntry.id, {
+      // First, update the time entry with clock-out info and gross hours
+      const timeEntryWithClockOut = await storage.updateTimeEntry(activeEntry.id, {
         clockOutTime: now,
         clockOutLatitude: latitude,
         clockOutLongitude: longitude,
-        totalHours: totalHours.toString(),
+        totalHours: grossHours.toString(),
+        status: 'completed',
+      });
+
+      // Then calculate net worked hours (considering breaks)
+      const netWorkedHours = await computeNetWorkedHours(timeEntryWithClockOut, storage as any);
+
+      // Calculate overtime hours based on net worked hours
+      const { regularHours, overtimeHours } = await calculateOvertimeHours(
+        netWorkedHours, 
+        activeEntry.departmentId, 
+        storage as any
+      );
+
+      // Final update with calculated hours
+      const updatedEntry = await storage.updateTimeEntry(activeEntry.id, {
+        totalHours: grossHours.toString(), // Keep gross hours for transparency
         regularHours: regularHours.toString(),
         overtimeHours: overtimeHours.toString(),
-        status: 'completed',
       });
 
       // Create audit log for clock-out
@@ -1625,7 +1744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clockOutTime: now,
           latitude,
           longitude,
-          totalHours: totalHours.toString()
+          totalHours: grossHours.toString()
         },
         userId
       );
