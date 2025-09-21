@@ -56,8 +56,6 @@ const shiftFormSchema = z.object({
   name: z.string().min(1, "Nome do turno é obrigatório"),
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de fim é obrigatório"),
-  breakStartTime: z.string().optional(),
-  breakEndTime: z.string().optional(),
 });
 
 type SectorFormData = z.infer<typeof sectorFormSchema>;
@@ -90,8 +88,6 @@ interface DepartmentShift {
   name: string;
   startTime: string;
   endTime: string;
-  breakStartTime?: string;
-  breakEndTime?: string;
   departmentId: number;
   createdAt: string;
   updatedAt: string;
@@ -156,8 +152,6 @@ export default function Sectors() {
       name: "",
       startTime: "",
       endTime: "",
-      breakStartTime: "",
-      breakEndTime: "",
     },
   });
 
@@ -472,8 +466,6 @@ export default function Sectors() {
       name: shift.name,
       startTime: shift.startTime,
       endTime: shift.endTime,
-      breakStartTime: shift.breakStartTime || "",
-      breakEndTime: shift.breakEndTime || "",
     });
     setIsCreateShiftDialogOpen(true);
   };
@@ -890,11 +882,6 @@ export default function Sectors() {
                                       <div className="font-medium">{shift.name}</div>
                                       <div className="text-sm text-gray-600">
                                         {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                                        {shift.breakStartTime && shift.breakEndTime && (
-                                          <span className="ml-2 text-gray-500">
-                                            (Intervalo: {formatTime(shift.breakStartTime)} - {formatTime(shift.breakEndTime)})
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -1004,44 +991,6 @@ export default function Sectors() {
                                   <Input 
                                     type="time"
                                     data-testid="input-shift-end"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={shiftForm.control}
-                            name="breakStartTime"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Início do Intervalo (Opcional)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="time"
-                                    data-testid="input-break-start"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={shiftForm.control}
-                            name="breakEndTime"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Fim do Intervalo (Opcional)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="time"
-                                    data-testid="input-break-end"
                                     {...field} 
                                   />
                                 </FormControl>
