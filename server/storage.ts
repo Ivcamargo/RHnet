@@ -3,6 +3,7 @@ import {
   departments,
   sectors,
   departmentShifts,
+  departmentShiftBreaks,
   supervisorAssignments,
   timeEntries,
   breakEntries,
@@ -26,6 +27,8 @@ import {
   type InsertSector,
   type DepartmentShift,
   type InsertDepartmentShift,
+  type SelectDepartmentShiftBreak,
+  type InsertDepartmentShiftBreak,
   type SupervisorAssignment,
   type InsertSupervisorAssignment,
   type TimeEntry,
@@ -101,6 +104,13 @@ export interface IStorage {
   createDepartmentShift(shift: InsertDepartmentShift): Promise<DepartmentShift>;
   updateDepartmentShift(id: number, shift: Partial<InsertDepartmentShift>): Promise<DepartmentShift>;
   deleteDepartmentShift(id: number): Promise<void>;
+  
+  // Department shift break operations
+  getShiftBreaks(shiftId: number): Promise<SelectDepartmentShiftBreak[]>;
+  getShiftBreak(id: number): Promise<SelectDepartmentShiftBreak | undefined>;
+  createShiftBreak(breakData: InsertDepartmentShiftBreak): Promise<SelectDepartmentShiftBreak>;
+  updateShiftBreak(id: number, breakData: Partial<InsertDepartmentShiftBreak>): Promise<SelectDepartmentShiftBreak>;
+  deleteShiftBreak(id: number): Promise<void>;
   
   // Supervisor assignment operations
   getSupervisorAssignments(supervisorId: string): Promise<SupervisorAssignment[]>;
@@ -518,6 +528,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDepartmentShift(id: number): Promise<void> {
     await db.delete(departmentShifts).where(eq(departmentShifts.id, id));
+  }
+
+  // Department shift break operations
+  async getShiftBreaks(shiftId: number): Promise<SelectDepartmentShiftBreak[]> {
+    return db
+      .select()
+      .from(departmentShiftBreaks)
+      .where(and(
+        eq(departmentShiftBreaks.shiftId, shiftId),
+        eq(departmentShiftBreaks.isActive, true)
+      ))
+      .orderBy(departmentShiftBreaks.scheduledStart);
+  }
+
+  async getShiftBreak(id: number): Promise<SelectDepartmentShiftBreak | undefined> {
+    const result = await db
+      .select()
+      .from(departmentShiftBreaks)
+      .where(eq(departmentShiftBreaks.id, id))
+      .limit(1);
+    return result[0];
+  }
+
+  async createShiftBreak(breakData: InsertDepartmentShiftBreak): Promise<SelectDepartmentShiftBreak> {
+    const [newBreak] = await db
+      .insert(departmentShiftBreaks)
+      .values(breakData)
+      .returning();
+    return newBreak;
+  }
+
+  async updateShiftBreak(id: number, breakData: Partial<InsertDepartmentShiftBreak>): Promise<SelectDepartmentShiftBreak> {
+    const [updatedBreak] = await db
+      .update(departmentShiftBreaks)
+      .set(breakData)
+      .where(eq(departmentShiftBreaks.id, id))
+      .returning();
+    return updatedBreak;
+  }
+
+  async deleteShiftBreak(id: number): Promise<void> {
+    await db.delete(departmentShiftBreaks).where(eq(departmentShiftBreaks.id, id));
   }
 
   // Supervisor assignment operations
