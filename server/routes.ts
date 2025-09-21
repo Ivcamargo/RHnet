@@ -565,8 +565,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied: department not accessible" });
       }
 
-      const shiftData = insertDepartmentShiftSchema.parse(req.body);
-      shiftData.departmentId = departmentId;
+      const validatedShiftData = insertDepartmentShiftSchema.parse(req.body);
+      const shiftData = {
+        ...validatedShiftData,
+        departmentId: departmentId
+      };
       const shift = await storage.createDepartmentShift(shiftData);
       res.json(shift);
     } catch (error) {
@@ -601,9 +604,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied: shift not accessible" });
       }
       
-      const shiftData = insertDepartmentShiftSchema.partial().parse(req.body);
-      // Prevent departmentId modification
-      delete shiftData.departmentId;
+      const validatedShiftData = insertDepartmentShiftSchema.partial().parse(req.body);
+      const shiftData = { ...validatedShiftData };
+      // Prevent departmentId modification (shiftData doesn't have departmentId anyway)
+      // delete shiftData.departmentId; // Not needed since schema omits it
       const updatedShift = await storage.updateDepartmentShift(id, shiftData);
       res.json(updatedShift);
     } catch (error) {
