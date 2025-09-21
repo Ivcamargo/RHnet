@@ -118,6 +118,14 @@ interface SupervisorAssignment {
   supervisor: User;
 }
 
+interface Company {
+  id: number;
+  name: string;
+  cnpj: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Sectors() {
   const [isCreateSectorDialogOpen, setIsCreateSectorDialogOpen] = useState(false);
   const [editingSector, setEditingSector] = useState<Sector | null>(null);
@@ -174,7 +182,7 @@ export default function Sectors() {
   });
 
   // Fetch companies for superadmin company selector
-  const { data: companies = [] } = useQuery({
+  const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["/api/superadmin/companies"],
     enabled: (currentUser as any)?.role === 'superadmin'
   });
@@ -189,6 +197,20 @@ export default function Sectors() {
     queryKey: ["/api/departments", selectedDepartment?.id, "shifts"],
     enabled: !!selectedDepartment?.id,
   });
+
+  // Component to show shift count badge for a department
+  const ShiftCountBadge = ({ departmentId }: { departmentId: number }) => {
+    const { data: departmentShifts = [] } = useQuery<DepartmentShift[]>({
+      queryKey: ["/api/departments", departmentId, "shifts"],
+      enabled: true,
+    });
+    
+    if (departmentShifts.length === 0) {
+      return <Badge variant="secondary">0 turnos</Badge>;
+    }
+    
+    return <Badge variant="default">{departmentShifts.length} turno{departmentShifts.length > 1 ? 's' : ''}</Badge>;
+  };
 
   // Create sector mutation
   const createSectorMutation = useMutation({
@@ -602,7 +624,7 @@ export default function Sectors() {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {companies.map((company: any) => (
+                                      {companies.map((company) => (
                                         <SelectItem key={company.id} value={company.id.toString()}>
                                           {company.name} ({company.cnpj})
                                         </SelectItem>
@@ -821,61 +843,92 @@ export default function Sectors() {
                       <Card key={department.id}>
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
-                            <div>
-                              {department.name}
-                              <div className="text-sm font-normal text-gray-600 mt-1">
-                                Setor: {getSectorName(department.sectorId)}
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  {department.name}
+                                  <ShiftCountBadge departmentId={department.id} />
+                                </div>
+                                <div className="text-sm font-normal text-gray-600 mt-1">
+                                  Setor: {getSectorName(department.sectorId)}
+                                </div>
                               </div>
                             </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleCreateShiftForDepartment(department)}
-                              data-testid={`button-add-shift-${department.id}`}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Adicionar Turno
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (selectedDepartment?.id === department.id) {
+                                    setSelectedDepartment(null); // Recolher se já está selecionado
+                                  } else {
+                                    setSelectedDepartment(department); // Expandir
+                                  }
+                                }}
+                                data-testid={`button-view-shifts-${department.id}`}
+                              >
+                                {selectedDepartment?.id === department.id ? 'Ocultar Turnos' : 'Ver Turnos'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleCreateShiftForDepartment(department)}
+                                data-testid={`button-add-shift-${department.id}`}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Adicionar Turno
+                              </Button>
+                            </div>
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          {selectedDepartment?.id === department.id && shifts.length > 0 ? (
-                            <div className="space-y-2">
-                              {shifts.map((shift) => (
-                                <div key={shift.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                  <div>
-                                    <div className="font-medium">{shift.name}</div>
-                                    <div className="text-sm text-gray-600">
-                                      {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                                      {shift.breakStartTime && shift.breakEndTime && (
-                                        <span className="ml-2 text-gray-500">
-                                          (Intervalo: {formatTime(shift.breakStartTime)} - {formatTime(shift.breakEndTime)})
-                                        </span>
-                                      )}
+                          {selectedDepartment?.id === department.id ? (
+                            shifts.length > 0 ? (
+                              <div className="space-y-2">
+                                {shifts.map((shift) => (
+                                  <div key={shift.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                      <div className="font-medium">{shift.name}</div>
+                                      <div className="text-sm text-gray-600">
+                                        {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                                        {shift.breakStartTime && shift.breakEndTime && (
+                                          <span className="ml-2 text-gray-500">
+                                            (Intervalo: {formatTime(shift.breakStartTime)} - {formatTime(shift.breakEndTime)})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleEditShift(shift)}
+                                        data-testid={`button-edit-shift-${shift.id}`}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDeletingShift(shift)}
+                                        data-testid={`button-delete-shift-${shift.id}`}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleEditShift(shift)}
-                                      data-testid={`button-edit-shift-${shift.id}`}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setDeletingShift(shift)}
-                                      data-testid={`button-delete-shift-${shift.id}`}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-gray-500">
+                                <div className="text-sm">Nenhum turno cadastrado para este departamento</div>
+                                <div className="text-xs text-gray-400 mt-1">Use o botão "Adicionar Turno" para criar o primeiro turno</div>
+                              </div>
+                            )
                           ) : (
-                            <p className="text-gray-500 text-sm">Nenhum turno cadastrado para este departamento</p>
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                              <div>Clique em "Ver Turnos" para visualizar os turnos deste departamento</div>
+                              {/* A badge no cabeçalho já mostra quantos turnos existem */}
+                            </div>
                           )}
                         </CardContent>
                       </Card>
