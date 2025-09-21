@@ -1196,6 +1196,7 @@ export default function Employees() {
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="employee">Funcionário</SelectItem>
+                                    <SelectItem value="supervisor">Supervisor</SelectItem>
                                     <SelectItem value="admin">Administrador</SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -2023,6 +2024,7 @@ export default function Employees() {
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="employee">Funcionário</SelectItem>
+                                    <SelectItem value="supervisor">Supervisor</SelectItem>
                                     <SelectItem value="admin">Administrador</SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -2299,6 +2301,7 @@ export default function Employees() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="employee">Funcionário</SelectItem>
+                              <SelectItem value="supervisor">Supervisor</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
                           </Select>
@@ -2496,7 +2499,7 @@ export default function Employees() {
                     <h4 className="text-sm font-medium">Alterar Privilégios</h4>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <Button
                       variant={managingUser.role === 'employee' ? "default" : "outline"}
                       size="sm"
@@ -2505,6 +2508,15 @@ export default function Employees() {
                       data-testid="button-set-employee"
                     >
                       Funcionário
+                    </Button>
+                    <Button
+                      variant={managingUser.role === 'supervisor' ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleUpdateUserRole('supervisor')}
+                      disabled={manageUserMutation.isPending}
+                      data-testid="button-set-supervisor"
+                    >
+                      Supervisor
                     </Button>
                     <Button
                       variant={managingUser.role === 'admin' ? "default" : "outline"}
