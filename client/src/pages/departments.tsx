@@ -10,12 +10,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertDepartmentSchema, type InsertDepartment } from "@shared/schema";
+import { insertDepartmentSchema, insertDepartmentShiftBreakSchema, type InsertDepartment, type SelectDepartmentShiftBreak, type InsertDepartmentShiftBreak } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Building, MapPin, Users, Plus, Edit, Trash2, MoreVertical } from "lucide-react";
+import { Building, MapPin, Users, Plus, Edit, Trash2, MoreVertical, Clock, Coffee } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 
@@ -24,6 +26,15 @@ export default function Departments() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<any>(null);
+  
+  // Shift breaks management state
+  const [isShiftBreaksOpen, setIsShiftBreaksOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<any>(null);
+  const [isCreateBreakOpen, setIsCreateBreakOpen] = useState(false);
+  const [isEditBreakOpen, setIsEditBreakOpen] = useState(false);
+  const [isDeleteBreakOpen, setIsDeleteBreakOpen] = useState(false);
+  const [selectedBreak, setSelectedBreak] = useState<SelectDepartmentShiftBreak | null>(null);
+  
   const { toast } = useToast();
 
   const { data: departments, isLoading } = useQuery({
@@ -37,6 +48,18 @@ export default function Departments() {
   // Fetch sectors for the selector
   const { data: sectors = [] } = useQuery({
     queryKey: ["/api/sectors"],
+  });
+
+  // Fetch shifts for selected department
+  const { data: departmentShifts = [] } = useQuery({
+    queryKey: ["/api/department-shifts", selectedDepartment?.id],
+    enabled: !!selectedDepartment?.id,
+  });
+
+  // Fetch breaks for selected shift
+  const { data: shiftBreaks = [] } = useQuery<SelectDepartmentShiftBreak[]>({
+    queryKey: ["/api/department-shifts", selectedShift?.id, "breaks"],
+    enabled: !!selectedShift?.id,
   });
 
   const form = useForm<InsertDepartment>({
@@ -60,6 +83,39 @@ export default function Departments() {
       shiftEnd: "17:00",
       isActive: true,
       companyId: 1,
+    },
+  });
+
+  // Forms for shift break management
+  const breakForm = useForm<InsertDepartmentShiftBreak>({
+    resolver: zodResolver(insertDepartmentShiftBreakSchema),
+    defaultValues: {
+      name: "",
+      durationMinutes: 60,
+      isPaid: false,
+      autoDeduct: false,
+      scheduledStart: "",
+      scheduledEnd: "",
+      minWorkMinutes: 360,
+      toleranceBeforeMinutes: 0,
+      toleranceAfterMinutes: 0,
+      isActive: true,
+    },
+  });
+
+  const editBreakForm = useForm<InsertDepartmentShiftBreak>({
+    resolver: zodResolver(insertDepartmentShiftBreakSchema),
+    defaultValues: {
+      name: "",
+      durationMinutes: 60,
+      isPaid: false,
+      autoDeduct: false,
+      scheduledStart: "",
+      scheduledEnd: "",
+      minWorkMinutes: 360,
+      toleranceBeforeMinutes: 0,
+      toleranceAfterMinutes: 0,
+      isActive: true,
     },
   });
 
@@ -120,6 +176,80 @@ export default function Departments() {
       toast({
         title: "Sucesso",
         description: "Departamento excluído com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Shift break mutations
+  const createBreakMutation = useMutation({
+    mutationFn: async (data: InsertDepartmentShiftBreak) => {
+      await apiRequest(`/api/department-shifts/${selectedShift?.id}/breaks`, { 
+        method: "POST", 
+        body: JSON.stringify(data) 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", selectedShift?.id, "breaks"] });
+      setIsCreateBreakOpen(false);
+      breakForm.reset();
+      toast({
+        title: "Sucesso",
+        description: "Intervalo criado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateBreakMutation = useMutation({
+    mutationFn: async (data: InsertDepartmentShiftBreak) => {
+      await apiRequest(`/api/shift-breaks/${selectedBreak?.id}`, { 
+        method: "PATCH", 
+        body: JSON.stringify(data) 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", selectedShift?.id, "breaks"] });
+      setIsEditBreakOpen(false);
+      setSelectedBreak(null);
+      editBreakForm.reset();
+      toast({
+        title: "Sucesso",
+        description: "Intervalo atualizado com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteBreakMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest(`/api/shift-breaks/${selectedBreak?.id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", selectedShift?.id, "breaks"] });
+      setIsDeleteBreakOpen(false);
+      setSelectedBreak(null);
+      toast({
+        title: "Sucesso",
+        description: "Intervalo excluído com sucesso",
       });
     },
     onError: (error: Error) => {
