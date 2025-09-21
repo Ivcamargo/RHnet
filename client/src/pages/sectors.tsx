@@ -360,7 +360,8 @@ export default function Sectors() {
     setIsCreateShiftDialogOpen(true);
   };
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | undefined | null) => {
+    if (!time) return '';
     return time.slice(0, 5); // Remove seconds from time
   };
 

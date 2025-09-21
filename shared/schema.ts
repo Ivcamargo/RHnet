@@ -645,6 +645,7 @@ export type InsertSector = z.infer<typeof insertSectorSchema>;
 
 export const insertDepartmentShiftSchema = createInsertSchema(departmentShifts).omit({
   id: true,
+  departmentId: true, // Comes from URL params
   createdAt: true,
   updatedAt: true,
 });
