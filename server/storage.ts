@@ -93,6 +93,7 @@ export interface IStorage {
   getSector(id: number): Promise<Sector | undefined>;
   createSector(sector: InsertSector): Promise<Sector>;
   updateSector(id: number, sector: Partial<InsertSector>): Promise<Sector>;
+  deleteSector(id: number): Promise<void>;
   
   // Department shift operations
   getDepartmentShifts(departmentId: number): Promise<DepartmentShift[]>;
@@ -453,6 +454,37 @@ export class DatabaseStorage implements IStorage {
       .where(eq(sectors.id, id))
       .returning();
     return updatedSector;
+  }
+
+  async deleteSector(id: number): Promise<void> {
+    // Check if sector has any departments
+    const departmentsInSector = await db
+      .select()
+      .from(departments)
+      .where(eq(departments.sectorId, id));
+    
+    if (departmentsInSector.length > 0) {
+      throw new Error("Cannot delete sector: sector has departments assigned");
+    }
+    
+    // Check if sector has any supervisor assignments
+    const supervisorAssignmentsInSector = await db
+      .select()
+      .from(supervisorAssignments)
+      .where(eq(supervisorAssignments.sectorId, id));
+    
+    if (supervisorAssignmentsInSector.length > 0) {
+      throw new Error("Cannot delete sector: sector has supervisor assignments");
+    }
+    
+    const [deleted] = await db
+      .delete(sectors)
+      .where(eq(sectors.id, id))
+      .returning();
+    
+    if (!deleted) {
+      throw new Error("Sector not found");
+    }
   }
 
   // Department shift operations

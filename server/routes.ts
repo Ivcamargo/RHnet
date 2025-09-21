@@ -466,6 +466,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete sector (admin only)
+  app.delete('/api/sectors/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const sectorId = parseInt(req.params.id);
+      const sector = await storage.getSector(sectorId);
+      
+      if (!sector) {
+        return res.status(404).json({ message: "Sector not found" });
+      }
+
+      // For non-superadmins, verify they own the sector
+      if (user.role !== 'superadmin' && sector.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: sector not accessible" });
+      }
+
+      await storage.deleteSector(sectorId);
+      res.json({ message: "Sector deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting sector:", error);
+      if (error instanceof Error && error.message.includes("Cannot delete sector")) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to delete sector" });
+    }
+  });
+
   // ==== DEPARTMENT SHIFT ROUTES ====
   
   // Get shifts for a department
