@@ -31,16 +31,39 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
 
   const startCamera = async () => {
     try {
+      console.log("🎥 Tentando acessar a câmera...");
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("getUserMedia não suportado neste navegador");
+      }
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 640, height: 480 } 
       });
+      
+      console.log("✅ Câmera acessada com sucesso");
       setStream(mediaStream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
     } catch (error) {
-      console.error("Error accessing camera:", error);
+      console.error("❌ Erro ao acessar câmera:", error);
+      
+      // Log specific error types
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          console.error("📵 Permissão de câmera negada pelo usuário");
+        } else if (error.name === 'NotFoundError') {
+          console.error("📷 Câmera não encontrada");
+        } else if (error.name === 'NotSupportedError') {
+          console.error("🚫 Navegador não suporta acesso à câmera");
+        } else if (error.name === 'NotReadableError') {
+          console.error("🔒 Câmera já está sendo usada por outro aplicativo");
+        }
+      }
+      
       // Fallback to mock recognition if camera access fails
       handleMockRecognition();
     }
