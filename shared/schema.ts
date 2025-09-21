@@ -242,6 +242,8 @@ export const timeEntries = pgTable("time_entries", {
   clockOutLatitude: real("clock_out_latitude"),
   clockOutLongitude: real("clock_out_longitude"),
   totalHours: decimal("total_hours", { precision: 4, scale: 2 }),
+  regularHours: decimal("regular_hours", { precision: 4, scale: 2 }).default('0'),
+  overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).default('0'),
   status: varchar("status").default("active"), // active, completed, incomplete
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
   
@@ -880,6 +882,11 @@ export const insertTimePeriodSchema = createInsertSchema(timePeriods).omit({
   updatedAt: true,
 });
 
+export const insertBreakEntrySchema = createInsertSchema(breakEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCompleteEmployee = z.infer<typeof insertCompleteEmployeeSchema>;
@@ -899,6 +906,7 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type InsertFaceProfile = z.infer<typeof insertFaceProfileSchema>;
 export type InsertTimePeriod = z.infer<typeof insertTimePeriodSchema>;
+export type InsertBreakEntry = z.infer<typeof insertBreakEntrySchema>;
 
 
 // Clock in/out request schemas

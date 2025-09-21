@@ -98,6 +98,60 @@ function calculateHours(start: Date, end: Date): number {
   return Number((diffMs / (1000 * 60 * 60)).toFixed(2));
 }
 
+// Helper function to calculate regular vs overtime hours
+async function calculateOvertimeHours(
+  totalHours: number, 
+  departmentId: number, 
+  storage: Storage
+): Promise<{ regularHours: number; overtimeHours: number }> {
+  try {
+    // Get department shifts
+    const shifts = await storage.getDepartmentShifts(departmentId);
+    
+    let standardHours = 8; // Default to 8 hours if no shift configured
+    
+    if (shifts.length > 0) {
+      // Use the first active shift (assuming one shift per day)
+      const shift = shifts[0];
+      if (shift.startTime && shift.endTime) {
+        // Calculate hours between shift start and end
+        const [startHour, startMin] = shift.startTime.split(':').map(Number);
+        const [endHour, endMin] = shift.endTime.split(':').map(Number);
+        
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        
+        // Handle shifts that cross midnight
+        const totalMinutes = endMinutes >= startMinutes 
+          ? endMinutes - startMinutes 
+          : (24 * 60) - startMinutes + endMinutes;
+          
+        standardHours = totalMinutes / 60;
+      }
+    }
+    
+    // Calculate regular vs overtime hours
+    if (totalHours <= standardHours) {
+      return {
+        regularHours: Number(totalHours.toFixed(2)),
+        overtimeHours: 0
+      };
+    } else {
+      return {
+        regularHours: Number(standardHours.toFixed(2)),
+        overtimeHours: Number((totalHours - standardHours).toFixed(2))
+      };
+    }
+  } catch (error) {
+    console.error('Error calculating overtime hours:', error);
+    // Fallback: treat all hours as regular if calculation fails
+    return {
+      regularHours: Number(totalHours.toFixed(2)),
+      overtimeHours: 0
+    };
+  }
+}
+
 // Helper function to get user scope based on role
 async function getUserScope(userId: string) {
   const user = await storage.getUser(userId);
@@ -1274,6 +1328,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current day hours statistics (including overtime)
+  app.get('/api/time-clock/hours-stats', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get current active time entry
+      const activeEntry = await storage.getActiveTimeEntry(userId);
+      
+      if (!activeEntry) {
+        return res.json({
+          isActive: false,
+          totalHours: 0,
+          regularHours: 0,
+          overtimeHours: 0,
+          estimatedOvertimeHours: 0
+        });
+      }
+      
+      // Calculate current hours worked
+      const now = getBrazilianTime();
+      const currentHours = calculateHours(new Date(activeEntry.clockInTime!), now);
+      
+      // Calculate estimated overtime if worked until now
+      const { regularHours: estimatedRegular, overtimeHours: estimatedOvertime } = await calculateOvertimeHours(
+        currentHours, 
+        activeEntry.departmentId, 
+        storage
+      );
+      
+      return res.json({
+        isActive: true,
+        totalHours: Number(currentHours.toFixed(2)),
+        regularHours: Number(estimatedRegular.toFixed(2)),
+        overtimeHours: Number(estimatedOvertime.toFixed(2)),
+        estimatedOvertimeHours: Number(estimatedOvertime.toFixed(2)) // For current session
+      });
+      
+    } catch (error) {
+      console.error("Error fetching hours stats:", error);
+      res.status(500).json({ message: "Failed to fetch hours statistics" });
+    }
+  });
+
+  // Break management routes
+  app.post('/api/time-clock/break-start', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { type = 'break' } = req.body; // 'break' or 'lunch'
+      
+      // Get current active time entry
+      const activeEntry = await storage.getActiveTimeEntry(userId);
+      if (!activeEntry) {
+        return res.status(400).json({ message: "No active time entry to start a break" });
+      }
+      
+      // Check if there's already an active break
+      const existingBreaks = await storage.getBreakEntriesByTimeEntry(activeEntry.id);
+      const activeBreak = existingBreaks.find(b => b.breakStart && !b.breakEnd);
+      if (activeBreak) {
+        return res.status(400).json({ message: "A break is already in progress" });
+      }
+      
+      // Create new break entry
+      const breakEntry = await storage.createBreakEntry({
+        timeEntryId: activeEntry.id,
+        breakStart: new Date(),
+        breakEnd: null,
+        duration: null,
+        type: type,
+      });
+      
+      res.json(breakEntry);
+    } catch (error) {
+      console.error("Error starting break:", error);
+      res.status(500).json({ message: "Failed to start break" });
+    }
+  });
+
+  app.post('/api/time-clock/break-end', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get current active time entry
+      const activeEntry = await storage.getActiveTimeEntry(userId);
+      if (!activeEntry) {
+        return res.status(400).json({ message: "No active time entry" });
+      }
+      
+      // Find active break
+      const existingBreaks = await storage.getBreakEntriesByTimeEntry(activeEntry.id);
+      const activeBreak = existingBreaks.find(b => b.breakStart && !b.breakEnd);
+      
+      if (!activeBreak) {
+        return res.status(400).json({ message: "No active break to end" });
+      }
+      
+      // Calculate duration in hours
+      const breakEnd = new Date();
+      const breakStart = new Date(activeBreak.breakStart!);
+      const durationMs = breakEnd.getTime() - breakStart.getTime();
+      const durationHours = durationMs / (1000 * 60 * 60); // Convert to hours
+      
+      // Update break entry with end time and duration
+      const updatedBreak = await storage.updateBreakEntry(activeBreak.id, {
+        breakEnd,
+        duration: durationHours.toString(),
+      });
+      
+      res.json(updatedBreak);
+    } catch (error) {
+      console.error("Error ending break:", error);
+      res.status(500).json({ message: "Failed to end break" });
+    }
+  });
+
+  app.get('/api/time-clock/breaks', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get current active time entry
+      const activeEntry = await storage.getActiveTimeEntry(userId);
+      if (!activeEntry) {
+        return res.json([]); // Return empty array if no active entry
+      }
+      
+      const breaks = await storage.getBreakEntriesByTimeEntry(activeEntry.id);
+      res.json(breaks);
+    } catch (error) {
+      console.error("Error fetching breaks:", error);
+      res.status(500).json({ message: "Failed to fetch breaks" });
+    }
+  });
+
   app.post('/api/time-clock/clock-in', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1409,11 +1596,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = getBrazilianTime();
       const totalHours = calculateHours(new Date(activeEntry.clockInTime!), now);
 
+      // Calculate overtime hours based on department shifts
+      const { regularHours, overtimeHours } = await calculateOvertimeHours(
+        totalHours, 
+        activeEntry.departmentId, 
+        storage
+      );
+
       const updatedEntry = await storage.updateTimeEntry(activeEntry.id, {
         clockOutTime: now,
         clockOutLatitude: latitude,
         clockOutLongitude: longitude,
         totalHours: totalHours.toString(),
+        regularHours: regularHours.toString(),
+        overtimeHours: overtimeHours.toString(),
         status: 'completed',
       });
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, MapPin, Camera, Building, Users } from "lucide-react";
+import { Clock, MapPin, Camera, Building, Users, Coffee, PlayCircle, StopCircle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -32,6 +32,23 @@ interface UserData {
   } | null;
 }
 
+interface BreakEntry {
+  id: number;
+  timeEntryId: number;
+  breakStart: string | null;
+  breakEnd: string | null;
+  duration: string | null;
+  type: string;
+}
+
+interface HoursStats {
+  isActive: boolean;
+  totalHours: number;
+  regularHours: number;
+  overtimeHours: number;
+  estimatedOvertimeHours: number;
+}
+
 export default function ClockInterface() {
   const [isFaceRecognitionActive, setIsFaceRecognitionActive] = useState(false);
   const { toast } = useToast();
@@ -44,6 +61,22 @@ export default function ClockInterface() {
   // Fetch user data including department and company info
   const { data: userData } = useQuery<UserData>({
     queryKey: ["/api/auth/user"],
+  });
+
+  // Fetch current breaks for active time entry
+  const { data: breaks = [] } = useQuery<BreakEntry[]>({
+    queryKey: ["/api/time-clock/breaks"],
+    enabled: !!clockStatus?.isClocked, // Only fetch when user is clocked in
+  });
+
+  // Get active break (if any)
+  const activeBreak = breaks.find(b => b.breakStart && !b.breakEnd);
+
+  // Fetch current hours statistics (including overtime)
+  const { data: hoursStats } = useQuery<HoursStats>({
+    queryKey: ["/api/time-clock/hours-stats"],
+    enabled: !!clockStatus?.isClocked,
+    refetchInterval: 30000, // Update every 30 seconds when clocked in
   });
 
   const clockInMutation = useMutation({
@@ -154,6 +187,73 @@ export default function ClockInterface() {
     },
   });
 
+  // Break start mutation
+  const startBreakMutation = useMutation({
+    mutationFn: async (type: string = 'break') => {
+      const response = await fetch("/api/time-clock/break-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ type }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || response.statusText);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/breaks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({
+        title: "Intervalo iniciado",
+        description: "Intervalo registrado com sucesso!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao iniciar intervalo",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Break end mutation
+  const endBreakMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/time-clock/break-end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || response.statusText);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/breaks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({
+        title: "Intervalo finalizado",
+        description: "Retorno do intervalo registrado com sucesso!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao finalizar intervalo",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleClockAction = () => {
     // Prosseguir com reconhecimento facial mesmo sem localização exata
     // Uma localização padrão será usada se necessário
@@ -237,6 +337,51 @@ export default function ClockInterface() {
         </div>
       )}
       
+      {/* Hours Statistics - Only show when user is clocked in */}
+      {clockStatus?.isClocked && hoursStats && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
+          <h3 className="text-center text-sm font-medium text-blue-900 dark:text-blue-300">
+            Horas Trabalhadas Hoje
+          </h3>
+          
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400" data-testid="total-hours">
+                {hoursStats.totalHours.toFixed(1)}h
+              </div>
+              <div className="text-xs text-blue-600 dark:text-blue-400">Total</div>
+            </div>
+            
+            <div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="regular-hours">
+                {hoursStats.regularHours.toFixed(1)}h
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-400">Regulares</div>
+            </div>
+          </div>
+          
+          {hoursStats.estimatedOvertimeHours > 0 && (
+            <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <div className="text-center">
+                <div className="text-lg font-bold text-amber-700 dark:text-amber-300" data-testid="overtime-hours">
+                  +{hoursStats.estimatedOvertimeHours.toFixed(1)}h
+                </div>
+                <div className="text-xs text-amber-600 dark:text-amber-400">
+                  🕐 Horas Extras em Andamento
+                </div>
+                <div className="text-xs text-amber-500 dark:text-amber-500 mt-1">
+                  Acima do horário padrão do turno
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+            Atualizado automaticamente a cada 30 segundos
+          </div>
+        </div>
+      )}
+      
       {/* Facial Recognition Area */}
       <FacialRecognition
         isActive={isFaceRecognitionActive}
@@ -272,6 +417,114 @@ export default function ClockInterface() {
           : "Bater Ponto - Entrada"
         }
       </Button>
+      
+      {/* Break Controls - Only show when user is clocked in */}
+      {clockStatus?.isClocked && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="w-full max-w-md">
+              <h3 className="text-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Controle de Intervalos
+              </h3>
+              
+              {activeBreak ? (
+                <div className="space-y-3">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <div className="flex items-center justify-center space-x-2 text-amber-800 dark:text-amber-300">
+                      <Coffee className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        Intervalo em andamento
+                      </span>
+                    </div>
+                    <div className="text-center text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      Iniciado às{" "}
+                      {activeBreak.breakStart
+                        ? new Date(activeBreak.breakStart).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : "N/A"}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => endBreakMutation.mutate()}
+                    disabled={endBreakMutation.isPending}
+                    variant="outline"
+                    className="w-full border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20"
+                    data-testid="button-end-break"
+                  >
+                    <StopCircle className="mr-2 h-4 w-4 text-green-600" />
+                    {endBreakMutation.isPending ? "Finalizando..." : "Finalizar Intervalo"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => startBreakMutation.mutate('break')}
+                    disabled={startBreakMutation.isPending}
+                    variant="outline"
+                    className="flex-1 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20"
+                    data-testid="button-start-break"
+                  >
+                    <PlayCircle className="mr-2 h-4 w-4 text-blue-600" />
+                    {startBreakMutation.isPending ? "Iniciando..." : "Intervalo"}
+                  </Button>
+                  
+                  <Button
+                    onClick={() => startBreakMutation.mutate('lunch')}
+                    disabled={startBreakMutation.isPending}
+                    variant="outline"
+                    className="flex-1 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-900/20"
+                    data-testid="button-start-lunch"
+                  >
+                    <Coffee className="mr-2 h-4 w-4 text-orange-600" />
+                    {startBreakMutation.isPending ? "Iniciando..." : "Almoço"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Display recent breaks */}
+          {breaks.length > 0 && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">
+                Intervalos de Hoje
+              </h4>
+              <div className="space-y-2">
+                {breaks.slice(-3).reverse().map((breakEntry) => (
+                  <div key={breakEntry.id} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                    <span className="capitalize">
+                      {breakEntry.type === 'lunch' ? 'Almoço' : 'Intervalo'}:
+                    </span>
+                    <span>
+                      {breakEntry.breakStart
+                        ? new Date(breakEntry.breakStart).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : "N/A"}{" "}
+                      -{" "}
+                      {breakEntry.breakEnd
+                        ? new Date(breakEntry.breakEnd).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : "Em andamento"}
+                      {breakEntry.duration && breakEntry.breakEnd && (
+                        <span className="ml-2 text-gray-500">
+                          ({Math.round(parseFloat(breakEntry.duration) * 60)}min)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Instructions */}
       <div className="text-center text-sm text-gray-500 space-y-1">
