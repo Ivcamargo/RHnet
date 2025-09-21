@@ -286,7 +286,12 @@ export default function Sectors() {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment?.id, "shifts"] });
+      // Invalidate shifts cache for all departments (broader invalidation)
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      // Also invalidate specific department shifts if selected
+      if (selectedDepartment?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment.id, "shifts"] });
+      }
       setEditingShift(null);
       setIsCreateShiftDialogOpen(false);
       shiftForm.reset();
@@ -334,7 +339,12 @@ export default function Sectors() {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment?.id, "shifts"] });
+      // Invalidate shifts cache for all departments (broader invalidation)
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      // Also invalidate specific department shifts if selected
+      if (selectedDepartment?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment.id, "shifts"] });
+      }
       setIsCreateShiftDialogOpen(false);
       shiftForm.reset();
       toast({
@@ -456,17 +466,32 @@ export default function Sectors() {
   };
 
   const handleEditShift = (shift: DepartmentShift) => {
+    console.log('=== handleEditShift DEBUG ===');
+    console.log('Shift object received:', shift);
+    console.log('Shift ID:', shift.id);
+    console.log('Shift name:', shift.name);
+    console.log('Shift startTime:', shift.startTime);
+    console.log('Shift endTime:', shift.endTime);
+    console.log('Shift departmentId:', shift.departmentId);
+    
     setEditingShift(shift);
     // Buscar o departamento do turno para definir selectedDepartment
-    const department = departments.find(d => shifts.some(s => s.id === shift.id && s.departmentId === d.id));
+    const department = departments.find(d => d.id === shift.departmentId);
+    console.log('Found department:', department);
     if (department) {
       setSelectedDepartment(department);
     }
-    shiftForm.reset({
+    
+    const formData = {
       name: shift.name,
       startTime: shift.startTime,
       endTime: shift.endTime,
-    });
+    };
+    console.log('Form data being set:', formData);
+    
+    shiftForm.reset(formData);
+    console.log('Form values after reset:', shiftForm.getValues());
+    console.log('=== END DEBUG ===');
     setIsCreateShiftDialogOpen(true);
   };
 
@@ -876,7 +901,12 @@ export default function Sectors() {
                           {selectedDepartment?.id === department.id ? (
                             shifts.length > 0 ? (
                               <div className="space-y-2">
-                                {shifts.map((shift) => (
+                                {shifts.map((shift, index) => {
+                                  console.log('=== SHIFTS ARRAY DEBUG ===');
+                                  console.log(`Shift ${index}:`, shift);
+                                  console.log(`Shift type check - has startTime:`, 'startTime' in shift);
+                                  console.log(`Shift type check - has departmentId:`, 'departmentId' in shift);
+                                  return (
                                   <div key={shift.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div>
                                       <div className="font-medium">{shift.name}</div>
@@ -888,7 +918,10 @@ export default function Sectors() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleEditShift(shift)}
+                                        onClick={() => {
+                                          console.log('BUTTON CLICK - Shift being passed:', shift);
+                                          handleEditShift(shift);
+                                        }}
                                         data-testid={`button-edit-shift-${shift.id}`}
                                       >
                                         <Edit className="h-4 w-4" />
@@ -903,7 +936,8 @@ export default function Sectors() {
                                       </Button>
                                     </div>
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ) : (
                               <div className="text-center py-6 text-gray-500">
