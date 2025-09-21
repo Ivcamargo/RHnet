@@ -47,6 +47,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
+import { getBrazilianTime, getBrazilianDateString } from "../shared/timezone";
 
 // Helper function to create audit logs
 async function createAuditLog(
@@ -1256,8 +1257,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { latitude, longitude, faceRecognitionData }: ClockInRequest = clockInSchema.parse(req.body);
       
       // Get current date and check if period is closed
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
+      const now = getBrazilianTime();
+      const today = getBrazilianDateString();
       const canModify = await storage.canModifyTimeEntries(user.companyId, today);
       if (!canModify) {
         return res.status(403).json({ 
@@ -1342,7 +1343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if the current date is within a closed period
-      const today = new Date().toISOString().split('T')[0];
+      const today = getBrazilianDateString();
       const canModify = await storage.canModifyTimeEntries(user.companyId, today);
       if (!canModify) {
         return res.status(403).json({ 
@@ -1370,7 +1371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const now = new Date();
+      const now = getBrazilianTime();
       const totalHours = calculateHours(new Date(activeEntry.clockInTime!), now);
 
       const updatedEntry = await storage.updateTimeEntry(activeEntry.id, {

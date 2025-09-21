@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
+import { formatBrazilianTime, formatBrazilianDate } from "../../../shared/timezone";
 
 export default function TimeClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -110,8 +111,8 @@ export default function TimeClock() {
                         <div className="mt-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
                           <h3 className="font-medium text-orange-800 mb-2">Sessão Atual</h3>
                           <div className="text-sm text-orange-600">
-                            <p>Entrada: {new Date(clockStatus.activeEntry.clockInTime).toLocaleTimeString('pt-BR')}</p>
-                            <p>Data: {new Date(clockStatus.activeEntry.clockInTime).toLocaleDateString('pt-BR')}</p>
+                            <p>Entrada: {formatBrazilianTime(clockStatus.activeEntry.clockInTime)}</p>
+                            <p>Data: {formatBrazilianDate(clockStatus.activeEntry.clockInTime)}</p>
                             {clockStatus.activeEntry.faceRecognitionVerified && (
                               <p className="text-green-600">✓ Reconhecimento facial verificado</p>
                             )}
