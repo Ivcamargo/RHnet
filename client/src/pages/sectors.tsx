@@ -127,6 +127,7 @@ export default function Sectors() {
   const [isAssignSupervisorDialogOpen, setIsAssignSupervisorDialogOpen] = useState(false);
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
   const [deletingSector, setDeletingSector] = useState<Sector | null>(null);
+  const [deletingShift, setDeletingShift] = useState<DepartmentShift | null>(null);
   const { toast } = useToast();
 
   const sectorForm = useForm<SectorFormData>({
@@ -261,6 +262,54 @@ export default function Sectors() {
     },
   });
 
+  // Update shift mutation
+  const updateShiftMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<ShiftFormData> }) =>
+      apiRequest(`/api/department-shifts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment?.id, "shifts"] });
+      setEditingShift(null);
+      setIsCreateShiftDialogOpen(false);
+      shiftForm.reset();
+      toast({
+        title: "Turno atualizado",
+        description: "O turno foi atualizado com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar turno",
+        description: error.message || "Ocorreu um erro ao atualizar o turno.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete shift mutation
+  const deleteShiftMutation = useMutation({
+    mutationFn: (shiftId: number) => apiRequest(`/api/department-shifts/${shiftId}`, {
+      method: "DELETE",
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment?.id, "shifts"] });
+      setDeletingShift(null);
+      toast({
+        title: "Turno excluído",
+        description: "O turno foi excluído com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir turno",
+        description: error.message || "Ocorreu um erro ao excluir o turno.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create shift mutation
   const createShiftMutation = useMutation({
     mutationFn: (data: ShiftFormData) =>
@@ -353,7 +402,11 @@ export default function Sectors() {
   };
 
   const onSubmitShift = (data: ShiftFormData) => {
-    createShiftMutation.mutate(data);
+    if (editingShift) {
+      updateShiftMutation.mutate({ id: editingShift.id, data });
+    } else {
+      createShiftMutation.mutate(data);
+    }
   };
 
   const handleEditSector = (sector: Sector) => {
@@ -381,6 +434,25 @@ export default function Sectors() {
 
   const handleCreateShiftForDepartment = (department: Department) => {
     setSelectedDepartment(department);
+    setEditingShift(null);
+    shiftForm.reset();
+    setIsCreateShiftDialogOpen(true);
+  };
+
+  const handleEditShift = (shift: DepartmentShift) => {
+    setEditingShift(shift);
+    // Buscar o departamento do turno para definir selectedDepartment
+    const department = departments.find(d => shifts.some(s => s.id === shift.id && s.departmentId === d.id));
+    if (department) {
+      setSelectedDepartment(department);
+    }
+    shiftForm.reset({
+      name: shift.name,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      breakStartTime: shift.breakStartTime || "",
+      breakEndTime: shift.breakEndTime || "",
+    });
     setIsCreateShiftDialogOpen(true);
   };
 
@@ -781,6 +853,24 @@ export default function Sectors() {
                                       )}
                                     </div>
                                   </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEditShift(shift)}
+                                      data-testid={`button-edit-shift-${shift.id}`}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setDeletingShift(shift)}
+                                      data-testid={`button-delete-shift-${shift.id}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -800,6 +890,7 @@ export default function Sectors() {
                     if (!open) {
                       setIsCreateShiftDialogOpen(false);
                       setSelectedDepartment(null);
+                      setEditingShift(null);
                       shiftForm.reset();
                     }
                   }}
@@ -807,7 +898,7 @@ export default function Sectors() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle data-testid="dialog-shift-title">
-                        Novo Turno - {selectedDepartment?.name}
+                        {editingShift ? `Editar Turno - ${selectedDepartment?.name}` : `Novo Turno - ${selectedDepartment?.name}`}
                       </DialogTitle>
                     </DialogHeader>
                     
@@ -922,10 +1013,13 @@ export default function Sectors() {
                           </Button>
                           <Button 
                             type="submit"
-                            disabled={createShiftMutation.isPending}
+                            disabled={createShiftMutation.isPending || updateShiftMutation.isPending}
                             data-testid="button-save-shift"
                           >
-                            {createShiftMutation.isPending ? "Salvando..." : "Criar Turno"}
+                            {(createShiftMutation.isPending || updateShiftMutation.isPending)
+                              ? "Salvando..." 
+                              : editingShift ? "Atualizar Turno" : "Criar Turno"
+                            }
                           </Button>
                         </div>
                       </form>
@@ -1099,6 +1193,56 @@ export default function Sectors() {
                       data-testid="button-confirm-delete-sector"
                     >
                       {deleteSectorMutation.isPending ? "Excluindo..." : "Excluir Setor"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Shift Confirmation Dialog */}
+            <Dialog 
+              open={!!deletingShift} 
+              onOpenChange={(open) => {
+                if (!open) setDeletingShift(null);
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle data-testid="dialog-delete-shift-title">
+                    Confirmar Exclusão
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Tem certeza que deseja excluir o turno <strong>{deletingShift?.name}</strong>?
+                  </p>
+                  <p className="text-sm text-red-600">
+                    ⚠️ Esta ação não pode ser desfeita. O turno será permanentemente removido do sistema.
+                  </p>
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => setDeletingShift(null)}
+                      disabled={deleteShiftMutation.isPending}
+                      data-testid="button-cancel-delete-shift"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="destructive"
+                      onClick={() => {
+                        if (deletingShift) {
+                          deleteShiftMutation.mutate(deletingShift.id);
+                        }
+                      }}
+                      disabled={deleteShiftMutation.isPending}
+                      data-testid="button-confirm-delete-shift"
+                    >
+                      {deleteShiftMutation.isPending ? "Excluindo..." : "Excluir Turno"}
                     </Button>
                   </div>
                 </div>
