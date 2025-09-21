@@ -187,15 +187,15 @@ export default function Sectors() {
   });
 
   // Fetch shifts for selected department
-  const { data: shifts = [] } = useQuery<DepartmentShift[]>({
-    queryKey: ["/api/departments", selectedDepartment?.id, "shifts"],
+  const { data: shifts = [], isLoading: shiftsLoading, error: shiftsError } = useQuery<DepartmentShift[]>({
+    queryKey: [`/api/departments/${selectedDepartment?.id}/shifts`],
     enabled: !!selectedDepartment?.id,
   });
 
   // Component to show shift count badge for a department
   const ShiftCountBadge = ({ departmentId }: { departmentId: number }) => {
     const { data: departmentShifts = [] } = useQuery<DepartmentShift[]>({
-      queryKey: ["/api/departments", departmentId, "shifts"],
+      queryKey: [`/api/departments/${departmentId}/shifts`],
       enabled: true,
     });
     
@@ -290,7 +290,7 @@ export default function Sectors() {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
       // Also invalidate specific department shifts if selected
       if (selectedDepartment?.id) {
-        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment.id, "shifts"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/departments/${selectedDepartment.id}/shifts`] });
       }
       setEditingShift(null);
       setIsCreateShiftDialogOpen(false);
@@ -315,7 +315,7 @@ export default function Sectors() {
       method: "DELETE",
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment?.id, "shifts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/departments/${selectedDepartment?.id}/shifts`] });
       setDeletingShift(null);
       toast({
         title: "Turno excluído",
@@ -343,7 +343,7 @@ export default function Sectors() {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
       // Also invalidate specific department shifts if selected
       if (selectedDepartment?.id) {
-        queryClient.invalidateQueries({ queryKey: ["/api/departments", selectedDepartment.id, "shifts"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/departments/${selectedDepartment.id}/shifts`] });
       }
       setIsCreateShiftDialogOpen(false);
       shiftForm.reset();
@@ -466,18 +466,9 @@ export default function Sectors() {
   };
 
   const handleEditShift = (shift: DepartmentShift) => {
-    console.log('=== handleEditShift DEBUG ===');
-    console.log('Shift object received:', shift);
-    console.log('Shift ID:', shift.id);
-    console.log('Shift name:', shift.name);
-    console.log('Shift startTime:', shift.startTime);
-    console.log('Shift endTime:', shift.endTime);
-    console.log('Shift departmentId:', shift.departmentId);
-    
     setEditingShift(shift);
     // Buscar o departamento do turno para definir selectedDepartment
     const department = departments.find(d => d.id === shift.departmentId);
-    console.log('Found department:', department);
     if (department) {
       setSelectedDepartment(department);
     }
@@ -487,11 +478,8 @@ export default function Sectors() {
       startTime: shift.startTime,
       endTime: shift.endTime,
     };
-    console.log('Form data being set:', formData);
     
     shiftForm.reset(formData);
-    console.log('Form values after reset:', shiftForm.getValues());
-    console.log('=== END DEBUG ===');
     setIsCreateShiftDialogOpen(true);
   };
 
@@ -902,10 +890,6 @@ export default function Sectors() {
                             shifts.length > 0 ? (
                               <div className="space-y-2">
                                 {shifts.map((shift, index) => {
-                                  console.log('=== SHIFTS ARRAY DEBUG ===');
-                                  console.log(`Shift ${index}:`, shift);
-                                  console.log(`Shift type check - has startTime:`, 'startTime' in shift);
-                                  console.log(`Shift type check - has departmentId:`, 'departmentId' in shift);
                                   return (
                                   <div key={shift.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div>

@@ -489,23 +489,12 @@ export class DatabaseStorage implements IStorage {
 
   // Department shift operations
   async getDepartmentShifts(departmentId: number): Promise<DepartmentShift[]> {
-    console.log('=== STORAGE DEBUG - getDepartmentShifts called ===');
-    console.log('Department ID received:', departmentId);
-    
-    const result = await db.select().from(departmentShifts).where(
+    return await db.select().from(departmentShifts).where(
       and(
         eq(departmentShifts.departmentId, departmentId),
         eq(departmentShifts.isActive, true)
       )
     );
-    
-    console.log('Raw DB result:', result);
-    console.log('Result length:', result.length);
-    console.log('First result keys:', Object.keys(result[0] || {}));
-    console.log('First result sample:', result[0]);
-    console.log('=== END STORAGE DEBUG ===');
-    
-    return result;
   }
 
   async getDepartmentShift(id: number): Promise<DepartmentShift | undefined> {

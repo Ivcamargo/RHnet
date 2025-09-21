@@ -533,12 +533,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const shifts = await storage.getDepartmentShifts(departmentId);
-      console.log('=== BACKEND DEBUG - getDepartmentShifts result ===');
-      console.log('Department ID:', departmentId);
-      console.log('Shifts retrieved:', shifts.length);
-      console.log('First shift sample:', shifts[0]);
-      console.log('First shift properties:', Object.keys(shifts[0] || {}));
-      console.log('=== END BACKEND DEBUG ===');
       res.json(shifts);
     } catch (error) {
       console.error("Error fetching department shifts:", error);
