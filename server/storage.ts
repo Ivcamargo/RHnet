@@ -498,38 +498,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCompanySupervisorAssignments(companyId: number): Promise<(SupervisorAssignment & { supervisor: User; sector: Sector })[]> {
-    return await db
-      .select({
-        id: supervisorAssignments.id,
-        supervisorId: supervisorAssignments.supervisorId,
-        sectorId: supervisorAssignments.sectorId,
-        createdAt: supervisorAssignments.createdAt,
-        updatedAt: supervisorAssignments.updatedAt,
-        supervisor: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-          role: users.role,
-          companyId: users.companyId,
-          departmentId: users.departmentId,
-          isActive: users.isActive,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        },
-        sector: {
-          id: sectors.id,
-          name: sectors.name,
-          description: sectors.description,
-          companyId: sectors.companyId,
-          createdAt: sectors.createdAt,
-          updatedAt: sectors.updatedAt,
-        },
-      })
+    const result = await db
+      .select()
       .from(supervisorAssignments)
       .innerJoin(users, eq(supervisorAssignments.supervisorId, users.id))
       .innerJoin(sectors, eq(supervisorAssignments.sectorId, sectors.id))
       .where(eq(sectors.companyId, companyId));
+
+    return result.map(row => ({
+      id: row.supervisor_assignments.id,
+      supervisorId: row.supervisor_assignments.supervisorId,
+      sectorId: row.supervisor_assignments.sectorId,
+      createdAt: row.supervisor_assignments.createdAt,
+      supervisor: row.users,
+      sector: row.sectors,
+    }));
   }
 
   async createSupervisorAssignment(assignment: InsertSupervisorAssignment): Promise<SupervisorAssignment> {
