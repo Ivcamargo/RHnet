@@ -155,33 +155,21 @@ export default function ClockInterface() {
   });
 
   const handleClockAction = () => {
-    if (locationError) {
-      toast({
-        title: "Erro de localização",
-        description: "Permita o acesso à localização para registrar o ponto",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!location) {
-      toast({
-        title: "Aguarde",
-        description: "Obtendo sua localização...",
-      });
-      return;
-    }
-
+    // Prosseguir com reconhecimento facial mesmo sem localização exata
+    // Uma localização padrão será usada se necessário
     setIsFaceRecognitionActive(true);
   };
 
   const handleFaceRecognitionComplete = (faceData?: any) => {
-    if (!location) return;
+    // Usar localização obtida ou coordenadas padrão se localização não estiver disponível
+    const defaultCoords = { latitude: -23.5505, longitude: -46.6333 }; // São Paulo como padrão
+    const coords = location || defaultCoords;
 
     const data = {
-      latitude: location.latitude,
-      longitude: location.longitude,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
       faceRecognitionData: faceData,
+      locationFallback: !location, // Indica se usou coordenadas padrão
     };
 
     if (clockStatus?.isClocked) {
@@ -272,7 +260,7 @@ export default function ClockInterface() {
       {/* Clock Action Button */}
       <Button
         onClick={handleClockAction}
-        disabled={isProcessing || !location || !!locationError}
+        disabled={isProcessing}
         size="lg"
         className="px-8 py-4 point-primary text-lg font-medium shadow-lg hover:shadow-xl transition-shadow"
       >
@@ -286,9 +274,24 @@ export default function ClockInterface() {
       </Button>
       
       {/* Instructions */}
-      <div className="text-center text-sm text-gray-500">
-        <p>Certifique-se de estar na área permitida</p>
-        <p>O reconhecimento facial será solicitado</p>
+      <div className="text-center text-sm text-gray-500 space-y-1">
+        {locationError ? (
+          <>
+            <p className="text-amber-600">⚠️ Localização não disponível - usando modo manual</p>
+            <p>Certifique-se de estar na área permitida da sua empresa</p>
+            <p>O reconhecimento facial será solicitado para confirmar identidade</p>
+          </>
+        ) : location ? (
+          <>
+            <p className="text-green-600">✅ Localização confirmada</p>
+            <p>O reconhecimento facial será solicitado</p>
+          </>
+        ) : (
+          <>
+            <p>Obtendo sua localização...</p>
+            <p>O reconhecimento facial será solicitado</p>
+          </>
+        )}
       </div>
     </div>
   );
