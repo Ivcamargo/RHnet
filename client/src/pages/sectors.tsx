@@ -126,6 +126,7 @@ export default function Sectors() {
   const [editingShift, setEditingShift] = useState<DepartmentShift | null>(null);
   const [isAssignSupervisorDialogOpen, setIsAssignSupervisorDialogOpen] = useState(false);
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
+  const [deletingSector, setDeletingSector] = useState<Sector | null>(null);
   const { toast } = useToast();
 
   const sectorForm = useForm<SectorFormData>({
@@ -232,6 +233,29 @@ export default function Sectors() {
       toast({
         title: "Erro ao atualizar setor",
         description: error.message || "Ocorreu um erro ao atualizar o setor.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete sector mutation
+  const deleteSectorMutation = useMutation({
+    mutationFn: (sectorId: number) => apiRequest(`/api/sectors/${sectorId}`, {
+      method: "DELETE",
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sectors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/supervisor-assignments"] });
+      setDeletingSector(null);
+      toast({
+        title: "Setor excluído",
+        description: "O setor foi excluído com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir setor",
+        description: error.message || "Ocorreu um erro ao excluir o setor.",
         variant: "destructive",
       });
     },
@@ -684,6 +708,14 @@ export default function Sectors() {
                                     >
                                       <UserPlus className="h-4 w-4" />
                                     </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setDeletingSector(sector)}
+                                      data-testid={`button-delete-sector-${sector.id}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1022,6 +1054,56 @@ export default function Sectors() {
                 </Dialog>
               </TabsContent>
             </Tabs>
+
+            {/* Delete Sector Confirmation Dialog */}
+            <Dialog 
+              open={!!deletingSector} 
+              onOpenChange={(open) => {
+                if (!open) setDeletingSector(null);
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle data-testid="dialog-delete-sector-title">
+                    Confirmar Exclusão
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Tem certeza que deseja excluir o setor <strong>{deletingSector?.name}</strong>?
+                  </p>
+                  <p className="text-sm text-red-600">
+                    ⚠️ Esta ação não pode ser desfeita. O setor será permanentemente removido do sistema.
+                  </p>
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => setDeletingSector(null)}
+                      disabled={deleteSectorMutation.isPending}
+                      data-testid="button-cancel-delete-sector"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="destructive"
+                      onClick={() => {
+                        if (deletingSector) {
+                          deleteSectorMutation.mutate(deletingSector.id);
+                        }
+                      }}
+                      disabled={deleteSectorMutation.isPending}
+                      data-testid="button-confirm-delete-sector"
+                    >
+                      {deleteSectorMutation.isPending ? "Excluindo..." : "Excluir Setor"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </main>
       </div>
