@@ -123,6 +123,29 @@ export const departmentShifts = pgTable("department_shifts", {
   }).onDelete('cascade'),
 }));
 
+// Department shift breaks - configurable breaks for each shift
+export const departmentShiftBreaks = pgTable("department_shift_breaks", {
+  id: serial("id").primaryKey(),
+  shiftId: integer("shift_id").notNull(),
+  name: varchar("name").notNull(), // "Almoço", "Lanche da Tarde", etc.
+  durationMinutes: integer("duration_minutes").notNull(), // 60 for 1 hour lunch
+  isPaid: boolean("is_paid").default(false), // paid vs unpaid break
+  autoDeduct: boolean("auto_deduct").default(false), // automatic vs manual break
+  scheduledStart: varchar("scheduled_start"), // Optional HH:mm like "12:00"
+  scheduledEnd: varchar("scheduled_end"), // Optional HH:mm like "13:00"
+  minWorkMinutes: integer("min_work_minutes").default(360), // 6 hours minimum before break applies
+  toleranceBeforeMinutes: integer("tolerance_before_minutes").default(0),
+  toleranceAfterMinutes: integer("tolerance_after_minutes").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  shiftReference: foreignKey({
+    columns: [table.shiftId],
+    foreignColumns: [departmentShifts.id],
+  }).onDelete('cascade'),
+}));
+
 // Supervisor assignments - which supervisors manage which sectors
 export const supervisorAssignments = pgTable("supervisor_assignments", {
   id: serial("id").primaryKey(),
@@ -652,6 +675,16 @@ export const insertDepartmentShiftSchema = createInsertSchema(departmentShifts).
   updatedAt: true,
 });
 export type InsertDepartmentShift = z.infer<typeof insertDepartmentShiftSchema>;
+export type SelectDepartmentShift = typeof departmentShifts.$inferSelect;
+
+export const insertDepartmentShiftBreakSchema = createInsertSchema(departmentShiftBreaks).omit({
+  id: true,
+  shiftId: true, // Comes from URL params
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDepartmentShiftBreak = z.infer<typeof insertDepartmentShiftBreakSchema>;
+export type SelectDepartmentShiftBreak = typeof departmentShiftBreaks.$inferSelect;
 
 export const insertSupervisorAssignmentSchema = createInsertSchema(supervisorAssignments).omit({
   id: true,
