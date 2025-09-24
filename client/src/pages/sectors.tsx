@@ -64,6 +64,40 @@ const shiftFormSchema = z.object({
 type SectorFormData = z.infer<typeof sectorFormSchema>;
 type ShiftFormData = z.infer<typeof shiftFormSchema>;
 
+// Função para calcular horas líquidas trabalhadas
+function calculateLiquidHours(shift: any) {
+  if (!shift || !shift.startTime || !shift.endTime) {
+    return 0;
+  }
+  
+  // Calculate shift duration in hours
+  const [startHour, startMin] = shift.startTime.split(':').map(Number);
+  const [endHour, endMin] = shift.endTime.split(':').map(Number);
+  const shiftStart = startHour + startMin / 60;
+  const shiftEnd = endHour + endMin / 60;
+  
+  let totalShiftHours = shiftEnd - shiftStart;
+  if (totalShiftHours < 0) {
+    totalShiftHours += 24; // Handle overnight shifts
+  }
+  
+  // Calculate break duration if defined
+  let breakHours = 0;
+  if (shift.breakStart && shift.breakEnd) {
+    const [breakStartHour, breakStartMin] = shift.breakStart.split(':').map(Number);
+    const [breakEndHour, breakEndMin] = shift.breakEnd.split(':').map(Number);
+    const breakStart = breakStartHour + breakStartMin / 60;
+    const breakEnd = breakEndHour + breakEndMin / 60;
+    
+    breakHours = breakEnd - breakStart;
+    if (breakHours < 0) {
+      breakHours += 24; // Handle overnight breaks
+    }
+  }
+  
+  return totalShiftHours - breakHours;
+}
+
 interface Sector {
   id: number;
   name: string;
@@ -910,6 +944,14 @@ export default function Sectors() {
                                       <div className="text-sm text-gray-600">
                                         {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                                       </div>
+                                      {shift.breakStart && shift.breakEnd && (
+                                        <div className="text-xs text-orange-600">
+                                          Intervalo: {formatTime(shift.breakStart)} - {formatTime(shift.breakEnd)}
+                                        </div>
+                                      )}
+                                      <div className="text-sm font-medium text-blue-600 mt-1">
+                                        Horas Trabalhadas: {calculateLiquidHours(shift).toFixed(2)}h
+                                      </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Button
@@ -1076,6 +1118,20 @@ export default function Sectors() {
                           <div className="text-xs text-gray-500">
                             Configure o horário de intervalo para cálculo das horas líquidas trabalhadas
                           </div>
+                          
+                          {/* Campo calculado de horas trabalhadas */}
+                          {shiftForm.watch('startTime') && shiftForm.watch('endTime') && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                              <div className="text-sm font-medium text-blue-700">
+                                Horas Trabalhadas: {calculateLiquidHours({
+                                  startTime: shiftForm.watch('startTime'),
+                                  endTime: shiftForm.watch('endTime'),
+                                  breakStart: shiftForm.watch('breakStart'),
+                                  breakEnd: shiftForm.watch('breakEnd')
+                                }).toFixed(2)}h
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-4">
