@@ -64,6 +64,14 @@ Preferred communication style: Simple, everyday language.
 - **Automatic Calculations**: Total hours, break time, and overtime calculations
 - **Status Management**: Active/inactive entry states with proper validation
 
+### Shift Management System (Consolidated)
+- **Centralized Management**: All shift management is consolidated in the "Gestão de Setores" (Sectors Management) page
+- **Tabbed Interface**: Two-tab system separating sector management and shift management
+- **Advanced Interval Support**: Shifts include breakStart/breakEnd fields for configurable break times
+- **Real-time Calculations**: Automatic calculation of net working hours excluding break time
+- **Comprehensive CRUD**: Full create, read, update, delete operations for shifts within sectors
+- **Architectural Decision**: Eliminated duplicate shift management functionality from departments page
+
 ### Reporting and Analytics
 - **Monthly Reports**: Comprehensive time summaries by user and date range
 - **Dashboard Statistics**: Real-time metrics for today, week, and month
