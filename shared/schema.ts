@@ -124,6 +124,29 @@ export const departmentShifts = pgTable("department_shifts", {
   }).onDelete('cascade'),
 }));
 
+// User shift assignments - vincula funcionários aos turnos com períodos
+export const userShiftAssignments = pgTable("user_shift_assignments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  shiftId: integer("shift_id").notNull(),
+  startDate: date("start_date"), // Data inicial da vinculação (opcional)
+  endDate: date("end_date"), // Data final da vinculação (opcional - para escalas temporárias)
+  assignmentType: varchar("assignment_type").default("permanent"), // "permanent" ou "temporary"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userReference: foreignKey({
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  shiftReference: foreignKey({
+    columns: [table.shiftId],
+    foreignColumns: [departmentShifts.id],
+  }).onDelete('cascade'),
+  uniqueUserShiftActive: uniqueIndex("unique_user_shift_active").on(table.userId, table.shiftId, table.isActive),
+}));
+
 // Department shift breaks - configurable breaks for each shift
 export const departmentShiftBreaks = pgTable("department_shift_breaks", {
   id: serial("id").primaryKey(),
@@ -941,6 +964,15 @@ export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type InsertFaceProfile = z.infer<typeof insertFaceProfileSchema>;
 export type InsertTimePeriod = z.infer<typeof insertTimePeriodSchema>;
 export type InsertBreakEntry = z.infer<typeof insertBreakEntrySchema>;
+
+// Schema para vinculação de funcionários aos turnos
+export const insertUserShiftAssignmentSchema = createInsertSchema(userShiftAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertUserShiftAssignment = z.infer<typeof insertUserShiftAssignmentSchema>;
+export type SelectUserShiftAssignment = typeof userShiftAssignments.$inferSelect;
 
 
 // Clock in/out request schemas
