@@ -266,6 +266,20 @@ export default function Sectors() {
     return <Badge variant="default">{departmentShifts.length} turno{departmentShifts.length > 1 ? 's' : ''}</Badge>;
   };
 
+  // Component to show employee count badge for a shift
+  const EmployeeCountBadge = ({ shiftId }: { shiftId: number }) => {
+    const { data: assignments = [] } = useQuery<any[]>({
+      queryKey: [`/api/shifts/${shiftId}/assignments`],
+      enabled: true,
+    });
+    
+    if (assignments.length === 0) {
+      return <Badge variant="secondary" className="text-xs">0 funcionários</Badge>;
+    }
+    
+    return <Badge variant="outline" className="text-xs">{assignments.length} funcionário{assignments.length > 1 ? 's' : ''}</Badge>;
+  };
+
   // Create sector mutation
   const createSectorMutation = useMutation({
     mutationFn: (data: SectorFormData) => apiRequest("/api/sectors", {
@@ -1037,7 +1051,10 @@ export default function Sectors() {
                                   return (
                                   <div key={shift.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div>
-                                      <div className="font-medium">{shift.name}</div>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="font-medium">{shift.name}</div>
+                                        <EmployeeCountBadge shiftId={shift.id} />
+                                      </div>
                                       <div className="text-sm text-gray-600">
                                         {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                                       </div>
