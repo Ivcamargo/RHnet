@@ -173,6 +173,10 @@ export default function Sectors() {
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
   const [deletingSector, setDeletingSector] = useState<Sector | null>(null);
   const [deletingShift, setDeletingShift] = useState<DepartmentShift | null>(null);
+  const [managingShiftEmployees, setManagingShiftEmployees] = useState<DepartmentShift | null>(null);
+  const [selectedEmployeeForAssignment, setSelectedEmployeeForAssignment] = useState<string>("");
+  const [assignmentStartDate, setAssignmentStartDate] = useState<string>("");
+  const [assignmentEndDate, setAssignmentEndDate] = useState<string>("");
   const { toast } = useToast();
 
   const sectorForm = useForm<SectorFormData>({
@@ -234,6 +238,18 @@ export default function Sectors() {
   const { data: shifts = [], isLoading: shiftsLoading, error: shiftsError } = useQuery<DepartmentShift[]>({
     queryKey: [`/api/departments/${selectedDepartment?.id}/shifts`],
     enabled: !!selectedDepartment?.id,
+  });
+
+  // Fetch employees for shift assignment
+  const { data: availableEmployees = [] } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+    select: (users: User[]) => users.filter(user => user.role === 'employee')
+  });
+
+  // Fetch shift assignments when managing employees
+  const { data: shiftAssignments = [] } = useQuery<any[]>({
+    queryKey: [`/api/shifts/${managingShiftEmployees?.id}/assignments`],
+    enabled: !!managingShiftEmployees?.id,
   });
 
   // Component to show shift count badge for a department
@@ -453,6 +469,54 @@ export default function Sectors() {
     },
   });
 
+  // Create shift assignment mutation
+  const createShiftAssignmentMutation = useMutation({
+    mutationFn: (data: { userId: string; shiftId: number; startDate?: string; endDate?: string }) =>
+      apiRequest("/api/user-shift-assignments", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/shifts/${managingShiftEmployees?.id}/assignments`] });
+      setSelectedEmployeeForAssignment("");
+      setAssignmentStartDate("");
+      setAssignmentEndDate("");
+      toast({
+        title: "Funcionário vinculado",
+        description: "O funcionário foi vinculado ao turno com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao vincular funcionário",
+        description: error.message || "Ocorreu um erro ao vincular o funcionário.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete shift assignment mutation
+  const deleteShiftAssignmentMutation = useMutation({
+    mutationFn: (assignmentId: number) =>
+      apiRequest(`/api/user-shift-assignments/${assignmentId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/shifts/${managingShiftEmployees?.id}/assignments`] });
+      toast({
+        title: "Vinculação removida",
+        description: "A vinculação foi removida com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao remover vinculação",
+        description: error.message || "Ocorreu um erro ao remover a vinculação.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmitSector = (data: SectorFormData) => {
     // Validate companyId is required for superadmins
     if ((currentUser as any)?.role === 'superadmin' && !data.companyId) {
@@ -551,6 +615,39 @@ export default function Sectors() {
 
   const getAssignedSupervisors = (sectorId: number) => {
     return supervisorAssignments.filter(assignment => assignment.sectorId === sectorId);
+  };
+
+  const handleManageShiftEmployees = (shift: DepartmentShift) => {
+    setManagingShiftEmployees(shift);
+  };
+
+  const handleAssignEmployee = () => {
+    if (!selectedEmployeeForAssignment || !managingShiftEmployees) {
+      return;
+    }
+
+    const assignmentData = {
+      userId: selectedEmployeeForAssignment,
+      shiftId: managingShiftEmployees.id,
+      startDate: assignmentStartDate || undefined,
+      endDate: assignmentEndDate || undefined,
+    };
+
+    createShiftAssignmentMutation.mutate(assignmentData);
+  };
+
+  const handleRemoveAssignment = (assignmentId: number) => {
+    deleteShiftAssignmentMutation.mutate(assignmentId);
+  };
+
+  const getEmployeeName = (employeeId: string) => {
+    const employee = availableEmployees.find(emp => emp.id === employeeId);
+    return employee ? employee.name : 'Funcionário não encontrado';
+  };
+
+  const getAvailableEmployees = () => {
+    const assignedEmployeeIds = shiftAssignments.map(assignment => assignment.userId);
+    return availableEmployees.filter(emp => !assignedEmployeeIds.includes(emp.id));
   };
 
   return (
@@ -954,6 +1051,15 @@ export default function Sectors() {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleManageShiftEmployees(shift)}
+                                        data-testid={`button-manage-employees-${shift.id}`}
+                                        title="Gerenciar funcionários"
+                                      >
+                                        <Users className="h-4 w-4" />
+                                      </Button>
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -1379,6 +1485,150 @@ export default function Sectors() {
                       data-testid="button-confirm-delete-shift"
                     >
                       {deleteShiftMutation.isPending ? "Excluindo..." : "Excluir Turno"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Manage Shift Employees Dialog */}
+            <Dialog 
+              open={!!managingShiftEmployees} 
+              onOpenChange={(open) => {
+                if (!open) {
+                  setManagingShiftEmployees(null);
+                  setSelectedEmployeeForAssignment("");
+                  setAssignmentStartDate("");
+                  setAssignmentEndDate("");
+                }
+              }}
+            >
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle data-testid="dialog-manage-employees-title">
+                    Gerenciar Funcionários - {managingShiftEmployees?.name}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-6">
+                  {/* Add Employee Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Vincular Funcionário</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="employee-select">Funcionário</Label>
+                          <Select 
+                            value={selectedEmployeeForAssignment}
+                            onValueChange={setSelectedEmployeeForAssignment}
+                          >
+                            <SelectTrigger data-testid="select-employee">
+                              <SelectValue placeholder="Selecione um funcionário" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getAvailableEmployees().map((employee) => (
+                                <SelectItem key={employee.id} value={employee.id}>
+                                  {employee.name} ({employee.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="start-date">Data de Início (Opcional)</Label>
+                          <Input
+                            id="start-date"
+                            type="date"
+                            value={assignmentStartDate}
+                            onChange={(e) => setAssignmentStartDate(e.target.value)}
+                            data-testid="input-start-date"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="end-date">Data de Fim (Opcional)</Label>
+                          <Input
+                            id="end-date"
+                            type="date"
+                            value={assignmentEndDate}
+                            onChange={(e) => setAssignmentEndDate(e.target.value)}
+                            data-testid="input-end-date"
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleAssignEmployee}
+                        disabled={!selectedEmployeeForAssignment || createShiftAssignmentMutation.isPending}
+                        className="w-full md:w-auto"
+                        data-testid="button-assign-employee"
+                      >
+                        {createShiftAssignmentMutation.isPending ? "Vinculando..." : "Vincular Funcionário"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Current Assignments */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Funcionários Vinculados</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {shiftAssignments.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                          <p>Nenhum funcionário vinculado a este turno</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {shiftAssignments.map((assignment: any) => (
+                            <div 
+                              key={assignment.id} 
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            >
+                              <div>
+                                <div className="font-medium">
+                                  {getEmployeeName(assignment.userId)}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {assignment.startDate && assignment.endDate ? (
+                                    `Período: ${formatDate(assignment.startDate)} - ${formatDate(assignment.endDate)}`
+                                  ) : assignment.startDate ? (
+                                    `A partir de: ${formatDate(assignment.startDate)}`
+                                  ) : assignment.endDate ? (
+                                    `Até: ${formatDate(assignment.endDate)}`
+                                  ) : (
+                                    "Vinculação permanente"
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRemoveAssignment(assignment.id)}
+                                disabled={deleteShiftAssignmentMutation.isPending}
+                                data-testid={`button-remove-assignment-${assignment.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setManagingShiftEmployees(null)}
+                      data-testid="button-close-manage-employees"
+                    >
+                      Fechar
                     </Button>
                   </div>
                 </div>
