@@ -222,6 +222,44 @@ async function calculateStandardWorkingHours(
   }
 }
 
+// Helper function to calculate worked hours for a shift considering break times
+function calculateShiftWorkedHours(shift: any): number {
+  if (!shift.startTime || !shift.endTime) {
+    return 8; // Default to 8 hours if no times configured
+  }
+  
+  // Calculate hours between shift start and end
+  const [startHour, startMin] = shift.startTime.split(':').map(Number);
+  const [endHour, endMin] = shift.endTime.split(':').map(Number);
+  
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  
+  // Handle shifts that cross midnight
+  const totalShiftMinutes = endMinutes >= startMinutes 
+    ? endMinutes - startMinutes 
+    : (24 * 60) - startMinutes + endMinutes;
+  
+  // Subtract break time if configured
+  let breakMinutes = 0;
+  if (shift.breakStart && shift.breakEnd) {
+    const [breakStartHour, breakStartMin] = shift.breakStart.split(':').map(Number);
+    const [breakEndHour, breakEndMin] = shift.breakEnd.split(':').map(Number);
+    
+    const breakStartTotalMinutes = breakStartHour * 60 + breakStartMin;
+    const breakEndTotalMinutes = breakEndHour * 60 + breakEndMin;
+    
+    // Calculate break duration (assuming break doesn't cross midnight)
+    breakMinutes = breakEndTotalMinutes >= breakStartTotalMinutes 
+      ? breakEndTotalMinutes - breakStartTotalMinutes 
+      : (24 * 60) - breakStartTotalMinutes + breakEndTotalMinutes;
+  }
+  
+  // Total worked hours = shift duration - break time
+  const workedHours = (totalShiftMinutes - breakMinutes) / 60;
+  return Math.max(0, Number(workedHours.toFixed(2)));
+}
+
 // Helper function to calculate regular vs overtime hours using net worked hours
 async function calculateOvertimeHours(
   netWorkedHours: number, 
