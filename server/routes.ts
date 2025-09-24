@@ -1533,6 +1533,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's active shift data (for liquid hours calculation in time clock)
+  app.get('/api/department-shifts/:departmentId/user-shift', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      const departmentId = parseInt(req.params.departmentId);
+      
+      // Ensure user has access to this department data
+      if (user.role !== 'admin' && user.role !== 'superadmin' && user.departmentId !== departmentId) {
+        return res.status(403).json({ message: "Access denied to this department data" });
+      }
+
+      const allShifts = await storage.getDepartmentShifts(departmentId);
+      
+      // Filter for active shifts only
+      const activeShifts = allShifts.filter(shift => shift.isActive);
+      
+      // Get current day of week (0 = Sunday, 1 = Monday, etc.)
+      const today = new Date();
+      const currentDayOfWeek = today.getDay();
+      
+      // Find shift that applies to today
+      const applicableShift = activeShifts.find(shift => {
+        // Check if today is in the shift's daysOfWeek array
+        return shift.daysOfWeek && shift.daysOfWeek.includes(currentDayOfWeek);
+      });
+      
+      // Return single shift or null
+      if (applicableShift) {
+        res.json(applicableShift);
+      } else {
+        // No shift found for today
+        res.json(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user shift data:", error);
+      res.status(500).json({ message: "Failed to fetch user shift data" });
+    }
+  });
+
   // Get specific break
   app.get('/api/shift-breaks/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {

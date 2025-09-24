@@ -49,6 +49,40 @@ interface HoursStats {
   estimatedOvertimeHours: number;
 }
 
+// Helper function to calculate liquid hours based on shift data
+function calculateLiquidHours(shift: any) {
+  if (!shift || !shift.startTime || !shift.endTime) {
+    return 0;
+  }
+  
+  // Calculate shift duration in hours
+  const [startHour, startMin] = shift.startTime.split(':').map(Number);
+  const [endHour, endMin] = shift.endTime.split(':').map(Number);
+  const shiftStart = startHour + startMin / 60;
+  const shiftEnd = endHour + endMin / 60;
+  
+  let totalShiftHours = shiftEnd - shiftStart;
+  if (totalShiftHours < 0) {
+    totalShiftHours += 24; // Handle overnight shifts
+  }
+  
+  // Calculate break duration if defined
+  let breakHours = 0;
+  if (shift.breakStart && shift.breakEnd) {
+    const [breakStartHour, breakStartMin] = shift.breakStart.split(':').map(Number);
+    const [breakEndHour, breakEndMin] = shift.breakEnd.split(':').map(Number);
+    const breakStart = breakStartHour + breakStartMin / 60;
+    const breakEnd = breakEndHour + breakEndMin / 60;
+    
+    breakHours = breakEnd - breakStart;
+    if (breakHours < 0) {
+      breakHours += 24; // Handle overnight breaks
+    }
+  }
+  
+  return totalShiftHours - breakHours;
+}
+
 export default function ClockInterface() {
   const [isFaceRecognitionActive, setIsFaceRecognitionActive] = useState(false);
   const { toast } = useToast();
@@ -77,6 +111,22 @@ export default function ClockInterface() {
     queryKey: ["/api/time-clock/hours-stats"],
     enabled: !!clockStatus?.isClocked,
     refetchInterval: 30000, // Update every 30 seconds when clocked in
+  });
+
+  // Fetch user's shift data for liquid hours calculation
+  const { data: userShift } = useQuery({
+    queryKey: ["/api/department-shifts", userData?.departmentId, "user-shift"],
+    queryFn: async () => {
+      if (!userData?.departmentId) return null;
+      const response = await fetch(`/api/department-shifts/${userData.departmentId}/user-shift`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user shift: ${response.statusText}`);
+      }
+      return response.json();
+    },
+    enabled: !!userData?.departmentId,
   });
 
   const clockInMutation = useMutation({
@@ -357,6 +407,39 @@ export default function ClockInterface() {
                 {hoursStats.regularHours.toFixed(1)}h
               </div>
               <div className="text-xs text-green-600 dark:text-green-400">Regulares</div>
+            </div>
+          </div>
+          
+          {/* Liquid Hours Display - Show expected shift hours minus break */}
+          <div className="border-t border-blue-200 dark:border-blue-800 pt-3 mt-3">
+            <div className="text-center">
+              {userShift && userShift.startTime && userShift.endTime ? (
+                <>
+                  <div className="text-lg font-medium text-purple-600 dark:text-purple-400" data-testid="liquid-hours">
+                    {calculateLiquidHours(userShift).toFixed(1)}h
+                  </div>
+                  <div className="text-xs text-purple-600 dark:text-purple-400">Horas Líquidas do Turno</div>
+                  {userShift.breakStart && userShift.breakEnd ? (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Intervalo: {userShift.breakStart} - {userShift.breakEnd}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Sem intervalo configurado
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-lg font-medium text-gray-400" data-testid="no-shift">
+                    --h
+                  </div>
+                  <div className="text-xs text-gray-400">Turno Não Encontrado</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Nenhum turno ativo configurado para hoje
+                  </div>
+                </>
+              )}
             </div>
           </div>
           
