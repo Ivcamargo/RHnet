@@ -67,8 +67,6 @@ export default function Departments() {
     defaultValues: {
       name: "",
       description: "",
-      shiftStart: "08:00",
-      shiftEnd: "17:00",
       isActive: true,
       companyId: 1, // Backend will override this with user's actual company
     },
@@ -79,8 +77,6 @@ export default function Departments() {
     defaultValues: {
       name: "",
       description: "",
-      shiftStart: "08:00",
-      shiftEnd: "17:00",
       isActive: true,
       companyId: 1,
     },
@@ -286,8 +282,6 @@ export default function Departments() {
     editForm.reset({
       name: department.name,
       description: department.description || "",
-      shiftStart: department.shiftStart,
-      shiftEnd: department.shiftEnd,
       sectorId: department.sectorId,
       isActive: department.isActive,
       companyId: department.companyId,
@@ -388,36 +382,6 @@ export default function Departments() {
                         )}
                       />
                       
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="shiftStart"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Início do Turno</FormLabel>
-                              <FormControl>
-                                <Input type="time" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="shiftEnd"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Fim do Turno</FormLabel>
-                              <FormControl>
-                                <Input type="time" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
                       <div className="flex gap-2">
                         <Button type="submit" disabled={createMutation.isPending} className="point-primary">
                           {createMutation.isPending ? "Criando..." : "Criar"}
@@ -497,36 +461,6 @@ export default function Departments() {
                     )}
                   />
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={editForm.control}
-                      name="shiftStart"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Início do Turno</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} data-testid="edit-input-shift-start" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={editForm.control}
-                      name="shiftEnd"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fim do Turno</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} data-testid="edit-input-shift-end" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
                   <div className="flex gap-2">
                     <Button type="submit" disabled={updateMutation.isPending} className="point-primary" data-testid="button-save-department">
                       {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
@@ -600,7 +534,7 @@ export default function Departments() {
                         <div>
                           <CardTitle className="text-lg">{department.name}</CardTitle>
                           <p className="text-sm text-gray-500">
-                            {department.shiftStart} - {department.shiftEnd}
+                            {department.description || 'Sem descrição'}
                           </p>
                         </div>
                       </div>

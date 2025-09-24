@@ -88,8 +88,7 @@ export const departments = pgTable("departments", {
   sectorId: integer("sector_id").notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
-  shiftStart: varchar("shift_start").notNull(), // "08:00" - kept for compatibility
-  shiftEnd: varchar("shift_end").notNull(), // "17:00" - kept for compatibility
+  // Note: shift times moved to departmentShifts table
   // Note: geolocation moved to sectors table
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
