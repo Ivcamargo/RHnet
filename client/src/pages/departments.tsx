@@ -10,10 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertDepartmentSchema, insertDepartmentShiftSchema, insertDepartmentShiftBreakSchema, type InsertDepartment, type InsertDepartmentShift, type SelectDepartmentShiftBreak, type InsertDepartmentShiftBreak } from "@shared/schema";
+import { insertDepartmentSchema, insertDepartmentShiftBreakSchema, type InsertDepartment, type SelectDepartmentShiftBreak, type InsertDepartmentShiftBreak } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Building, MapPin, Users, Plus, Edit, Trash2, MoreVertical, Clock, Coffee } from "lucide-react";
+import { Building, MapPin, Users, Plus, Edit, Trash2, MoreVertical, Coffee } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -35,13 +35,6 @@ export default function Departments() {
   const [isDeleteBreakOpen, setIsDeleteBreakOpen] = useState(false);
   const [selectedBreak, setSelectedBreak] = useState<SelectDepartmentShiftBreak | null>(null);
   
-  // Shift management state
-  const [isManageShiftsOpen, setIsManageShiftsOpen] = useState(false);
-  const [isCreateShiftOpen, setIsCreateShiftOpen] = useState(false);
-  const [isEditShiftOpen, setIsEditShiftOpen] = useState(false);
-  const [selectedShiftForEdit, setSelectedShiftForEdit] = useState<any>(null);
-  const [departmentForShifts, setDepartmentForShifts] = useState<any>(null);
-  
   const { toast } = useToast();
 
   const { data: departments, isLoading } = useQuery({
@@ -57,11 +50,6 @@ export default function Departments() {
     queryKey: ["/api/sectors"],
   });
 
-  // Fetch shifts for selected department
-  const { data: departmentShifts = [] } = useQuery({
-    queryKey: ["/api/department-shifts", selectedDepartment?.id],
-    enabled: !!selectedDepartment?.id,
-  });
 
   // Fetch breaks for selected shift
   const { data: shiftBreaks = [] } = useQuery<SelectDepartmentShiftBreak[]>({
@@ -122,30 +110,6 @@ export default function Departments() {
     },
   });
 
-  // Forms for shift management
-  const shiftForm = useForm<InsertDepartmentShift>({
-    resolver: zodResolver(insertDepartmentShiftSchema),
-    defaultValues: {
-      name: "",
-      startTime: "",
-      endTime: "",
-      breakStart: "",
-      breakEnd: "",
-      daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
-    },
-  });
-
-  const editShiftForm = useForm<InsertDepartmentShift>({
-    resolver: zodResolver(insertDepartmentShiftSchema),
-    defaultValues: {
-      name: "",
-      startTime: "",
-      endTime: "",
-      breakStart: "",
-      breakEnd: "",
-      daysOfWeek: [1, 2, 3, 4, 5],
-    },
-  });
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertDepartment) => {
@@ -288,57 +252,6 @@ export default function Departments() {
     },
   });
 
-  // Shift mutations
-  const createShiftMutation = useMutation({
-    mutationFn: async (data: InsertDepartmentShift) => {
-      await apiRequest(`/api/departments/${departmentForShifts?.id}/shifts`, { 
-        method: "POST", 
-        body: JSON.stringify(data) 
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", departmentForShifts?.id] });
-      setIsCreateShiftOpen(false);
-      shiftForm.reset();
-      toast({
-        title: "Sucesso",
-        description: "Turno criado com sucesso",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateShiftMutation = useMutation({
-    mutationFn: async (data: InsertDepartmentShift) => {
-      await apiRequest(`/api/department-shifts/${selectedShiftForEdit?.id}`, { 
-        method: "PUT", 
-        body: JSON.stringify(data) 
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", departmentForShifts?.id] });
-      setIsEditShiftOpen(false);
-      setSelectedShiftForEdit(null);
-      editShiftForm.reset();
-      toast({
-        title: "Sucesso",
-        description: "Turno atualizado com sucesso",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const onSubmit = (data: InsertDepartment) => {
     createMutation.mutate(data);
@@ -377,32 +290,6 @@ export default function Departments() {
     setIsDeleteOpen(true);
   };
 
-  const handleManageShifts = (department: any) => {
-    setDepartmentForShifts(department);
-    setIsManageShiftsOpen(true);
-  };
-
-  // Shift form handlers
-  const onShiftSubmit = (data: InsertDepartmentShift) => {
-    createShiftMutation.mutate(data);
-  };
-
-  const onEditShiftSubmit = (data: InsertDepartmentShift) => {
-    updateShiftMutation.mutate(data);
-  };
-
-  const handleEditShift = (shift: any) => {
-    setSelectedShiftForEdit(shift);
-    editShiftForm.reset({
-      name: shift.name,
-      startTime: shift.startTime,
-      endTime: shift.endTime,
-      breakStart: shift.breakStart || "",
-      breakEnd: shift.breakEnd || "",
-      daysOfWeek: shift.daysOfWeek || [1, 2, 3, 4, 5],
-    });
-    setIsEditShiftOpen(true);
-  };
 
   const confirmDelete = () => {
     if (selectedDepartment) {
@@ -664,13 +551,6 @@ export default function Departments() {
                               Editar
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleManageShifts(department)}
-                              data-testid={`manage-shifts-${department.id}`}
-                            >
-                              <Clock className="mr-2 h-4 w-4" />
-                              Gerenciar Turnos
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               onClick={() => handleDeleteDepartment(department)}
                               className="text-red-600"
                               data-testid={`delete-department-${department.id}`}
@@ -716,253 +596,6 @@ export default function Departments() {
           )}
         </main>
 
-        {/* Manage Shifts Dialog */}
-        <Dialog open={isManageShiftsOpen} onOpenChange={setIsManageShiftsOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Gerenciar Turnos - {departmentForShifts?.name}</DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Turnos Existentes</h3>
-                <Button onClick={() => setIsCreateShiftOpen(true)} className="point-primary">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Turno
-                </Button>
-              </div>
-              
-              <div className="grid gap-4">
-                {departmentShifts.map((shift: any) => (
-                  <Card key={shift.id} className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">{shift.name}</h4>
-                        <div className="text-sm text-gray-600">
-                          <div>Horário: {shift.startTime} - {shift.endTime}</div>
-                          {shift.breakStart && shift.breakEnd && (
-                            <div className="text-orange-600">
-                              Intervalo: {shift.breakStart} - {shift.breakEnd}
-                              <span className="ml-2 text-xs">
-                                (Total: {calculateShiftWorkedHours(shift)}h líquidas)
-                              </span>
-                            </div>
-                          )}
-                          {(!shift.breakStart || !shift.breakEnd) && (
-                            <div className="text-gray-500 text-xs">Sem intervalo configurado</div>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditShift(shift)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-                
-                {departmentShifts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    Nenhum turno configurado para este departamento
-                  </div>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Create Shift Dialog */}
-        <Dialog open={isCreateShiftOpen} onOpenChange={setIsCreateShiftOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Criar Novo Turno</DialogTitle>
-            </DialogHeader>
-            <Form {...shiftForm}>
-              <form onSubmit={shiftForm.handleSubmit(onShiftSubmit)} className="space-y-4">
-                <FormField
-                  control={shiftForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Turno</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Turno da Manhã" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={shiftForm.control}
-                    name="startTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Início do Turno</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={shiftForm.control}
-                    name="endTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fim do Turno</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={shiftForm.control}
-                    name="breakStart"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Início do Intervalo</FormLabel>
-                        <FormControl>
-                          <Input type="time" placeholder="12:00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={shiftForm.control}
-                    name="breakEnd"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fim do Intervalo</FormLabel>
-                        <FormControl>
-                          <Input type="time" placeholder="13:00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={createShiftMutation.isPending} className="point-primary">
-                    {createShiftMutation.isPending ? "Criando..." : "Criar Turno"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsCreateShiftOpen(false)}>
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Shift Dialog */}
-        <Dialog open={isEditShiftOpen} onOpenChange={setIsEditShiftOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Editar Turno</DialogTitle>
-            </DialogHeader>
-            <Form {...editShiftForm}>
-              <form onSubmit={editShiftForm.handleSubmit(onEditShiftSubmit)} className="space-y-4">
-                <FormField
-                  control={editShiftForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Turno</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editShiftForm.control}
-                    name="startTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Início do Turno</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={editShiftForm.control}
-                    name="endTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fim do Turno</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editShiftForm.control}
-                    name="breakStart"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Início do Intervalo</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={editShiftForm.control}
-                    name="breakEnd"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fim do Intervalo</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={updateShiftMutation.isPending} className="point-primary">
-                    {updateShiftMutation.isPending ? "Salvando..." : "Salvar Alterações"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsEditShiftOpen(false)}>
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
