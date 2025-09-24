@@ -56,6 +56,9 @@ const shiftFormSchema = z.object({
   name: z.string().min(1, "Nome do turno é obrigatório"),
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de fim é obrigatório"),
+  breakStart: z.string().optional(),
+  breakEnd: z.string().optional(),
+  daysOfWeek: z.array(z.number()).default([1, 2, 3, 4, 5]), // Monday to Friday
 });
 
 type SectorFormData = z.infer<typeof sectorFormSchema>;
@@ -88,6 +91,10 @@ interface DepartmentShift {
   name: string;
   startTime: string;
   endTime: string;
+  breakStart?: string;
+  breakEnd?: string;
+  daysOfWeek: number[];
+  isActive: boolean;
   departmentId: number;
   createdAt: string;
   updatedAt: string;
@@ -152,6 +159,9 @@ export default function Sectors() {
       name: "",
       startTime: "",
       endTime: "",
+      breakStart: "",
+      breakEnd: "",
+      daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
     },
   });
 
@@ -477,6 +487,9 @@ export default function Sectors() {
       name: shift.name,
       startTime: shift.startTime,
       endTime: shift.endTime,
+      breakStart: shift.breakStart || "",
+      breakEnd: shift.breakEnd || "",
+      daysOfWeek: shift.daysOfWeek || [1, 2, 3, 4, 5],
     };
     
     shiftForm.reset(formData);
@@ -1016,6 +1029,53 @@ export default function Sectors() {
                               </FormItem>
                             )}
                           />
+                        </div>
+
+                        {/* Break Time Fields */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Intervalo (Opcional)</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={shiftForm.control}
+                              name="breakStart"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Início do Intervalo</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="time"
+                                      placeholder="12:00"
+                                      data-testid="input-shift-break-start"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={shiftForm.control}
+                              name="breakEnd"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Fim do Intervalo</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="time"
+                                      placeholder="13:00"
+                                      data-testid="input-shift-break-end"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Configure o horário de intervalo para cálculo das horas líquidas trabalhadas
+                          </div>
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-4">
