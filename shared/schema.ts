@@ -111,6 +111,8 @@ export const departmentShifts = pgTable("department_shifts", {
   name: varchar("name").notNull(), // "Turno da Manhã", "Turno da Tarde"
   startTime: varchar("start_time").notNull(), // "08:00"
   endTime: varchar("end_time").notNull(), // "17:00"
+  breakStart: varchar("break_start"), // "12:00" - Início do intervalo
+  breakEnd: varchar("break_end"), // "13:00" - Fim do intervalo
   daysOfWeek: integer("days_of_week").array(), // [1,2,3,4,5] for Mon-Fri
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
