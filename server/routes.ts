@@ -27,6 +27,7 @@ import {
   insertSectorSchema,
   insertDepartmentShiftSchema,
   insertSupervisorAssignmentSchema,
+  insertUserShiftAssignmentSchema,
   insertFaceProfileSchema,
   insertTimePeriodSchema,
   type ClockInRequest,
@@ -42,6 +43,7 @@ import {
   type InsertSector,
   type InsertDepartmentShift,
   type InsertSupervisorAssignment,
+  type InsertUserShiftAssignment,
   type InsertFaceProfile,
   type InsertTimePeriod
 } from "@shared/schema";
@@ -965,6 +967,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting supervisor assignment:", error);
       res.status(500).json({ message: "Failed to delete supervisor assignment" });
+    }
+  });
+
+  // ==== USER SHIFT ASSIGNMENT ROUTES ====
+
+  // Get user shift assignments for a specific user (admin only)
+  app.get('/api/users/:userId/shift-assignments', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const userId = req.params.userId;
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.companyId !== user.companyId) {
+        return res.status(404).json({ message: "User not found or not in your company" });
+      }
+
+      const assignments = await storage.getUserShiftAssignments(userId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching user shift assignments:", error);
+      res.status(500).json({ message: "Failed to fetch user shift assignments" });
+    }
+  });
+
+  // Get all users assigned to a specific shift (admin only)
+  app.get('/api/shifts/:shiftId/assignments', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const shiftId = parseInt(req.params.shiftId);
+      const shift = await storage.getDepartmentShift(shiftId);
+      if (!shift) {
+        return res.status(404).json({ message: "Shift not found" });
+      }
+
+      // Verify shift's department belongs to user's company
+      const department = await storage.getDepartment(shift.departmentId);
+      if (!department || department.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: shift not accessible" });
+      }
+
+      const assignments = await storage.getShiftAssignments(shiftId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching shift assignments:", error);
+      res.status(500).json({ message: "Failed to fetch shift assignments" });
+    }
+  });
+
+  // Create user shift assignment (admin only)
+  app.post('/api/user-shift-assignments', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const assignmentData = insertUserShiftAssignmentSchema.parse(req.body);
+
+      // Verify target user is from the same company
+      const targetUser = await storage.getUser(assignmentData.userId);
+      if (!targetUser || targetUser.companyId !== user.companyId) {
+        return res.status(400).json({ message: "User must be from your company" });
+      }
+
+      const assignment = await storage.createUserShiftAssignment(assignmentData);
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error creating user shift assignment:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assignment data", errors: error.errors });
+      }
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to create user shift assignment" });
+    }
+  });
+
+  // Update user shift assignment (admin only)
+  app.put('/api/user-shift-assignments/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      const assignment = await storage.getUserShiftAssignment(id);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+
+      // Verify assignment's user is from the same company
+      const targetUser = await storage.getUser(assignment.userId);
+      if (!targetUser || targetUser.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: assignment not accessible" });
+      }
+
+      const assignmentData = insertUserShiftAssignmentSchema.partial().parse(req.body);
+      const updatedAssignment = await storage.updateUserShiftAssignment(id, assignmentData);
+      res.json(updatedAssignment);
+    } catch (error) {
+      console.error("Error updating user shift assignment:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assignment data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update user shift assignment" });
+    }
+  });
+
+  // Delete user shift assignment (admin only)
+  app.delete('/api/user-shift-assignments/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const id = parseInt(req.params.id);
+      const assignment = await storage.getUserShiftAssignment(id);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+
+      // Verify assignment's user is from the same company
+      const targetUser = await storage.getUser(assignment.userId);
+      if (!targetUser || targetUser.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied: assignment not accessible" });
+      }
+
+      await storage.deleteUserShiftAssignment(id);
+      res.json({ message: "User shift assignment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user shift assignment:", error);
+      res.status(500).json({ message: "Failed to delete user shift assignment" });
+    }
+  });
+
+  // Get user's active shift for today (for employees to see their current shift)
+  app.get('/api/my-active-shift', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const activeShift = await storage.getUserActiveShift(userId);
+      
+      if (!activeShift) {
+        return res.status(404).json({ message: "No active shift found for today" });
+      }
+
+      res.json(activeShift);
+    } catch (error) {
+      console.error("Error fetching active shift:", error);
+      res.status(500).json({ message: "Failed to fetch active shift" });
     }
   });
 

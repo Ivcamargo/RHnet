@@ -5,6 +5,7 @@ import {
   departmentShifts,
   departmentShiftBreaks,
   supervisorAssignments,
+  userShiftAssignments,
   timeEntries,
   breakEntries,
   faceProfiles,
@@ -31,6 +32,8 @@ import {
   type InsertDepartmentShiftBreak,
   type SupervisorAssignment,
   type InsertSupervisorAssignment,
+  type SelectUserShiftAssignment,
+  type InsertUserShiftAssignment,
   type TimeEntry,
   type Company,
   type InsertCompany,
@@ -118,6 +121,15 @@ export interface IStorage {
   getAllCompanySupervisorAssignments(companyId: number): Promise<(SupervisorAssignment & { supervisor: User; sector: Sector })[]>;
   createSupervisorAssignment(assignment: InsertSupervisorAssignment): Promise<SupervisorAssignment>;
   deleteSupervisorAssignment(supervisorId: string, sectorId: number): Promise<void>;
+
+  // User shift assignment operations
+  getUserShiftAssignments(userId: string): Promise<SelectUserShiftAssignment[]>;
+  getShiftAssignments(shiftId: number): Promise<(SelectUserShiftAssignment & { user: User })[]>;
+  getUserShiftAssignment(id: number): Promise<SelectUserShiftAssignment | undefined>;
+  createUserShiftAssignment(assignment: InsertUserShiftAssignment): Promise<SelectUserShiftAssignment>;
+  updateUserShiftAssignment(id: number, assignment: Partial<InsertUserShiftAssignment>): Promise<SelectUserShiftAssignment>;
+  deleteUserShiftAssignment(id: number): Promise<void>;
+  getUserActiveShift(userId: string, date?: Date): Promise<(SelectUserShiftAssignment & { shift: DepartmentShift }) | undefined>;
   
   // Access control and scope operations
   getSupervisorScope(userId: string): Promise<SupervisorScope | null>;
@@ -623,6 +635,123 @@ export class DatabaseStorage implements IStorage {
         eq(supervisorAssignments.sectorId, sectorId)
       )
     );
+  }
+
+  // User shift assignment operations
+  async getUserShiftAssignments(userId: string): Promise<SelectUserShiftAssignment[]> {
+    return await db.select().from(userShiftAssignments).where(eq(userShiftAssignments.userId, userId));
+  }
+
+  async getShiftAssignments(shiftId: number): Promise<(SelectUserShiftAssignment & { user: User })[]> {
+    const result = await db
+      .select()
+      .from(userShiftAssignments)
+      .innerJoin(users, eq(userShiftAssignments.userId, users.id))
+      .where(eq(userShiftAssignments.shiftId, shiftId));
+
+    return result.map(row => ({
+      id: row.user_shift_assignments.id,
+      userId: row.user_shift_assignments.userId,
+      shiftId: row.user_shift_assignments.shiftId,
+      startDate: row.user_shift_assignments.startDate,
+      endDate: row.user_shift_assignments.endDate,
+      assignmentType: row.user_shift_assignments.assignmentType,
+      isActive: row.user_shift_assignments.isActive,
+      createdAt: row.user_shift_assignments.createdAt,
+      updatedAt: row.user_shift_assignments.updatedAt,
+      user: row.users,
+    }));
+  }
+
+  async getUserShiftAssignment(id: number): Promise<SelectUserShiftAssignment | undefined> {
+    const [assignment] = await db.select().from(userShiftAssignments).where(eq(userShiftAssignments.id, id));
+    return assignment;
+  }
+
+  async createUserShiftAssignment(assignment: InsertUserShiftAssignment): Promise<SelectUserShiftAssignment> {
+    // Validate user exists and get their department
+    const [user] = await db.select({ departmentId: users.departmentId }).from(users).where(eq(users.id, assignment.userId));
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Validate shift exists and belongs to user's department
+    const [shift] = await db.select({ departmentId: departmentShifts.departmentId }).from(departmentShifts).where(eq(departmentShifts.id, assignment.shiftId));
+    if (!shift) {
+      throw new Error("Shift not found");
+    }
+
+    if (user.departmentId !== shift.departmentId) {
+      throw new Error("User and shift must be in the same department");
+    }
+
+    const [newAssignment] = await db.insert(userShiftAssignments).values(assignment).returning();
+    return newAssignment;
+  }
+
+  async updateUserShiftAssignment(id: number, assignment: Partial<InsertUserShiftAssignment>): Promise<SelectUserShiftAssignment> {
+    const [updatedAssignment] = await db
+      .update(userShiftAssignments)
+      .set({ ...assignment, updatedAt: new Date() })
+      .where(eq(userShiftAssignments.id, id))
+      .returning();
+    return updatedAssignment;
+  }
+
+  async deleteUserShiftAssignment(id: number): Promise<void> {
+    await db.delete(userShiftAssignments).where(eq(userShiftAssignments.id, id));
+  }
+
+  async getUserActiveShift(userId: string, date: Date = new Date()): Promise<(SelectUserShiftAssignment & { shift: DepartmentShift }) | undefined> {
+    const currentDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
+    const result = await db
+      .select()
+      .from(userShiftAssignments)
+      .innerJoin(departmentShifts, eq(userShiftAssignments.shiftId, departmentShifts.id))
+      .where(
+        and(
+          eq(userShiftAssignments.userId, userId),
+          eq(userShiftAssignments.isActive, true),
+          or(
+            // Permanent assignment (no end date)
+            and(
+              eq(userShiftAssignments.assignmentType, 'permanent'),
+              isNull(userShiftAssignments.endDate)
+            ),
+            // Temporary assignment within date range
+            and(
+              eq(userShiftAssignments.assignmentType, 'temporary'),
+              or(
+                isNull(userShiftAssignments.startDate),
+                lte(userShiftAssignments.startDate, currentDate)
+              ),
+              or(
+                isNull(userShiftAssignments.endDate),
+                gte(userShiftAssignments.endDate, currentDate)
+              )
+            )
+          )
+        )
+      );
+
+    if (result.length === 0) {
+      return undefined;
+    }
+
+    const row = result[0];
+    return {
+      id: row.user_shift_assignments.id,
+      userId: row.user_shift_assignments.userId,
+      shiftId: row.user_shift_assignments.shiftId,
+      startDate: row.user_shift_assignments.startDate,
+      endDate: row.user_shift_assignments.endDate,
+      assignmentType: row.user_shift_assignments.assignmentType,
+      isActive: row.user_shift_assignments.isActive,
+      createdAt: row.user_shift_assignments.createdAt,
+      updatedAt: row.user_shift_assignments.updatedAt,
+      shift: row.department_shifts,
+    };
   }
 
   // Access control and scope operations
