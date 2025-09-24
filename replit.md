@@ -72,6 +72,20 @@ Preferred communication style: Simple, everyday language.
 - **Comprehensive CRUD**: Full create, read, update, delete operations for shifts within sectors
 - **Architectural Decision**: Eliminated duplicate shift management functionality from departments page
 
+### Employee-Shift Assignment System
+- **Advanced Assignment Management**: Complete system for linking employees to specific shifts with temporal controls
+- **Flexible Period Support**: Optional start/end dates for shift assignments enabling employee rotations and temporary assignments
+- **Visual Indicators**: Real-time badges showing employee count per shift and shift count per department
+- **Comprehensive Interface**: Dedicated dialog for managing employee assignments with intuitive controls
+- **Database Architecture**: userShiftAssignments table with userId, shiftId, startDate, endDate fields for flexible assignment tracking
+- **API Security**: Full CRUD endpoints with proper company-level access control and role-based authorization
+- **User Experience Features**: 
+  - Employee management button on each shift for quick access
+  - Real-time assignment count updates
+  - Period-aware assignment display (permanent, temporary, or date-ranged)
+  - Available employee filtering (excludes already assigned employees)
+  - Success/error feedback for all operations
+
 ### Reporting and Analytics
 - **Monthly Reports**: Comprehensive time summaries by user and date range
 - **Dashboard Statistics**: Real-time metrics for today, week, and month
