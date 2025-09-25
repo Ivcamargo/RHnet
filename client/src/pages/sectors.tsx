@@ -1585,8 +1585,16 @@ export default function Sectors() {
                             </PopoverTrigger>
                             <PopoverContent className="w-full p-0">
                               <Command>
-                                <CommandInput placeholder="Buscar funcionário..." />
-                                <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                                <CommandInput placeholder="Buscar funcionário por nome ou email..." />
+                                <CommandEmpty>
+                                  <div className="py-6 text-center text-sm">
+                                    <Users className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                                    <p className="text-gray-500">Nenhum funcionário disponível</p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      Todos os funcionários já estão vinculados ou não há funcionários cadastrados
+                                    </p>
+                                  </div>
+                                </CommandEmpty>
                                 <CommandList>
                                   <CommandGroup>
                                     {getAvailableEmployees().map((employee) => {
@@ -1600,6 +1608,7 @@ export default function Sectors() {
                                             setSelectedEmployeeForAssignment(employee.id);
                                             setEmployeeComboboxOpen(false);
                                           }}
+                                          className="cursor-pointer"
                                         >
                                           <Check
                                             className={`mr-2 h-4 w-4 ${
@@ -1608,7 +1617,10 @@ export default function Sectors() {
                                                 : "opacity-0"
                                             }`}
                                           />
-                                          {displayName} ({employee.email})
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{displayName}</span>
+                                            <span className="text-sm text-gray-500">{employee.email}</span>
+                                          </div>
                                         </CommandItem>
                                       );
                                     })}
@@ -1644,11 +1656,21 @@ export default function Sectors() {
                       
                       <Button 
                         onClick={handleAssignEmployee}
-                        disabled={!selectedEmployeeForAssignment || createShiftAssignmentMutation.isPending}
+                        disabled={!selectedEmployeeForAssignment || createShiftAssignmentMutation.isPending || getAvailableEmployees().length === 0}
                         className="w-full md:w-auto"
                         data-testid="button-assign-employee"
                       >
-                        {createShiftAssignmentMutation.isPending ? "Vinculando..." : "Vincular Funcionário"}
+                        {createShiftAssignmentMutation.isPending ? (
+                          <>
+                            <div className="mr-2 h-4 w-4 border-2 border-gray-300 border-t-white rounded-full animate-spin" />
+                            Vinculando...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Vincular Funcionário
+                          </>
+                        )}
                       </Button>
                     </CardContent>
                   </Card>
@@ -1694,8 +1716,13 @@ export default function Sectors() {
                                 onClick={() => handleRemoveAssignment(assignment.id)}
                                 disabled={deleteShiftAssignmentMutation.isPending}
                                 data-testid={`button-remove-assignment-${assignment.id}`}
+                                className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {deleteShiftAssignmentMutation.isPending ? (
+                                  <div className="h-4 w-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </Button>
                             </div>
                           ))}
