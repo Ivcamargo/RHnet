@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,7 +23,9 @@ import {
   Plus,
   MapPin,
   Trash2,
-  UserCheck
+  UserCheck,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
@@ -189,6 +193,7 @@ export default function Sectors() {
   const [selectedEmployeeForAssignment, setSelectedEmployeeForAssignment] = useState<string>("");
   const [assignmentStartDate, setAssignmentStartDate] = useState<string>("");
   const [assignmentEndDate, setAssignmentEndDate] = useState<string>("");
+  const [employeeComboboxOpen, setEmployeeComboboxOpen] = useState(false);
   const { toast } = useToast();
 
   const sectorForm = useForm<SectorFormData>({
@@ -1532,6 +1537,7 @@ export default function Sectors() {
                   setSelectedEmployeeForAssignment("");
                   setAssignmentStartDate("");
                   setAssignmentEndDate("");
+                  setEmployeeComboboxOpen(false);
                 }
               }}
             >
@@ -1552,25 +1558,65 @@ export default function Sectors() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor="employee-select">Funcionário</Label>
-                          <Select 
-                            value={selectedEmployeeForAssignment}
-                            onValueChange={setSelectedEmployeeForAssignment}
-                          >
-                            <SelectTrigger data-testid="select-employee">
-                              <SelectValue placeholder="Selecione um funcionário" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getAvailableEmployees().map((employee) => {
-                                const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
-                                const displayName = name || employee.email;
-                                return (
-                                  <SelectItem key={employee.id} value={employee.id}>
-                                    {displayName} ({employee.email})
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
+                          <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={employeeComboboxOpen}
+                                className="w-full justify-between"
+                                data-testid="select-employee"
+                              >
+                                {selectedEmployeeForAssignment ? (
+                                  (() => {
+                                    const employee = getAvailableEmployees().find(
+                                      (emp) => emp.id === selectedEmployeeForAssignment
+                                    );
+                                    if (!employee) return "Funcionário não encontrado";
+                                    const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
+                                    const displayName = name || employee.email;
+                                    return `${displayName} (${employee.email})`;
+                                  })()
+                                ) : (
+                                  "Selecione um funcionário..."
+                                )}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput placeholder="Buscar funcionário..." />
+                                <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                                <CommandList>
+                                  <CommandGroup>
+                                    {getAvailableEmployees().map((employee) => {
+                                      const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
+                                      const displayName = name || employee.email;
+                                      return (
+                                        <CommandItem
+                                          key={employee.id}
+                                          value={`${displayName} ${employee.email}`}
+                                          onSelect={() => {
+                                            setSelectedEmployeeForAssignment(employee.id);
+                                            setEmployeeComboboxOpen(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={`mr-2 h-4 w-4 ${
+                                              selectedEmployeeForAssignment === employee.id
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                            }`}
+                                          />
+                                          {displayName} ({employee.email})
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                         
                         <div>
