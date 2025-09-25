@@ -573,11 +573,17 @@ export default function RotationManagement() {
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent>
-                                        {(shifts as any[] || []).map((shift: any) => (
-                                          <SelectItem key={shift.id} value={shift.id.toString()}>
-                                            {shift.name} ({shift.startTime} - {shift.endTime})
-                                          </SelectItem>
-                                        ))}
+                                        {(shifts as any[] || []).map((shift: any) => {
+                                          // Handle both nested and flat data structures
+                                          const shiftData = shift.department_shifts || shift;
+                                          if (!shiftData || !shiftData.id) return null;
+                                          
+                                          return (
+                                            <SelectItem key={shiftData.id} value={shiftData.id.toString()}>
+                                              {shiftData.name} ({shiftData.startTime} - {shiftData.endTime})
+                                            </SelectItem>
+                                          );
+                                        }).filter(Boolean)}
                                       </SelectContent>
                                     </Select>
                                     <FormMessage />
