@@ -98,6 +98,18 @@ function calculateLiquidHours(shift: any) {
   return totalShiftHours - breakHours;
 }
 
+// Função para formatar horas trabalhadas de forma clara
+function formatWorkedHours(hours: number): string {
+  const wholeHours = Math.floor(hours);
+  const minutes = Math.round((hours - wholeHours) * 60);
+  
+  if (minutes === 0) {
+    return `${wholeHours}h`;
+  } else {
+    return `${wholeHours}h${minutes.toString().padStart(2, '0')}m`;
+  }
+}
+
 interface Sector {
   id: number;
   name: string;
@@ -656,7 +668,10 @@ export default function Sectors() {
 
   const getEmployeeName = (employeeId: string) => {
     const employee = availableEmployees.find(emp => emp.id === employeeId);
-    return employee ? employee.name : 'Funcionário não encontrado';
+    if (!employee) return 'Funcionário não encontrado';
+    
+    const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
+    return name || employee.email;
   };
 
   const getAvailableEmployees = () => {
@@ -1064,7 +1079,7 @@ export default function Sectors() {
                                         </div>
                                       )}
                                       <div className="text-sm font-medium text-blue-600 mt-1">
-                                        Horas Trabalhadas: {calculateLiquidHours(shift).toFixed(2)}h
+                                        Horas Trabalhadas: {formatWorkedHours(calculateLiquidHours(shift))}
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -1246,12 +1261,12 @@ export default function Sectors() {
                           {shiftForm.watch('startTime') && shiftForm.watch('endTime') && (
                             <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
                               <div className="text-sm font-medium text-blue-700">
-                                Horas Trabalhadas: {calculateLiquidHours({
+                                Horas Trabalhadas: {formatWorkedHours(calculateLiquidHours({
                                   startTime: shiftForm.watch('startTime'),
                                   endTime: shiftForm.watch('endTime'),
                                   breakStart: shiftForm.watch('breakStart'),
                                   breakEnd: shiftForm.watch('breakEnd')
-                                }).toFixed(2)}h
+                                }))}
                               </div>
                             </div>
                           )}
@@ -1545,11 +1560,15 @@ export default function Sectors() {
                               <SelectValue placeholder="Selecione um funcionário" />
                             </SelectTrigger>
                             <SelectContent>
-                              {getAvailableEmployees().map((employee) => (
-                                <SelectItem key={employee.id} value={employee.id}>
-                                  {employee.name} ({employee.email})
-                                </SelectItem>
-                              ))}
+                              {getAvailableEmployees().map((employee) => {
+                                const name = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
+                                const displayName = name || employee.email;
+                                return (
+                                  <SelectItem key={employee.id} value={employee.id}>
+                                    {displayName} ({employee.email})
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                         </div>
