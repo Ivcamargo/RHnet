@@ -2219,10 +2219,68 @@ export class DatabaseStorage implements IStorage {
     affectedUsers: number;
     dateRange: string;
   }> {
-    // Simplified implementation - would use scheduler service in production
+    console.log(`[DEBUG] Generating rotation assignments for template ${templateId}, ${startDate} to ${endDate}`);
+    
+    // Reuse preview logic to calculate assignments
+    const previewData = await this.previewRotationSchedule(templateId, startDate, endDate);
+    
+    if (previewData.length === 0) {
+      console.log(`[DEBUG] No preview data to generate assignments from`);
+      return {
+        generatedAssignments: 0,
+        affectedUsers: 0,
+        dateRange: `${startDate} to ${endDate}`
+      };
+    }
+
+    // Clear existing assignments for this date range and template
+    const template = await this.getRotationTemplate(templateId);
+    if (!template) {
+      throw new Error("Template not found");
+    }
+
+    // Delete existing user shift assignments in the date range for this company
+    await db.execute(sql`
+      DELETE FROM user_shift_assignments 
+      WHERE user_id IN (
+        SELECT id FROM users WHERE company_id = ${template.companyId}
+      ) 
+      AND start_date >= ${startDate} 
+      AND start_date <= ${endDate}
+    `);
+
+    console.log(`[DEBUG] Cleared existing assignments for date range`);
+
+    // Create new assignments from preview data
+    let generatedCount = 0;
+    const affectedUserIds = new Set<string>();
+
+    for (const entry of previewData) {
+      if (entry.shiftId && entry.userId !== 'demo_user_1') {
+        try {
+          // Create assignment for this specific date
+          await db.insert(userShiftAssignments).values({
+            userId: entry.userId,
+            shiftId: entry.shiftId,
+            startDate: entry.date,
+            endDate: entry.date,
+            isTemporary: true, // Mark as temporary rotation assignment
+            assignedBy: performedBy
+          });
+          
+          generatedCount++;
+          affectedUserIds.add(entry.userId);
+        } catch (error) {
+          console.error(`[DEBUG] Error creating assignment for ${entry.userId} on ${entry.date}:`, error);
+        }
+      }
+    }
+
+    console.log(`[DEBUG] Generated ${generatedCount} assignments for ${affectedUserIds.size} users`);
+
     return {
-      generatedAssignments: 0,
-      affectedUsers: 0,
+      generatedAssignments: generatedCount,
+      affectedUsers: affectedUserIds.size,
       dateRange: `${startDate} to ${endDate}`
     };
   }
