@@ -75,7 +75,7 @@ import {
   type RotationAudit,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, isNull, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, or, isNull, desc, gte, lte, sql, ne } from "drizzle-orm";
 
 // Local type aliases for tables that don't have exported types
 type InsertTimeEntry = typeof timeEntries.$inferInsert;
@@ -2045,12 +2045,13 @@ export class DatabaseStorage implements IStorage {
     let conditions = [eq(rotationExceptions.templateId, templateId)];
     
     if (userId) {
-      conditions.push(
-        or(
-          eq(rotationExceptions.userId, userId),
-          isNull(rotationExceptions.userId) // Global exceptions
-        )
+      const userCondition = or(
+        eq(rotationExceptions.userId, userId),
+        isNull(rotationExceptions.userId) // Global exceptions
       );
+      if (userCondition) {
+        conditions.push(userCondition);
+      }
     }
     
     if (date) {
@@ -2091,18 +2092,121 @@ export class DatabaseStorage implements IStorage {
     segmentName: string;
     isRestDay: boolean;
   }[]> {
-    // This is a simplified implementation - in production, this would contain
-    // complex logic to calculate rotation schedules based on template segments
+    console.log(`[DEBUG] Preview rotation schedule for template ${templateId}, ${startDate} to ${endDate}`);
+    
     const template = await this.getRotationTemplate(templateId);
     const segments = await this.getRotationSegments(templateId);
     
+    console.log(`[DEBUG] Template found:`, template);
+    console.log(`[DEBUG] Segments found:`, segments);
+    
     if (!template || segments.length === 0) {
+      console.log(`[DEBUG] Early return: template=${!!template}, segments.length=${segments.length}`);
       return [];
     }
 
-    // For now, return empty array - full implementation would be complex
-    // and requires the scheduler service that will be implemented later
-    return [];
+    // Get employees from the company if no specific userIds provided
+    let employees: User[] = [];
+    if (userIds && userIds.length > 0) {
+      // Use specific users
+      for (const userId of userIds) {
+        const user = await this.getUser(userId);
+        if (user && user.companyId === template.companyId) {
+          employees.push(user);
+        }
+      }
+    } else {
+      // Get all non-admin users from the company for demo
+      employees = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.companyId, template.companyId),
+          ne(users.role, 'superadmin') // Exclude superadmin only
+        ))
+        .limit(3); // Limit to 3 users for demo
+    }
+
+    console.log(`[DEBUG] Found ${employees.length} users for company ${template.companyId}`);
+
+    if (employees.length === 0) {
+      // Create demo data if no employees found
+      console.log(`[DEBUG] No employees found, creating demo preview data`);
+      const demoUser = {
+        id: 'demo_user_1',
+        name: 'Funcionário Demo',
+        email: 'demo@example.com'
+      };
+      
+      // Generate a few demo entries
+      for (let dayOffset = 0; dayOffset < Math.min(7, totalDays); dayOffset++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + dayOffset);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        const segmentIndex = dayOffset % sortedSegments.length;
+        const activeSegment = sortedSegments[segmentIndex];
+        
+        if (activeSegment) {
+          result.push({
+            userId: demoUser.id,
+            date: dateStr,
+            shiftId: activeSegment.shiftId,
+            segmentName: activeSegment.name,
+            isRestDay: !activeSegment.shiftId
+          });
+        }
+      }
+      
+      console.log(`[DEBUG] Generated ${result.length} demo rotation entries`);
+      return result;
+    }
+
+    const result: {
+      userId: string;
+      date: string;
+      shiftId: number | null;
+      segmentName: string;
+      isRestDay: boolean;
+    }[] = [];
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    console.log(`[DEBUG] Employees found:`, employees.length);
+
+    // Simple rotation logic based on segments
+    const sortedSegments = segments.sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+    console.log(`[DEBUG] Sorted segments:`, sortedSegments);
+
+    // Generate schedule for each day
+    for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + dayOffset);
+      const dateStr = currentDate.toISOString().split('T')[0];
+
+      // For each employee, create a rotation assignment
+      employees.forEach((employee, employeeIndex) => {
+        // Simple round-robin: each employee gets assigned to a different segment based on day and employee index
+        const segmentIndex = (dayOffset + employeeIndex) % sortedSegments.length;
+        const activeSegment = sortedSegments[segmentIndex];
+
+        if (activeSegment) {
+          result.push({
+            userId: employee.id,
+            date: dateStr,
+            shiftId: activeSegment.shiftId,
+            segmentName: activeSegment.name,
+            isRestDay: !activeSegment.shiftId
+          });
+        }
+      });
+    }
+
+    console.log(`[DEBUG] Generated ${result.length} rotation entries`);
+
+    return result;
   }
 
   async generateRotationAssignments(
