@@ -79,8 +79,7 @@ async function createAuditLog(
       targetResource: targetId, // Fixed: use targetResource instead of targetId
       details: details ? JSON.stringify(details) : null,
       targetUserId,
-      success: true, // Mark as successful
-      createdAt: new Date(),
+      success: true // Mark as successful
     });
   } catch (error) {
     console.error("Failed to create audit log:", error);
@@ -1785,10 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const shiftId = parseInt(req.params.shiftId);
       
       // Validate input data using insertDepartmentShiftBreakSchema
-      const breakData = insertDepartmentShiftBreakSchema.parse({
-        ...req.body,
-        shiftId
-      });
+      const breakData = insertDepartmentShiftBreakSchema.parse(req.body);
       
       const newBreak = await storage.createShiftBreak({
         ...breakData,
@@ -1963,9 +1959,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Department not found" });
       }
 
+      // Get sector for geolocation (lat/lng moved from departments to sectors)
+      const sector = await storage.getSector(department.sectorId);
+      if (!sector) {
+        return res.status(400).json({ message: "Sector not found" });
+      }
+
       // Validate geolocation
-      const distance = calculateDistance(latitude, longitude, department.latitude, department.longitude);
-      const radius = department.radius || 100; // Default to 100m if null
+      const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
+      const radius = sector.radius || 100; // Default to 100m if null
       if (distance > radius) {
         return res.status(400).json({ 
           message: "Outside allowed location", 
@@ -2050,9 +2052,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Department not found" });
       }
 
+      // Get sector for geolocation (lat/lng moved from departments to sectors)
+      const sector = await storage.getSector(department.sectorId);
+      if (!sector) {
+        return res.status(400).json({ message: "Sector not found" });
+      }
+
       // Validate geolocation
-      const distance = calculateDistance(latitude, longitude, department.latitude, department.longitude);
-      const radius = department.radius || 100; // Default to 100m if null
+      const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
+      const radius = sector.radius || 100; // Default to 100m if null
       if (distance > radius) {
         return res.status(400).json({ 
           message: "Outside allowed location", 
