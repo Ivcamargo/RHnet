@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,6 +25,25 @@ import Training from "@/pages/training";
 import Sectors from "@/pages/sectors";
 import TimePeriods from "@/pages/admin/time-periods";
 
+// Protected route component that redirects to login if not authenticated
+function ProtectedRoute({ component: Component, ...props }: any) {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Redirect to="/login" />;
+  }
+  
+  return <Component {...props} />;
+}
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -45,24 +64,23 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       
-      {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/messages" component={Messages} />
-          <Route path="/documents" component={Documents} />
-          <Route path="/training" component={Training} />
-          <Route path="/time-clock" component={TimeClock} />
-          <Route path="/departments" component={Departments} />
-          <Route path="/holidays" component={Holidays} />
-          <Route path="/superadmin" component={SuperAdmin} />
-          <Route path="/reports" component={Reports} />
-          <Route path="/employees" component={Employees} />
-          <Route path="/sectors" component={Sectors} />
-          <Route path="/admin/time-periods" component={TimePeriods} />
-        </>
-      )}
+      {/* Landing page para usuários não autenticados */}
+      {!isAuthenticated && <Route path="/" component={Landing} />}
+      
+      {/* Rotas protegidas - redirecionam para login se não autenticado */}
+      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/messages" component={() => <ProtectedRoute component={Messages} />} />
+      <Route path="/documents" component={() => <ProtectedRoute component={Documents} />} />
+      <Route path="/training" component={() => <ProtectedRoute component={Training} />} />
+      <Route path="/time-clock" component={() => <ProtectedRoute component={TimeClock} />} />
+      <Route path="/departments" component={() => <ProtectedRoute component={Departments} />} />
+      <Route path="/holidays" component={() => <ProtectedRoute component={Holidays} />} />
+      <Route path="/superadmin" component={() => <ProtectedRoute component={SuperAdmin} />} />
+      <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
+      <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
+      <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} />} />
+      <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} />} />
+      
       <Route component={NotFound} />
     </Switch>
   );
