@@ -701,14 +701,41 @@ export default function Sectors() {
         <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center" data-testid="page-title">
-                <Building className="h-8 w-8 mr-3 text-blue-600" />
-                Gestão de Setores
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Gerencie setores, turnos de trabalho e atribuições de supervisores
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center" data-testid="page-title">
+                  <Building className="h-8 w-8 mr-3 text-blue-600" />
+                  Gestão de Setores
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Gerencie setores, turnos de trabalho e atribuições de supervisores
+                </p>
+              </div>
+              
+              {/* Botão Rotações */}
+              {currentUser && ('role' in currentUser) && (currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
+                <Button 
+                  onClick={() => window.location.href = '/admin/rotation-management'}
+                  className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white flex items-center gap-2"
+                  data-testid="button-rotations"
+                >
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                    />
+                  </svg>
+                  Rotações
+                </Button>
+              )}
             </div>
 
             <Tabs defaultValue="sectors" className="space-y-6">
