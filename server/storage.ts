@@ -119,6 +119,7 @@ export interface IStorage {
   
   // Department shift operations
   getDepartmentShifts(departmentId: number): Promise<DepartmentShift[]>;
+  getAllDepartmentShifts(companyId: number): Promise<DepartmentShift[]>;
   getDepartmentShift(id: number): Promise<DepartmentShift | undefined>;
   createDepartmentShift(shift: InsertDepartmentShift): Promise<DepartmentShift>;
   updateDepartmentShift(id: number, shift: Partial<InsertDepartmentShift>): Promise<DepartmentShift>;
@@ -582,6 +583,20 @@ export class DatabaseStorage implements IStorage {
         eq(departmentShifts.isActive, true)
       )
     );
+  }
+
+  async getAllDepartmentShifts(companyId: number): Promise<DepartmentShift[]> {
+    return await db
+      .select()
+      .from(departmentShifts)
+      .innerJoin(departments, eq(departmentShifts.departmentId, departments.id))
+      .where(
+        and(
+          eq(departments.companyId, companyId),
+          eq(departmentShifts.isActive, true)
+        )
+      )
+      .orderBy(departmentShifts.name);
   }
 
   async getDepartmentShift(id: number): Promise<DepartmentShift | undefined> {

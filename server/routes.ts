@@ -701,6 +701,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==== SHIFT ROUTES ====
+  
+  // Get all shifts (for rotation management)
+  app.get('/api/shifts', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user.companyId && scope.type !== 'superadmin') {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      // Get all shifts for the user's company
+      const shifts = await storage.getAllDepartmentShifts(scope.user.companyId);
+      res.json(shifts);
+    } catch (error) {
+      console.error("Error fetching all shifts:", error);
+      res.status(500).json({ message: "Failed to fetch shifts" });
+    }
+  });
+
   // ==== DEPARTMENT SHIFT ROUTES ====
   
   // Get shifts for a department
