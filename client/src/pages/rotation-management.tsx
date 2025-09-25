@@ -479,7 +479,10 @@ export default function RotationManagement() {
                                 variant={selectedTemplateId === template.id ? "default" : "outline"}
                                 onClick={() => {
                                   setSelectedTemplateId(template.id);
-                                  setActiveTab("segments");
+                                  toast({
+                                    title: "Template Selecionado",
+                                    description: "Agora vá para a aba 'Segmentos' para configurar os segmentos deste template.",
+                                  });
                                 }}
                                 data-testid={`button-manage-segments-${template.id}`}
                               >
