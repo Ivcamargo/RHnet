@@ -261,11 +261,12 @@ export default function Sectors() {
   const { data: availableEmployees = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
     select: (users: User[]) => {
-      console.log('All users from API:', users);
-      console.log('User roles found:', users.map(u => ({ email: u.email, role: u.role })));
-      const employees = users.filter(user => user.role === 'employee');
-      console.log('Filtered employees:', employees);
-      return employees;
+      // Include all users except superadmins (they manage multiple companies)
+      // This includes employees, admins, and supervisors who can be assigned to shifts
+      return users.filter(user => 
+        user.role !== 'superadmin' && 
+        user.isActive !== false // Exclude inactive users
+      );
     }
   });
 
