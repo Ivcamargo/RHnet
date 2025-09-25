@@ -476,8 +476,11 @@ export default function RotationManagement() {
                             <div className="flex space-x-2">
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => setSelectedTemplateId(template.id)}
+                                variant={selectedTemplateId === template.id ? "default" : "outline"}
+                                onClick={() => {
+                                  setSelectedTemplateId(template.id);
+                                  setActiveTab("segments");
+                                }}
                                 data-testid={`button-manage-segments-${template.id}`}
                               >
                                 <Settings className="h-4 w-4" />
