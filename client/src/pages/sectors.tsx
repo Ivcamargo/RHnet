@@ -260,7 +260,13 @@ export default function Sectors() {
   // Fetch employees for shift assignment
   const { data: availableEmployees = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    select: (users: User[]) => users.filter(user => user.role === 'employee')
+    select: (users: User[]) => {
+      console.log('All users from API:', users);
+      console.log('User roles found:', users.map(u => ({ email: u.email, role: u.role })));
+      const employees = users.filter(user => user.role === 'employee');
+      console.log('Filtered employees:', employees);
+      return employees;
+    }
   });
 
   // Fetch shift assignments when managing employees
