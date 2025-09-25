@@ -15,7 +15,8 @@ import {
   GraduationCap,
   Calendar,
   Upload,
-  Timer
+  Timer,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -50,6 +51,7 @@ export default function Sidebar() {
     { name: "Setores", href: "/sectors", icon: Building },
     { name: "Feriados", href: "/holidays", icon: Calendar },
     { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer },
+    { name: "Gestão de Rotações", href: "/admin/rotation-management", icon: RotateCcw },
   ];
 
   // Superadmin-only navigation items

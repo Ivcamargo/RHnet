@@ -72,6 +72,17 @@ Preferred communication style: Simple, everyday language.
 - **Comprehensive CRUD**: Full create, read, update, delete operations for shifts within sectors
 - **Architectural Decision**: Eliminated duplicate shift management functionality from departments page
 
+### Advanced Rotation Management System (NEW)
+- **Comprehensive Interface**: Complete administrative interface at `/admin/rotation-management` accessible via sidebar
+- **Template Creation**: Full CRUD operations for rotation templates with cadence types (daily, weekly, monthly, custom)
+- **Segment Configuration**: Detailed segment management for complex rotation patterns (12x36, sequential shifts, etc.)
+- **Automatic Schedule Generation**: Preview and generate employee shift assignments based on rotation templates
+- **Flexible Parameters**: Configurable cycle length, start days, and rotation patterns
+- **Complete Backend APIs**: 10 specialized endpoints for template, segment, and schedule management
+- **Audit Trail**: Full logging of all rotation changes and schedule generations
+- **Real-time Validation**: Sequential date validation for multiple shift assignments per employee
+- **Integration Ready**: Fully integrated with existing shift and employee management systems
+
 ### Employee-Shift Assignment System
 - **Advanced Assignment Management**: Complete system for linking employees to specific shifts with temporal controls
 - **Flexible Period Support**: Optional start/end dates for shift assignments enabling employee rotations and temporary assignments

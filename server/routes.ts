@@ -4104,14 +4104,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const templateData = insertRotationTemplateSchema.parse(req.body);
-      
-      // Ensure template belongs to user's company
-      const finalTemplateData = {
-        ...templateData,
+      // Prepare template data with required server-side fields
+      const templateDataWithDefaults = {
+        ...req.body,
         companyId: user.companyId,
         createdBy: user.id
       };
+      
+      // Now validate the complete data
+      const finalTemplateData = insertRotationTemplateSchema.parse(templateDataWithDefaults);
 
       const template = await storage.createRotationTemplate(finalTemplateData);
 
