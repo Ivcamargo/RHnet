@@ -74,7 +74,7 @@ export default function RotationManagement() {
   });
 
   const { data: segments = [], refetch: refetchSegments } = useQuery({
-    queryKey: ["/api/admin/rotation-templates", selectedTemplateId, "segments"],
+    queryKey: [`/api/admin/rotation-templates/${selectedTemplateId}/segments`],
     enabled: !!selectedTemplateId,
   });
 
@@ -164,6 +164,9 @@ export default function RotationManagement() {
       }),
     onSuccess: () => {
       refetchSegments();
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/admin/rotation-templates/${selectedTemplateId}/segments`] 
+      });
       setIsSegmentDialogOpen(false);
       segmentForm.reset();
       toast({
