@@ -734,14 +734,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(userShiftAssignments).where(eq(userShiftAssignments.userId, userId));
   }
 
-  async getShiftAssignments(shiftId: number): Promise<(SelectUserShiftAssignment & { user: User })[]> {
-    const result = await db
+  async getShiftAssignments(shiftId: number, includeRotationSchedule = true): Promise<(SelectUserShiftAssignment & { user: User })[]> {
+    // Get regular permanent assignments
+    const regularResult = await db
       .select()
       .from(userShiftAssignments)
       .innerJoin(users, eq(userShiftAssignments.userId, users.id))
       .where(eq(userShiftAssignments.shiftId, shiftId));
 
-    return result.map(row => ({
+    const regularAssignments = regularResult.map(row => ({
       id: row.user_shift_assignments.id,
       userId: row.user_shift_assignments.userId,
       shiftId: row.user_shift_assignments.shiftId,
@@ -753,6 +754,48 @@ export class DatabaseStorage implements IStorage {
       updatedAt: row.user_shift_assignments.updatedAt,
       user: row.users,
     }));
+
+    // If rotation schedule is not requested, return only regular assignments
+    if (!includeRotationSchedule) {
+      return regularAssignments;
+    }
+
+    // Get rotation assignments for current date range (today + next 30 days)
+    const today = new Date().toISOString().split('T')[0];
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+    const futureDateStr = futureDate.toISOString().split('T')[0];
+
+    const rotationResult = await db
+      .select()
+      .from(userShiftAssignments)
+      .innerJoin(users, eq(userShiftAssignments.userId, users.id))
+      .where(
+        and(
+          eq(userShiftAssignments.shiftId, shiftId),
+          eq(userShiftAssignments.assignmentType, 'temporary'), // Rotation assignments are marked as temporary
+          gte(userShiftAssignments.startDate, today),
+          lte(userShiftAssignments.startDate, futureDateStr)
+        )
+      );
+
+    const rotationAssignments = rotationResult.map(row => ({
+      id: row.user_shift_assignments.id,
+      userId: row.user_shift_assignments.userId,
+      shiftId: row.user_shift_assignments.shiftId,
+      startDate: row.user_shift_assignments.startDate,
+      endDate: row.user_shift_assignments.endDate,
+      assignmentType: row.user_shift_assignments.assignmentType,
+      isActive: row.user_shift_assignments.isActive,
+      createdAt: row.user_shift_assignments.createdAt,
+      updatedAt: row.user_shift_assignments.updatedAt,
+      user: row.users,
+    }));
+
+    console.log(`[DEBUG] Found ${regularAssignments.length} regular assignments and ${rotationAssignments.length} rotation assignments for shift ${shiftId}`);
+
+    // Combine regular and rotation assignments
+    return [...regularAssignments, ...rotationAssignments];
   }
 
   async getUserShiftAssignment(id: number): Promise<SelectUserShiftAssignment | undefined> {
@@ -2264,8 +2307,7 @@ export class DatabaseStorage implements IStorage {
             shiftId: entry.shiftId,
             startDate: entry.date,
             endDate: entry.date,
-            isTemporary: true, // Mark as temporary rotation assignment
-            assignedBy: performedBy
+            assignmentType: 'temporary' // Mark as temporary rotation assignment
           });
           
           generatedCount++;
