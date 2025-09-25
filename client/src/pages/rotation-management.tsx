@@ -227,7 +227,21 @@ export default function RotationManagement() {
 
   const handleCreateSegment = (data: RotationSegmentFormData) => {
     if (selectedTemplateId) {
-      createSegmentMutation.mutate({ ...data, templateId: selectedTemplateId });
+      // Find the selected shift to generate a name
+      const selectedShift = (shifts as any[] || []).find((shift: any) => {
+        const shiftData = shift.department_shifts || shift;
+        return shiftData && shiftData.id === data.shiftId;
+      });
+      
+      const shiftData = selectedShift?.department_shifts || selectedShift;
+      const shiftName = shiftData?.name || "Turno";
+      const generatedName = `${shiftName} - Ordem ${data.sequenceOrder}`;
+      
+      createSegmentMutation.mutate({ 
+        ...data, 
+        templateId: selectedTemplateId,
+        name: generatedName
+      });
     }
   };
 
