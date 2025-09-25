@@ -20,6 +20,12 @@ import {
   certificates,
   auditLog,
   timePeriods,
+  rotationTemplates,
+  rotationSegments,
+  rotationInstances,
+  rotationUserAssignments,
+  rotationExceptions,
+  rotationAudit,
   type User,
   type UpsertUser,
   type Department,
@@ -57,6 +63,16 @@ import {
   type InsertAuditLog,
   type TimePeriod,
   type InsertTimePeriod,
+  type RotationTemplate,
+  type InsertRotationTemplate,
+  type RotationSegment,
+  type InsertRotationSegment,
+  type RotationInstance,
+  type RotationUserAssignment,
+  type InsertRotationUserAssignment,
+  type RotationException,
+  type InsertRotationException,
+  type RotationAudit,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql } from "drizzle-orm";
@@ -246,6 +262,55 @@ export interface IStorage {
   closeTimePeriod(id: number, closedBy: string, reason: string): Promise<TimePeriod>;
   reopenTimePeriod(id: number, reopenedBy: string, reason: string): Promise<TimePeriod>;
   canModifyTimeEntries(companyId: number, date: string): Promise<boolean>;
+  
+  // Enhanced user shift assignment operations with sequential validation
+  validateSequentialAssignment(userId: string, shiftId: number, startDate?: string, endDate?: string, excludeAssignmentId?: number): Promise<{ valid: boolean; conflictingAssignments?: SelectUserShiftAssignment[] }>;
+  createUserShiftAssignmentWithValidation(assignment: InsertUserShiftAssignment): Promise<SelectUserShiftAssignment>;
+  
+  // Rotation template operations
+  getRotationTemplates(companyId: number, departmentId?: number): Promise<RotationTemplate[]>;
+  getRotationTemplate(id: number): Promise<RotationTemplate | undefined>;
+  createRotationTemplate(template: InsertRotationTemplate): Promise<RotationTemplate>;
+  updateRotationTemplate(id: number, template: Partial<InsertRotationTemplate>): Promise<RotationTemplate>;
+  deleteRotationTemplate(id: number): Promise<void>;
+  
+  // Rotation segment operations
+  getRotationSegments(templateId: number): Promise<RotationSegment[]>;
+  getRotationSegment(id: number): Promise<RotationSegment | undefined>;
+  createRotationSegment(segment: InsertRotationSegment): Promise<RotationSegment>;
+  updateRotationSegment(id: number, segment: Partial<InsertRotationSegment>): Promise<RotationSegment>;
+  deleteRotationSegment(id: number): Promise<void>;
+  
+  // Rotation user assignment operations
+  getRotationUserAssignments(templateId: number): Promise<RotationUserAssignment[]>;
+  getUserRotationAssignments(userId: string): Promise<RotationUserAssignment[]>;
+  getRotationUserAssignment(id: number): Promise<RotationUserAssignment | undefined>;
+  createRotationUserAssignment(assignment: InsertRotationUserAssignment): Promise<RotationUserAssignment>;
+  updateRotationUserAssignment(id: number, assignment: Partial<InsertRotationUserAssignment>): Promise<RotationUserAssignment>;
+  deleteRotationUserAssignment(id: number): Promise<void>;
+  
+  // Rotation exception operations
+  getRotationExceptions(templateId: number, userId?: string, date?: string): Promise<RotationException[]>;
+  createRotationException(exception: InsertRotationException): Promise<RotationException>;
+  deleteRotationException(id: number): Promise<void>;
+  
+  // Rotation scheduling and preview operations
+  previewRotationSchedule(templateId: number, startDate: string, endDate: string, userIds?: string[]): Promise<{
+    userId: string;
+    date: string;
+    shiftId: number | null;
+    segmentName: string;
+    isRestDay: boolean;
+  }[]>;
+  generateRotationAssignments(templateId: number, startDate: string, endDate: string, performedBy: string): Promise<{
+    generatedAssignments: number;
+    affectedUsers: number;
+    dateRange: string;
+  }>;
+  
+  // Rotation audit operations
+  createRotationAudit(audit: InsertRotationException): Promise<RotationAudit>;
+  getRotationAuditHistory(templateId: number, limit?: number): Promise<RotationAudit[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1725,6 +1790,328 @@ export class DatabaseStorage implements IStorage {
       );
     
     return closedPeriods.length === 0;
+  }
+
+  // Enhanced user shift assignment operations with sequential validation
+  async validateSequentialAssignment(
+    userId: string, 
+    shiftId: number, 
+    startDate?: string, 
+    endDate?: string, 
+    excludeAssignmentId?: number
+  ): Promise<{ valid: boolean; conflictingAssignments?: SelectUserShiftAssignment[] }> {
+    let conditions = [
+      eq(userShiftAssignments.userId, userId),
+      eq(userShiftAssignments.shiftId, shiftId),
+      eq(userShiftAssignments.isActive, true)
+    ];
+
+    // Exclude current assignment when updating
+    if (excludeAssignmentId) {
+      conditions.push(sql`${userShiftAssignments.id} != ${excludeAssignmentId}`);
+    }
+
+    const existingAssignments = await db
+      .select()
+      .from(userShiftAssignments)
+      .where(and(...conditions))
+      .orderBy(userShiftAssignments.startDate);
+
+    // If no date range provided, it's a permanent assignment - check for any overlap
+    if (!startDate || !endDate) {
+      return existingAssignments.length > 0 
+        ? { valid: false, conflictingAssignments: existingAssignments }
+        : { valid: true };
+    }
+
+    // Check for overlapping date ranges
+    const conflicts = existingAssignments.filter(assignment => {
+      // If existing assignment has no dates, it's permanent - conflict
+      if (!assignment.startDate || !assignment.endDate) {
+        return true;
+      }
+
+      const newStart = new Date(startDate);
+      const newEnd = new Date(endDate);
+      const existingStart = new Date(assignment.startDate);
+      const existingEnd = new Date(assignment.endDate);
+
+      // Check for any overlap: new assignment overlaps if it starts before existing ends
+      // and ends after existing starts
+      return newStart <= existingEnd && newEnd >= existingStart;
+    });
+
+    return conflicts.length > 0 
+      ? { valid: false, conflictingAssignments: conflicts }
+      : { valid: true };
+  }
+
+  async createUserShiftAssignmentWithValidation(assignment: InsertUserShiftAssignment): Promise<SelectUserShiftAssignment> {
+    // Validate sequential assignment
+    const validation = await this.validateSequentialAssignment(
+      assignment.userId,
+      assignment.shiftId,
+      assignment.startDate || undefined,
+      assignment.endDate || undefined
+    );
+
+    if (!validation.valid) {
+      throw new Error(
+        `Conflito de vinculação: Funcionário já possui vinculação neste turno para o período especificado. ` +
+        `Para múltiplas vinculações sequenciais, certifique-se de que a data final da vinculação anterior ` +
+        `seja menor que a data inicial da nova vinculação.`
+      );
+    }
+
+    // Create the assignment
+    return this.createUserShiftAssignment(assignment);
+  }
+
+  // Rotation template operations
+  async getRotationTemplates(companyId: number, departmentId?: number): Promise<RotationTemplate[]> {
+    let conditions = [eq(rotationTemplates.companyId, companyId)];
+    
+    if (departmentId) {
+      conditions.push(eq(rotationTemplates.departmentId, departmentId));
+    }
+
+    return await db
+      .select()
+      .from(rotationTemplates)
+      .where(and(...conditions))
+      .orderBy(rotationTemplates.name);
+  }
+
+  async getRotationTemplate(id: number): Promise<RotationTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(rotationTemplates)
+      .where(eq(rotationTemplates.id, id));
+    return template;
+  }
+
+  async createRotationTemplate(template: InsertRotationTemplate): Promise<RotationTemplate> {
+    const [newTemplate] = await db
+      .insert(rotationTemplates)
+      .values(template)
+      .returning();
+    return newTemplate;
+  }
+
+  async updateRotationTemplate(id: number, template: Partial<InsertRotationTemplate>): Promise<RotationTemplate> {
+    const [updatedTemplate] = await db
+      .update(rotationTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(rotationTemplates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  async deleteRotationTemplate(id: number): Promise<void> {
+    await db
+      .delete(rotationTemplates)
+      .where(eq(rotationTemplates.id, id));
+  }
+
+  // Rotation segment operations
+  async getRotationSegments(templateId: number): Promise<RotationSegment[]> {
+    return await db
+      .select()
+      .from(rotationSegments)
+      .where(eq(rotationSegments.templateId, templateId))
+      .orderBy(rotationSegments.sequenceOrder);
+  }
+
+  async getRotationSegment(id: number): Promise<RotationSegment | undefined> {
+    const [segment] = await db
+      .select()
+      .from(rotationSegments)
+      .where(eq(rotationSegments.id, id));
+    return segment;
+  }
+
+  async createRotationSegment(segment: InsertRotationSegment): Promise<RotationSegment> {
+    const [newSegment] = await db
+      .insert(rotationSegments)
+      .values(segment)
+      .returning();
+    return newSegment;
+  }
+
+  async updateRotationSegment(id: number, segment: Partial<InsertRotationSegment>): Promise<RotationSegment> {
+    const [updatedSegment] = await db
+      .update(rotationSegments)
+      .set({ ...segment, updatedAt: new Date() })
+      .where(eq(rotationSegments.id, id))
+      .returning();
+    return updatedSegment;
+  }
+
+  async deleteRotationSegment(id: number): Promise<void> {
+    await db
+      .delete(rotationSegments)
+      .where(eq(rotationSegments.id, id));
+  }
+
+  // Rotation user assignment operations
+  async getRotationUserAssignments(templateId: number): Promise<RotationUserAssignment[]> {
+    return await db
+      .select()
+      .from(rotationUserAssignments)
+      .where(
+        and(
+          eq(rotationUserAssignments.templateId, templateId),
+          eq(rotationUserAssignments.isActive, true)
+        )
+      );
+  }
+
+  async getUserRotationAssignments(userId: string): Promise<RotationUserAssignment[]> {
+    return await db
+      .select()
+      .from(rotationUserAssignments)
+      .where(
+        and(
+          eq(rotationUserAssignments.userId, userId),
+          eq(rotationUserAssignments.isActive, true)
+        )
+      );
+  }
+
+  async getRotationUserAssignment(id: number): Promise<RotationUserAssignment | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(rotationUserAssignments)
+      .where(eq(rotationUserAssignments.id, id));
+    return assignment;
+  }
+
+  async createRotationUserAssignment(assignment: InsertRotationUserAssignment): Promise<RotationUserAssignment> {
+    const [newAssignment] = await db
+      .insert(rotationUserAssignments)
+      .values(assignment)
+      .returning();
+    return newAssignment;
+  }
+
+  async updateRotationUserAssignment(id: number, assignment: Partial<InsertRotationUserAssignment>): Promise<RotationUserAssignment> {
+    const [updatedAssignment] = await db
+      .update(rotationUserAssignments)
+      .set(assignment)
+      .where(eq(rotationUserAssignments.id, id))
+      .returning();
+    return updatedAssignment;
+  }
+
+  async deleteRotationUserAssignment(id: number): Promise<void> {
+    await db
+      .update(rotationUserAssignments)
+      .set({ 
+        isActive: false,
+        deactivatedAt: new Date()
+      })
+      .where(eq(rotationUserAssignments.id, id));
+  }
+
+  // Rotation exception operations
+  async getRotationExceptions(templateId: number, userId?: string, date?: string): Promise<RotationException[]> {
+    let conditions = [eq(rotationExceptions.templateId, templateId)];
+    
+    if (userId) {
+      conditions.push(
+        or(
+          eq(rotationExceptions.userId, userId),
+          isNull(rotationExceptions.userId) // Global exceptions
+        )
+      );
+    }
+    
+    if (date) {
+      conditions.push(eq(rotationExceptions.exceptionDate, date));
+    }
+
+    return await db
+      .select()
+      .from(rotationExceptions)
+      .where(and(...conditions))
+      .orderBy(rotationExceptions.exceptionDate);
+  }
+
+  async createRotationException(exception: InsertRotationException): Promise<RotationException> {
+    const [newException] = await db
+      .insert(rotationExceptions)
+      .values(exception)
+      .returning();
+    return newException;
+  }
+
+  async deleteRotationException(id: number): Promise<void> {
+    await db
+      .delete(rotationExceptions)
+      .where(eq(rotationExceptions.id, id));
+  }
+
+  // Rotation scheduling and preview operations (simplified implementations)
+  async previewRotationSchedule(
+    templateId: number, 
+    startDate: string, 
+    endDate: string, 
+    userIds?: string[]
+  ): Promise<{
+    userId: string;
+    date: string;
+    shiftId: number | null;
+    segmentName: string;
+    isRestDay: boolean;
+  }[]> {
+    // This is a simplified implementation - in production, this would contain
+    // complex logic to calculate rotation schedules based on template segments
+    const template = await this.getRotationTemplate(templateId);
+    const segments = await this.getRotationSegments(templateId);
+    
+    if (!template || segments.length === 0) {
+      return [];
+    }
+
+    // For now, return empty array - full implementation would be complex
+    // and requires the scheduler service that will be implemented later
+    return [];
+  }
+
+  async generateRotationAssignments(
+    templateId: number, 
+    startDate: string, 
+    endDate: string, 
+    performedBy: string
+  ): Promise<{
+    generatedAssignments: number;
+    affectedUsers: number;
+    dateRange: string;
+  }> {
+    // Simplified implementation - would use scheduler service in production
+    return {
+      generatedAssignments: 0,
+      affectedUsers: 0,
+      dateRange: `${startDate} to ${endDate}`
+    };
+  }
+
+  // Rotation audit operations
+  async createRotationAudit(audit: any): Promise<RotationAudit> {
+    const [newAudit] = await db
+      .insert(rotationAudit)
+      .values(audit)
+      .returning();
+    return newAudit;
+  }
+
+  async getRotationAuditHistory(templateId: number, limit = 50): Promise<RotationAudit[]> {
+    return await db
+      .select()
+      .from(rotationAudit)
+      .where(eq(rotationAudit.templateId, templateId))
+      .orderBy(desc(rotationAudit.performedAt))
+      .limit(limit);
   }
 }
 
