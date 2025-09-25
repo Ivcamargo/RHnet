@@ -26,10 +26,15 @@ import {
   insertAuditLogSchema,
   insertSectorSchema,
   insertDepartmentShiftSchema,
+  insertDepartmentShiftBreakSchema,
   insertSupervisorAssignmentSchema,
   insertUserShiftAssignmentSchema,
   insertFaceProfileSchema,
   insertTimePeriodSchema,
+  insertRotationTemplateSchema,
+  insertRotationSegmentSchema,
+  insertRotationUserAssignmentSchema,
+  insertRotationExceptionSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -42,10 +47,15 @@ import {
   type InsertAuditLog,
   type InsertSector,
   type InsertDepartmentShift,
+  type InsertDepartmentShiftBreak,
   type InsertSupervisorAssignment,
   type InsertUserShiftAssignment,
   type InsertFaceProfile,
-  type InsertTimePeriod
+  type InsertTimePeriod,
+  type InsertRotationTemplate,
+  type InsertRotationSegment,
+  type InsertRotationUserAssignment,
+  type InsertRotationException
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -4046,6 +4056,424 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // ROTATION API ROUTES (Admin only)
+  
+  // Get rotation templates for company
+  app.get('/api/admin/rotation-templates', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { departmentId } = req.query;
+      const departmentIdNum = departmentId ? parseInt(departmentId as string) : undefined;
+
+      const templates = await storage.getRotationTemplates(user.companyId, departmentIdNum);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching rotation templates:", error);
+      res.status(500).json({ message: "Failed to fetch rotation templates" });
+    }
+  });
+
+  // Create rotation template
+  app.post('/api/admin/rotation-templates', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templateData = insertRotationTemplateSchema.parse(req.body);
+      
+      // Ensure template belongs to user's company
+      const finalTemplateData = {
+        ...templateData,
+        companyId: user.companyId,
+        createdBy: user.id
+      };
+
+      const template = await storage.createRotationTemplate(finalTemplateData);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'create',
+        'rotation_template',
+        template.id.toString(),
+        { templateName: template.name }
+      );
+
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating rotation template:", error);
+      res.status(500).json({ message: "Failed to create rotation template" });
+    }
+  });
+
+  // Update rotation template
+  app.put('/api/admin/rotation-templates/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const existingTemplate = await storage.getRotationTemplate(id);
+      
+      if (!existingTemplate || existingTemplate.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      const updateData = insertRotationTemplateSchema.partial().parse(req.body);
+      const updatedTemplate = await storage.updateRotationTemplate(id, updateData);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'update',
+        'rotation_template',
+        id.toString(),
+        { oldTemplate: existingTemplate, newTemplate: updatedTemplate }
+      );
+
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error("Error updating rotation template:", error);
+      res.status(500).json({ message: "Failed to update rotation template" });
+    }
+  });
+
+  // Delete rotation template
+  app.delete('/api/admin/rotation-templates/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const existingTemplate = await storage.getRotationTemplate(id);
+      
+      if (!existingTemplate || existingTemplate.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      await storage.deleteRotationTemplate(id);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'delete',
+        'rotation_template',
+        id.toString(),
+        { templateName: existingTemplate.name }
+      );
+
+      res.json({ message: "Rotation template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting rotation template:", error);
+      res.status(500).json({ message: "Failed to delete rotation template" });
+    }
+  });
+
+  // Get rotation segments for a template
+  app.get('/api/admin/rotation-templates/:id/segments', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getRotationTemplate(templateId);
+      
+      if (!template || template.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      const segments = await storage.getRotationSegments(templateId);
+      res.json(segments);
+    } catch (error) {
+      console.error("Error fetching rotation segments:", error);
+      res.status(500).json({ message: "Failed to fetch rotation segments" });
+    }
+  });
+
+  // Create rotation segment
+  app.post('/api/admin/rotation-segments', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const segmentData = insertRotationSegmentSchema.parse(req.body);
+      
+      // Verify template belongs to user's company
+      const template = await storage.getRotationTemplate(segmentData.templateId);
+      if (!template || template.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      const segment = await storage.createRotationSegment(segmentData);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'create',
+        'rotation_segment',
+        segment.id.toString(),
+        { segmentName: segment.name, templateId: segmentData.templateId }
+      );
+
+      res.status(201).json(segment);
+    } catch (error) {
+      console.error("Error creating rotation segment:", error);
+      res.status(500).json({ message: "Failed to create rotation segment" });
+    }
+  });
+
+  // Update rotation segment
+  app.put('/api/admin/rotation-segments/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const existingSegment = await storage.getRotationSegment(id);
+      
+      if (!existingSegment) {
+        return res.status(404).json({ message: "Rotation segment not found" });
+      }
+
+      // Verify template belongs to user's company
+      const template = await storage.getRotationTemplate(existingSegment.templateId);
+      if (!template || template.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      const updateData = insertRotationSegmentSchema.partial().parse(req.body);
+      const updatedSegment = await storage.updateRotationSegment(id, updateData);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'update',
+        'rotation_segment',
+        id.toString(),
+        { oldSegment: existingSegment, newSegment: updatedSegment }
+      );
+
+      res.json(updatedSegment);
+    } catch (error) {
+      console.error("Error updating rotation segment:", error);
+      res.status(500).json({ message: "Failed to update rotation segment" });
+    }
+  });
+
+  // Delete rotation segment
+  app.delete('/api/admin/rotation-segments/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const existingSegment = await storage.getRotationSegment(id);
+      
+      if (!existingSegment) {
+        return res.status(404).json({ message: "Rotation segment not found" });
+      }
+
+      // Verify template belongs to user's company
+      const template = await storage.getRotationTemplate(existingSegment.templateId);
+      if (!template || template.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      await storage.deleteRotationSegment(id);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'delete',
+        'rotation_segment',
+        id.toString(),
+        { segmentName: existingSegment.name, templateId: existingSegment.templateId }
+      );
+
+      res.json({ message: "Rotation segment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting rotation segment:", error);
+      res.status(500).json({ message: "Failed to delete rotation segment" });
+    }
+  });
+
+  // Preview rotation schedule
+  app.post('/api/admin/rotation-templates/:id/preview', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getRotationTemplate(templateId);
+      
+      if (!template || template.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      const { startDate, endDate, userIds } = req.body;
+
+      const previewData = await storage.previewRotationSchedule(
+        templateId,
+        startDate,
+        endDate,
+        userIds
+      );
+
+      res.json(previewData);
+    } catch (error) {
+      console.error("Error generating rotation preview:", error);
+      res.status(500).json({ message: "Failed to generate rotation preview" });
+    }
+  });
+
+  // Generate rotation assignments
+  app.post('/api/admin/rotation-templates/:id/generate', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !user.companyId) {
+        return res.status(404).json({ message: "User not found or not assigned to company" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getRotationTemplate(templateId);
+      
+      if (!template || template.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Rotation template not found" });
+      }
+
+      const { startDate, endDate } = req.body;
+
+      const result = await storage.generateRotationAssignments(
+        templateId,
+        startDate,
+        endDate,
+        user.id
+      );
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'generate_rotation',
+        'rotation_template',
+        templateId.toString(),
+        { 
+          templateName: template.name,
+          dateRange: result.dateRange,
+          generatedAssignments: result.generatedAssignments,
+          affectedUsers: result.affectedUsers
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating rotation assignments:", error);
+      res.status(500).json({ message: "Failed to generate rotation assignments" });
+    }
+  });
+
+  // Enhanced user shift assignment with validation
+  app.post('/api/user-shift-assignments/validated', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const assignmentData = insertUserShiftAssignmentSchema.parse(req.body);
+
+      // Verify target user is from the same company
+      const targetUser = await storage.getUser(assignmentData.userId);
+      if (!targetUser || targetUser.companyId !== user.companyId) {
+        return res.status(400).json({ message: "User must be from your company" });
+      }
+
+      // Create assignment with validation
+      const assignment = await storage.createUserShiftAssignmentWithValidation(assignmentData);
+
+      await createAuditLog(
+        user.id,
+        user.companyId,
+        'create',
+        'user_shift_assignment',
+        assignment.id.toString(),
+        assignmentData,
+        targetUser.id
+      );
+
+      res.status(201).json(assignment);
+    } catch (error) {
+      console.error("Error creating validated user shift assignment:", error);
+      if (error instanceof Error && error.message.includes('Conflito de vinculação')) {
+        res.status(409).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to create shift assignment" });
+      }
     }
   });
 
