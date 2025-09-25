@@ -587,7 +587,19 @@ export class DatabaseStorage implements IStorage {
 
   async getAllDepartmentShifts(companyId: number): Promise<DepartmentShift[]> {
     return await db
-      .select()
+      .select({
+        id: departmentShifts.id,
+        departmentId: departmentShifts.departmentId,
+        name: departmentShifts.name,
+        startTime: departmentShifts.startTime,
+        endTime: departmentShifts.endTime,
+        daysOfWeek: departmentShifts.daysOfWeek,
+        isActive: departmentShifts.isActive,
+        createdAt: departmentShifts.createdAt,
+        updatedAt: departmentShifts.updatedAt,
+        breakStart: departmentShifts.breakStart,
+        breakEnd: departmentShifts.breakEnd,
+      })
       .from(departmentShifts)
       .innerJoin(departments, eq(departmentShifts.departmentId, departments.id))
       .where(
