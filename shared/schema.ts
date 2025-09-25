@@ -144,7 +144,10 @@ export const userShiftAssignments = pgTable("user_shift_assignments", {
     columns: [table.shiftId],
     foreignColumns: [departmentShifts.id],
   }).onDelete('cascade'),
-  uniqueUserShiftActive: uniqueIndex("unique_user_shift_active").on(table.userId, table.shiftId, table.isActive),
+  // Removed unique constraint to allow multiple sequential assignments
+  // Instead, validation will be handled in business logic to ensure:
+  // 1. No overlapping date ranges for same user+shift
+  // 2. Sequential assignments have endDate < next.startDate
 }));
 
 // Department shift breaks - configurable breaks for each shift
@@ -989,3 +992,232 @@ export const clockOutSchema = z.object({
   faceRecognitionData: z.any().optional(),
 });
 export type ClockOutRequest = z.infer<typeof clockOutSchema>;
+
+// ========================================================================================
+// ROTATION MANAGEMENT SYSTEM
+// ========================================================================================
+
+// Rotation templates - configurable rotation patterns (12x36, weekly cycles, etc.)
+export const rotationTemplates = pgTable("rotation_templates", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  departmentId: integer("department_id"), // Optional - can apply to entire company
+  name: varchar("name").notNull(), // "Revezamento 12x36", "Escala Semanal"
+  description: text("description"),
+  cadenceType: varchar("cadence_type").notNull(), // "daily", "weekly", "monthly", "custom"
+  cycleLength: integer("cycle_length").notNull(), // Number of segments in one complete cycle
+  startsOn: varchar("starts_on").default("monday"), // "monday", "first_day", etc.
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  departmentReference: foreignKey({
+    columns: [table.departmentId],
+    foreignColumns: [departments.id],
+  }).onDelete('cascade'),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Rotation segments - individual parts of a rotation cycle
+export const rotationSegments = pgTable("rotation_segments", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull(),
+  sequenceOrder: integer("sequence_order").notNull(), // 1, 2, 3... within the cycle
+  shiftId: integer("shift_id"), // Optional - null for rest periods
+  name: varchar("name").notNull(), // "Manhã Semana 1", "Descanso", "Tarde"
+  workDurationHours: decimal("work_duration_hours", { precision: 4, scale: 2 }), // 12.0 for 12x36
+  restDurationHours: decimal("rest_duration_hours", { precision: 4, scale: 2 }), // 36.0 for 12x36
+  daysOfWeekMask: integer("days_of_week_mask").array(), // [1,2,3,4,5] for Mon-Fri
+  consecutiveDays: integer("consecutive_days").default(1), // How many consecutive days this segment applies
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  templateReference: foreignKey({
+    columns: [table.templateId],
+    foreignColumns: [rotationTemplates.id],
+  }).onDelete('cascade'),
+  shiftReference: foreignKey({
+    columns: [table.shiftId],
+    foreignColumns: [departmentShifts.id],
+  }).onDelete('set null'),
+  uniqueTemplateSequence: uniqueIndex("unique_template_sequence").on(table.templateId, table.sequenceOrder),
+}));
+
+// Rotation instances - generated cycles with specific date ranges
+export const rotationInstances = pgTable("rotation_instances", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull(),
+  cycleNumber: integer("cycle_number").notNull(), // 1, 2, 3... for tracking cycles
+  effectiveStart: date("effective_start").notNull(),
+  effectiveEnd: date("effective_end").notNull(),
+  status: varchar("status").default("active"), // "active", "completed", "cancelled"
+  generatedAt: timestamp("generated_at").defaultNow(),
+  generatedBy: varchar("generated_by"), // User who triggered generation
+}, (table) => ({
+  templateReference: foreignKey({
+    columns: [table.templateId],
+    foreignColumns: [rotationTemplates.id],
+  }).onDelete('cascade'),
+  generatedByReference: foreignKey({
+    columns: [table.generatedBy],
+    foreignColumns: [users.id],
+  }),
+  uniqueTemplateCycle: uniqueIndex("unique_template_cycle").on(table.templateId, table.cycleNumber),
+}));
+
+// User assignments to rotation templates
+export const rotationUserAssignments = pgTable("rotation_user_assignments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  templateId: integer("template_id").notNull(),
+  anchorDate: date("anchor_date").notNull(), // Starting reference date for this user's rotation
+  startingSegmentOrder: integer("starting_segment_order").default(1), // Which segment to start with
+  activeInstanceId: integer("active_instance_id"), // Current active rotation instance
+  isActive: boolean("is_active").default(true),
+  assignedBy: varchar("assigned_by").notNull(),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  deactivatedAt: timestamp("deactivated_at"),
+  deactivatedBy: varchar("deactivated_by"),
+}, (table) => ({
+  userReference: foreignKey({
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  templateReference: foreignKey({
+    columns: [table.templateId],
+    foreignColumns: [rotationTemplates.id],
+  }).onDelete('cascade'),
+  activeInstanceReference: foreignKey({
+    columns: [table.activeInstanceId],
+    foreignColumns: [rotationInstances.id],
+  }).onDelete('set null'),
+  assignedByReference: foreignKey({
+    columns: [table.assignedBy],
+    foreignColumns: [users.id],
+  }),
+  deactivatedByReference: foreignKey({
+    columns: [table.deactivatedBy],
+    foreignColumns: [users.id],
+  }),
+  uniqueUserTemplate: uniqueIndex("unique_user_template_active").on(table.userId, table.templateId, table.isActive),
+}));
+
+// Exceptions for rotation scheduling (holidays, manual overrides)
+export const rotationExceptions = pgTable("rotation_exceptions", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id"),
+  userId: varchar("user_id"), // If null, applies to all users in template
+  exceptionDate: date("exception_date").notNull(),
+  originalShiftId: integer("original_shift_id"), // What was originally scheduled
+  overrideShiftId: integer("override_shift_id"), // What to schedule instead (null = day off)
+  reason: varchar("reason").notNull(), // "holiday", "manual_override", "sick_leave", etc.
+  notes: text("notes"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  templateReference: foreignKey({
+    columns: [table.templateId],
+    foreignColumns: [rotationTemplates.id],
+  }).onDelete('cascade'),
+  userReference: foreignKey({
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  originalShiftReference: foreignKey({
+    columns: [table.originalShiftId],
+    foreignColumns: [departmentShifts.id],
+  }),
+  overrideShiftReference: foreignKey({
+    columns: [table.overrideShiftId],
+    foreignColumns: [departmentShifts.id],
+  }),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Audit trail for rotation recalculations and changes
+export const rotationAudit = pgTable("rotation_audit", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull(),
+  action: varchar("action").notNull(), // "template_created", "assignments_generated", "manual_override", etc.
+  affectedUsers: integer("affected_users").default(0), // How many users were impacted
+  dateRange: varchar("date_range"), // "2024-01-01 to 2024-01-31"
+  oldAssignmentCount: integer("old_assignment_count").default(0),
+  newAssignmentCount: integer("new_assignment_count").default(0),
+  details: jsonb("details"), // Additional details about the change
+  performedBy: varchar("performed_by").notNull(),
+  performedAt: timestamp("performed_at").defaultNow(),
+}, (table) => ({
+  templateReference: foreignKey({
+    columns: [table.templateId],
+    foreignColumns: [rotationTemplates.id],
+  }).onDelete('cascade'),
+  performedByReference: foreignKey({
+    columns: [table.performedBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// ========================================================================================
+// ROTATION SCHEMA TYPES AND VALIDATION
+// ========================================================================================
+
+export type RotationTemplate = typeof rotationTemplates.$inferSelect;
+export type RotationSegment = typeof rotationSegments.$inferSelect;
+export type RotationInstance = typeof rotationInstances.$inferSelect;
+export type RotationUserAssignment = typeof rotationUserAssignments.$inferSelect;
+export type RotationException = typeof rotationExceptions.$inferSelect;
+export type RotationAudit = typeof rotationAudit.$inferSelect;
+
+export const insertRotationTemplateSchema = createInsertSchema(rotationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertRotationTemplate = z.infer<typeof insertRotationTemplateSchema>;
+
+export const insertRotationSegmentSchema = createInsertSchema(rotationSegments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertRotationSegment = z.infer<typeof insertRotationSegmentSchema>;
+
+export const insertRotationUserAssignmentSchema = createInsertSchema(rotationUserAssignments).omit({
+  id: true,
+  assignedAt: true,
+  deactivatedAt: true,
+});
+export type InsertRotationUserAssignment = z.infer<typeof insertRotationUserAssignmentSchema>;
+
+export const insertRotationExceptionSchema = createInsertSchema(rotationExceptions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertRotationException = z.infer<typeof insertRotationExceptionSchema>;
+
+// Enhanced user shift assignment validation for sequential assignments
+export const insertUserShiftAssignmentSequentialSchema = insertUserShiftAssignmentSchema.extend({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+}).refine((data) => {
+  // If both dates are provided, endDate must be after startDate
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) > new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "Data final deve ser posterior à data inicial",
+  path: ["endDate"]
+});
