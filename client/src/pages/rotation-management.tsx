@@ -443,7 +443,7 @@ export default function RotationManagement() {
                 </div>
 
                 <div className="grid gap-4">
-                  {rotationTemplates.length === 0 ? (
+                  {(rotationTemplates as any[] || []).length === 0 ? (
                     <Card>
                       <CardContent className="text-center py-8">
                         <RotateCcw className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -454,7 +454,7 @@ export default function RotationManagement() {
                       </CardContent>
                     </Card>
                   ) : (
-                    rotationTemplates.map((template: any) => (
+                    (rotationTemplates as any[] || []).map((template: any) => (
                       <Card key={template.id} data-testid={`card-template-${template.id}`}>
                         <CardHeader>
                           <div className="flex justify-between items-start">
@@ -567,7 +567,7 @@ export default function RotationManagement() {
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent>
-                                        {shifts.map((shift: any) => (
+                                        {(shifts as any[] || []).map((shift: any) => (
                                           <SelectItem key={shift.id} value={shift.id.toString()}>
                                             {shift.name} ({shift.startTime} - {shift.endTime})
                                           </SelectItem>
@@ -650,7 +650,7 @@ export default function RotationManagement() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {segments.length === 0 ? (
+                            {(segments as any[] || []).length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={4} className="text-center py-8">
                                   <Settings className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -658,11 +658,11 @@ export default function RotationManagement() {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              segments.map((segment: any) => (
+                              (segments as any[] || []).map((segment: any) => (
                                 <TableRow key={segment.id} data-testid={`row-segment-${segment.id}`}>
                                   <TableCell>{segment.sequenceOrder}</TableCell>
                                   <TableCell>
-                                    {shifts.find((s: any) => s.id === segment.shiftId)?.name || "Turno não encontrado"}
+                                    {(shifts as any[] || []).find((s: any) => s.id === segment.shiftId)?.name || "Turno não encontrado"}
                                   </TableCell>
                                   <TableCell>{segment.daysCount}</TableCell>
                                   <TableCell>
