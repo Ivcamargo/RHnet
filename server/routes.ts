@@ -1960,7 +1960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Already clocked in" });
       }
 
-      const { latitude, longitude, faceRecognitionData }: ClockInRequest = clockInSchema.parse(req.body);
+      const { latitude, longitude, faceRecognitionData, locationFallback }: ClockInRequest = clockInSchema.parse(req.body);
       
       // Get current date and check if period is closed
       const now = getBrazilianTime();
@@ -1973,27 +1973,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Get department for geofence validation
-      const department = await storage.getDepartment(user.departmentId);
-      if (!department) {
-        return res.status(400).json({ message: "Department not found" });
-      }
+      // Skip geolocation validation if this is a fallback registration (camera not available)
+      if (!locationFallback) {
+        // Get department for geofence validation
+        const department = await storage.getDepartment(user.departmentId);
+        if (!department) {
+          return res.status(400).json({ message: "Department not found" });
+        }
 
-      // Get sector for geolocation (lat/lng moved from departments to sectors)
-      const sector = await storage.getSector(department.sectorId);
-      if (!sector) {
-        return res.status(400).json({ message: "Sector not found" });
-      }
+        // Get sector for geolocation (lat/lng moved from departments to sectors)
+        const sector = await storage.getSector(department.sectorId);
+        if (!sector) {
+          return res.status(400).json({ message: "Sector not found" });
+        }
 
-      // Validate geolocation
-      const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
-      const radius = sector.radius || 100; // Default to 100m if null
-      if (distance > radius) {
-        return res.status(400).json({ 
-          message: "Outside allowed location", 
-          distance: Math.round(distance),
-          maxDistance: radius 
-        });
+        // Validate geolocation only if sector has valid coordinates
+        if (sector.latitude !== 0 || sector.longitude !== 0) {
+          const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
+          const radius = sector.radius || 100; // Default to 100m if null
+          if (distance > radius) {
+            return res.status(400).json({ 
+              message: "Outside allowed location", 
+              distance: Math.round(distance),
+              maxDistance: radius 
+            });
+          }
+        }
       }
 
       // Process facial recognition data
@@ -2064,29 +2069,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { latitude, longitude, faceRecognitionData }: ClockOutRequest = clockOutSchema.parse(req.body);
+      const { latitude, longitude, faceRecognitionData, locationFallback }: ClockOutRequest = clockOutSchema.parse(req.body);
       
-      // Get department for geofence validation
-      const department = await storage.getDepartment(user.departmentId);
-      if (!department) {
-        return res.status(400).json({ message: "Department not found" });
-      }
+      // Skip geolocation validation if this is a fallback registration (camera not available)
+      if (!locationFallback) {
+        // Get department for geofence validation
+        const department = await storage.getDepartment(user.departmentId);
+        if (!department) {
+          return res.status(400).json({ message: "Department not found" });
+        }
 
-      // Get sector for geolocation (lat/lng moved from departments to sectors)
-      const sector = await storage.getSector(department.sectorId);
-      if (!sector) {
-        return res.status(400).json({ message: "Sector not found" });
-      }
+        // Get sector for geolocation (lat/lng moved from departments to sectors)
+        const sector = await storage.getSector(department.sectorId);
+        if (!sector) {
+          return res.status(400).json({ message: "Sector not found" });
+        }
 
-      // Validate geolocation
-      const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
-      const radius = sector.radius || 100; // Default to 100m if null
-      if (distance > radius) {
-        return res.status(400).json({ 
-          message: "Outside allowed location", 
-          distance: Math.round(distance),
-          maxDistance: radius 
-        });
+        // Validate geolocation only if sector has valid coordinates
+        if (sector.latitude !== 0 || sector.longitude !== 0) {
+          const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
+          const radius = sector.radius || 100; // Default to 100m if null
+          if (distance > radius) {
+            return res.status(400).json({ 
+              message: "Outside allowed location", 
+              distance: Math.round(distance),
+              maxDistance: radius 
+            });
+          }
+        }
       }
 
       const now = getBrazilianTime();

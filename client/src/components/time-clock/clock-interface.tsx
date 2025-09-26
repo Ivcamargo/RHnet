@@ -319,7 +319,7 @@ export default function ClockInterface() {
       latitude: coords.latitude,
       longitude: coords.longitude,
       faceRecognitionData: faceData,
-      locationFallback: !location, // Indica se usou coordenadas padrão
+      locationFallback: !location || faceData?.noPhoto, // Indica se usou coordenadas padrão ou registrou sem foto
     };
 
     if (clockStatus?.isClocked) {

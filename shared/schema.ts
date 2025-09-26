@@ -983,6 +983,7 @@ export const clockInSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   faceRecognitionData: z.any().optional(),
+  locationFallback: z.boolean().optional(),
 });
 export type ClockInRequest = z.infer<typeof clockInSchema>;
 
@@ -990,6 +991,7 @@ export const clockOutSchema = z.object({
   latitude: z.number(),
   longitude: z.number(),
   faceRecognitionData: z.any().optional(),
+  locationFallback: z.boolean().optional(),
 });
 export type ClockOutRequest = z.infer<typeof clockOutSchema>;
 
