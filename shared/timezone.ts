@@ -5,8 +5,34 @@
  */
 export function getBrazilianTime(): Date {
   const now = new Date();
-  // Criar uma data ajustada para GMT-3 (São Paulo)
-  const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+  // Usar Intl.DateTimeFormat para obter o offset correto do timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const partObj = parts.reduce((obj, part) => {
+    obj[part.type] = part.value;
+    return obj;
+  }, {} as any);
+  
+  // Criar Date object com horário brasileiro correto
+  const brazilTime = new Date(
+    parseInt(partObj.year),
+    parseInt(partObj.month) - 1, // Month é 0-indexed
+    parseInt(partObj.day),
+    parseInt(partObj.hour),
+    parseInt(partObj.minute),
+    parseInt(partObj.second)
+  );
+  
   return brazilTime;
 }
 
@@ -15,7 +41,36 @@ export function getBrazilianTime(): Date {
  */
 export function convertToLocal(utcDate: Date | string): Date {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  return new Date(date.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+  
+  // Usar Intl.DateTimeFormat para obter o horário correto no timezone brasileiro
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const partObj = parts.reduce((obj, part) => {
+    obj[part.type] = part.value;
+    return obj;
+  }, {} as any);
+  
+  // Criar Date object com horário brasileiro correto
+  const localTime = new Date(
+    parseInt(partObj.year),
+    parseInt(partObj.month) - 1, // Month é 0-indexed
+    parseInt(partObj.day),
+    parseInt(partObj.hour),
+    parseInt(partObj.minute),
+    parseInt(partObj.second)
+  );
+  
+  return localTime;
 }
 
 /**
