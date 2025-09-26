@@ -1009,6 +1009,27 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(timeEntries.date));
   }
 
+  async getTimeEntriesByDate(date: string, companyId: number): Promise<TimeEntry[]> {
+    return await db
+      .select()
+      .from(timeEntries)
+      .leftJoin(users, eq(timeEntries.userId, users.id))
+      .where(and(
+        eq(timeEntries.date, date),
+        eq(users.companyId, companyId)
+      ))
+      .orderBy(desc(timeEntries.clockInTime));
+  }
+
+  async getTimeEntry(id: number): Promise<TimeEntry | null> {
+    const [entry] = await db
+      .select()
+      .from(timeEntries)
+      .where(eq(timeEntries.id, id))
+      .limit(1);
+    return entry || null;
+  }
+
   // Manual time entry operations
   async createManualTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
     const [newEntry] = await db.insert(timeEntries).values({

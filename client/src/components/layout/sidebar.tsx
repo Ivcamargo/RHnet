@@ -50,6 +50,7 @@ export default function Sidebar() {
     { name: "Setores", href: "/sectors", icon: Building },
     { name: "Feriados", href: "/holidays", icon: Calendar },
     { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer },
+    { name: "Administrar Pontos", href: "/admin/time-entries", icon: Clock },
   ];
 
   // Superadmin-only navigation items

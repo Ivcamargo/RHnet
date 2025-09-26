@@ -2663,6 +2663,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Time Entries Management Routes
+  
+  // Get time entries for a specific date (admin only)
+  app.get('/api/admin/time-entries', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!currentUser?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const { date } = req.query;
+      if (!date) {
+        return res.status(400).json({ message: "Date parameter is required" });
+      }
+
+      // Get all time entries for the specified date within the admin's company
+      const timeEntries = await storage.getTimeEntriesByDate(date as string, currentUser.companyId);
+      
+      // Enrich entries with user and department information
+      const enrichedEntries = await Promise.all(
+        timeEntries.map(async (entry) => {
+          const user = await storage.getUser(entry.userId);
+          const department = entry.departmentId ? await storage.getDepartment(entry.departmentId) : null;
+          
+          return {
+            ...entry,
+            user: user ? {
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+            } : null,
+            department: department ? {
+              name: department.name,
+            } : null,
+          };
+        })
+      );
+      
+      res.json(enrichedEntries);
+    } catch (error) {
+      console.error("Error fetching admin time entries:", error);
+      res.status(500).json({ message: "Failed to fetch time entries" });
+    }
+  });
+
+  // Edit time entry (admin only)
+  app.put('/api/admin/time-entries/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!currentUser?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const entryId = parseInt(req.params.id);
+      const { clockInTime, clockOutTime, justification } = req.body;
+
+      if (!justification || justification.length < 5) {
+        return res.status(400).json({ message: "Justification is required and must be at least 5 characters long" });
+      }
+
+      // Get the existing time entry
+      const existingEntry = await storage.getTimeEntry(entryId);
+      if (!existingEntry) {
+        return res.status(404).json({ message: "Time entry not found" });
+      }
+
+      // Verify the entry belongs to the admin's company
+      const entryUser = await storage.getUser(existingEntry.userId);
+      if (!entryUser || entryUser.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied: time entry not accessible" });
+      }
+
+      // Check if the date is within a closed period
+      const canModify = await storage.canModifyTimeEntries(currentUser.companyId, existingEntry.date);
+      if (!canModify) {
+        return res.status(403).json({ 
+          message: "Período fechado - não é possível editar registros nesta data",
+          code: "PERIOD_CLOSED"
+        });
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        clockInTime: new Date(clockInTime),
+        justification: `${existingEntry.justification || ''}\n[EDITADO ADMIN]: ${justification}`.trim(),
+        lastModifiedBy: currentUser.id,
+        lastModifiedAt: getBrazilianTime(),
+      };
+
+      if (clockOutTime && clockOutTime.trim() !== '') {
+        updateData.clockOutTime = new Date(clockOutTime);
+        updateData.status = 'completed';
+        
+        // Recalculate total hours
+        const grossHours = calculateHours(updateData.clockInTime, updateData.clockOutTime);
+        updateData.totalHours = grossHours.toString();
+        
+        // Calculate net worked hours and overtime
+        const tempEntry = { ...existingEntry, ...updateData };
+        const netWorkedHours = await computeNetWorkedHours(tempEntry, storage as any);
+        const { regularHours, overtimeHours } = await calculateOvertimeHours(
+          netWorkedHours, 
+          existingEntry.departmentId, 
+          storage as any
+        );
+        
+        updateData.regularHours = regularHours.toString();
+        updateData.overtimeHours = overtimeHours.toString();
+      } else {
+        // If no clock out time provided, clear existing clock out data
+        updateData.clockOutTime = null;
+        updateData.status = 'active';
+        updateData.totalHours = null;
+        updateData.regularHours = null;
+        updateData.overtimeHours = null;
+      }
+
+      // Update the time entry
+      const updatedEntry = await storage.updateTimeEntry(entryId, updateData);
+
+      // Create detailed audit log
+      await createAuditLog(
+        currentUser.id,
+        currentUser.companyId,
+        'time_entry_admin_edit',
+        'time_entry',
+        entryId.toString(),
+        {
+          originalEntry: {
+            clockInTime: existingEntry.clockInTime,
+            clockOutTime: existingEntry.clockOutTime,
+            totalHours: existingEntry.totalHours,
+          },
+          updatedEntry: {
+            clockInTime: updateData.clockInTime,
+            clockOutTime: updateData.clockOutTime,
+            totalHours: updateData.totalHours,
+          },
+          justification,
+          targetUserId: existingEntry.userId,
+          targetUserEmail: entryUser.email,
+          targetUserName: `${entryUser.firstName} ${entryUser.lastName}`,
+          date: existingEntry.date,
+        },
+        existingEntry.userId
+      );
+
+      res.json(updatedEntry);
+    } catch (error) {
+      console.error("Error editing time entry:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to edit time entry" });
+    }
+  });
+
   app.put('/api/admin/users/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);

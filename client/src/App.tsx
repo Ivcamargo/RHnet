@@ -24,6 +24,7 @@ import Documents from "@/pages/documents";
 import Training from "@/pages/training";
 import Sectors from "@/pages/sectors";
 import TimePeriods from "@/pages/admin/time-periods";
+import AdminTimeEntries from "@/pages/admin/time-entries";
 import RotationManagement from "@/pages/rotation-management";
 
 // Protected route component that redirects to login if not authenticated
@@ -81,6 +82,7 @@ function Router() {
       <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
       <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} />} />
       <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} />} />
+      <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       
       <Route component={NotFound} />
