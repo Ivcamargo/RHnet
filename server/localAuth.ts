@@ -177,31 +177,12 @@ export function setupLocalAuth(app: any) {
       const emailOrCpfInput = email.toLowerCase();
       const cpfInputClean = email.replace(/\D/g, ''); // Remove caracteres não numéricos do input
       
-      console.log('🔍 DEBUG LOGIN:', {
-        input: email,
-        emailOrCpfInput,
-        cpfInputClean,
-        totalUsers: users.length
-      });
-      
       const user = users.find(u => {
         const emailMatch = u.email?.toLowerCase() === emailOrCpfInput;
         const cpfMatch = u.cpf && (
           u.cpf === email || // Match exato (com formatação)
           u.cpf.replace(/\D/g, '') === cpfInputClean // Match sem formatação
         );
-        
-        if (u.cpf) {
-          console.log('🔍 Comparando CPF:', {
-            userCpf: u.cpf,
-            userCpfClean: u.cpf.replace(/\D/g, ''),
-            input: email,
-            cpfInputClean,
-            cpfMatch,
-            emailMatch
-          });
-        }
-        
         return emailMatch || cpfMatch;
       });
       

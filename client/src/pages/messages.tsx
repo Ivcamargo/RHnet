@@ -14,7 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Plus, Send, Clock, Eye, Filter, Search, MessageCircle, Users, Edit, Trash2 } from "lucide-react";
+import { Mail, Plus, Send, Clock, Eye, Filter, Search, MessageCircle, Users, Edit, Trash2, Archive } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 
@@ -104,7 +104,6 @@ export default function Messages() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
       setShowNewMessageDialog(false);
       messageForm.reset();
     },
@@ -150,9 +149,7 @@ export default function Messages() {
     mutationFn: (messageId: string) =>
       apiRequest(`/api/messages/${messageId}/read`, { method: "PATCH" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/messages/${selectedTab}`] });
     },
   });
 
@@ -165,9 +162,7 @@ export default function Messages() {
         title: "Mensagem atualizada",
         description: "A mensagem foi atualizada com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/messages/${selectedTab}`] });
       setShowEditMessageDialog(false);
       setEditingMessage(null);
       messageForm.reset();
@@ -190,15 +185,35 @@ export default function Messages() {
         title: "Mensagem excluída",
         description: "A mensagem foi excluída com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/messages/${selectedTab}`] });
       setSelectedMessage(null);
     },
     onError: (error: any) => {
       toast({
         title: "Erro ao excluir mensagem",
         description: error.message || "Ocorreu um erro ao excluir a mensagem.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Archive message mutation
+  const archiveMessageMutation = useMutation({
+    mutationFn: (messageId: string) =>
+      apiRequest(`/api/messages/${messageId}/archive`, { method: "PATCH" }),
+    onSuccess: () => {
+      toast({
+        title: "Mensagem arquivada",
+        description: "A mensagem foi arquivada com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/messages/${selectedTab}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
+      setSelectedMessage(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao arquivar mensagem",
+        description: error.message || "Ocorreu um erro ao arquivar a mensagem.",
         variant: "destructive",
       });
     },
@@ -277,6 +292,10 @@ export default function Messages() {
     if (confirm("Tem certeza que deseja excluir esta mensagem?")) {
       deleteMessageMutation.mutate(messageId);
     }
+  };
+
+  const handleArchiveMessage = (messageId: string) => {
+    archiveMessageMutation.mutate(messageId);
   };
 
   const handleEditCategory = (category: any) => {
@@ -898,15 +917,33 @@ export default function Messages() {
                           </Badge>
                         )}
                         <div className="flex gap-1">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleEditMessage(selectedMessage)}
-                            data-testid="button-edit-message"
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            Editar
-                          </Button>
+                          {/* Botão Editar: apenas para mensagens recebidas (inbox) */}
+                          {selectedTab === "inbox" && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleEditMessage(selectedMessage)}
+                              data-testid="button-edit-message"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Editar
+                            </Button>
+                          )}
+                          
+                          {/* Botão Arquivar: apenas para inbox e sent */}
+                          {(selectedTab === "inbox" || selectedTab === "sent") && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleArchiveMessage(selectedMessage.id)}
+                              data-testid="button-archive-message"
+                            >
+                              <Archive className="h-3 w-3 mr-1" />
+                              Arquivar
+                            </Button>
+                          )}
+                          
+                          {/* Botão Excluir: sempre disponível */}
                           <Button 
                             size="sm" 
                             variant="destructive" 

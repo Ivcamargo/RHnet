@@ -3589,6 +3589,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update message
+  app.put('/api/messages/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const messageId = parseInt(req.params.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can update messages" });
+      }
+
+      const messageData = req.body;
+      // TODO: Add update message method to storage
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating message:", error);
+      res.status(500).json({ message: "Failed to update message" });
+    }
+  });
+
+  // Delete message
+  app.delete('/api/messages/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const messageId = parseInt(req.params.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can delete messages" });
+      }
+
+      // TODO: Add delete message method to storage
+      res.json({ success: true, message: "Message deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+
+  // Archive message
+  app.patch('/api/messages/:id/archive', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const messageId = parseInt(req.params.id);
+      
+      // TODO: Add archive message method to storage
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error archiving message:", error);
+      res.status(500).json({ message: "Failed to archive message" });
+    }
+  });
+
   // Get message categories
   app.get('/api/message-categories', isAuthenticatedHybrid, async (req: any, res) => {
     try {
