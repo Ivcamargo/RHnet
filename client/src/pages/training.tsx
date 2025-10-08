@@ -180,7 +180,13 @@ export default function Training() {
   };
 
   const onSubmitCourse = (data: InsertCourse) => {
+    console.log("=== onSubmitCourse called ===");
+    console.log("Form data:", data);
+    console.log("User:", user);
+    console.log("User companyId:", user?.companyId);
+    
     if (!user?.companyId) {
+      console.log("ERROR: No companyId found");
       toast({
         title: "Erro",
         description: "Usuário sem empresa associada",
@@ -188,10 +194,13 @@ export default function Training() {
       });
       return;
     }
-    createCourseMutation.mutate({
+    
+    const courseData = {
       ...data,
       companyId: user.companyId,
-    });
+    };
+    console.log("Sending to mutation:", courseData);
+    createCourseMutation.mutate(courseData);
   };
 
   const handleEditCourse = (course: Course) => {
