@@ -1355,7 +1355,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(messages.senderId, userId),
-          eq(messages.companyId, companyId)
+          eq(messages.companyId, companyId),
+          eq(messages.senderDeleted, false)
         )
       )
       .orderBy(desc(messages.createdAt));
@@ -1364,7 +1365,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getArchivedMessages(userId: string, companyId: number): Promise<any[]> {
-    // Archived messages are received messages that user has deleted/archived
+    // Arquivadas são mensagens enviadas que o remetente deletou/arquivou
     const results = await db
       .select({
         // Message fields
@@ -1384,24 +1385,23 @@ export class DatabaseStorage implements IStorage {
         // Category info
         categoryName: messageCategories.name,
         categoryColor: messageCategories.color,
-        // Recipient status
-        isRead: messageRecipients.isRead,
-        readAt: messageRecipients.readAt,
-        isDelivered: messageRecipients.isDelivered,
-        deliveredAt: messageRecipients.deliveredAt,
+        // For archived messages
+        isRead: sql<boolean>`null`,
+        readAt: sql<string>`null`,
+        isDelivered: sql<boolean>`true`,
+        deliveredAt: messages.createdAt,
       })
-      .from(messageRecipients)
-      .leftJoin(messages, eq(messageRecipients.messageId, messages.id))
-      .leftJoin(users, eq(messages.senderId, users.id))
+      .from(messages)
       .leftJoin(messageCategories, eq(messages.categoryId, messageCategories.id))
+      .leftJoin(users, eq(messages.senderId, users.id))
       .where(
         and(
-          eq(messageRecipients.userId, userId),
+          eq(messages.senderId, userId),
           eq(messages.companyId, companyId),
-          eq(messageRecipients.isDeleted, true)
+          eq(messages.senderDeleted, true)
         )
       )
-      .orderBy(desc(messageRecipients.deletedAt));
+      .orderBy(desc(messages.senderDeletedAt));
 
     return results;
   }
@@ -1437,31 +1437,78 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async deleteMessage(messageId: number): Promise<void> {
-    // Primeiro deleta os destinatários
-    await db
-      .delete(messageRecipients)
-      .where(eq(messageRecipients.messageId, messageId));
+  async deleteMessage(messageId: number, userId: string): Promise<void> {
+    // Verifica se o usuário é o remetente
+    const message = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
     
-    // Depois deleta a mensagem
-    await db
-      .delete(messages)
-      .where(eq(messages.id, messageId));
+    if (message.length > 0 && message[0].senderId === userId) {
+      // Usuário é o remetente - marca senderDeleted
+      await db
+        .update(messages)
+        .set({ 
+          senderDeleted: true, 
+          senderDeletedAt: new Date() 
+        })
+        .where(and(
+          eq(messages.id, messageId),
+          eq(messages.senderId, userId)
+        ));
+    } else {
+      // Usuário é destinatário - marca isDeleted em messageRecipients
+      await db
+        .update(messageRecipients)
+        .set({ 
+          isDeleted: true, 
+          deletedAt: new Date() 
+        })
+        .where(
+          and(
+            eq(messageRecipients.messageId, messageId),
+            eq(messageRecipients.userId, userId)
+          )
+        );
+    }
   }
 
   async archiveMessage(messageId: number, userId: string): Promise<void> {
-    await db
-      .update(messageRecipients)
-      .set({ 
-        isDeleted: true, 
-        deletedAt: new Date() 
-      })
-      .where(
-        and(
-          eq(messageRecipients.messageId, messageId),
-          eq(messageRecipients.userId, userId)
-        )
-      );
+    // Verifica se o usuário é o remetente
+    const message = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+    
+    if (message.length > 0 && message[0].senderId === userId) {
+      // Usuário é o remetente - marca senderDeleted
+      await db
+        .update(messages)
+        .set({ 
+          senderDeleted: true, 
+          senderDeletedAt: new Date() 
+        })
+        .where(and(
+          eq(messages.id, messageId),
+          eq(messages.senderId, userId)
+        ));
+    } else {
+      // Usuário é destinatário - marca isDeleted em messageRecipients
+      await db
+        .update(messageRecipients)
+        .set({ 
+          isDeleted: true, 
+          deletedAt: new Date() 
+        })
+        .where(
+          and(
+            eq(messageRecipients.messageId, messageId),
+            eq(messageRecipients.userId, userId)
+          )
+        );
+    }
   }
 
   async getMessageCategories(companyId: number): Promise<MessageCategory[]> {

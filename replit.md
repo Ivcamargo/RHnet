@@ -10,6 +10,24 @@ O sistema é projetado como uma aplicação web full-stack com frontend React e 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 2025)
+
+### Messaging System Enhancements
+- **Archive/Delete for Sent Messages**: Added `senderDeleted` and `senderDeletedAt` fields to messages table to support sender-side archiving and deletion without affecting recipients
+- **Isolated Soft Delete**: Sender deletions (senderDeleted) are independent from recipient deletions (messageRecipients.isDeleted), preserving message visibility for recipients
+- **Smart Delete/Archive Logic**: 
+  - When sender deletes/archives: updates `messages.senderDeleted = true` (recipients still see in inbox)
+  - When recipient deletes/archives: updates `messageRecipients.isDeleted = true` (sender still sees in sent)
+  - Both methods check user ownership before updating to prevent privilege escalation
+- **Query Optimization**: Separated message queries by tab (inbox/sent/archived) with proper filtering
+  - Sent messages: filters by `senderId = userId AND senderDeleted = false`
+  - Archived messages: filters by `senderId = userId AND senderDeleted = true`
+  - Inbox messages: joins messageRecipients where `userId = userId AND isDeleted = false`
+- **Cache Invalidation**: Fixed cache invalidation to use tab-specific query keys (`/api/messages/${tab}`) for immediate UI updates
+- **Permission Controls**: Only inbox (received) messages can be edited; sent messages are view-only
+- **Data Integrity**: Sender and recipient actions are completely isolated - each user's delete/archive only affects their own view
+- **Security**: All delete/archive operations include ownership checks to prevent unauthorized message manipulation
+
 ## System Architecture
 
 ### Frontend Architecture

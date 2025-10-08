@@ -3628,7 +3628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only administrators can delete messages" });
       }
 
-      await storage.deleteMessage(messageId);
+      await storage.deleteMessage(messageId, userId);
       res.json({ success: true, message: "Message deleted successfully" });
     } catch (error) {
       console.error("Error deleting message:", error);

@@ -375,6 +375,8 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   isMassMessage: boolean("is_mass_message").default(false),
   priority: varchar("priority").default("normal"), // low, normal, high
+  senderDeleted: boolean("sender_deleted").default(false), // Sender archived/deleted (doesn't affect recipients)
+  senderDeletedAt: timestamp("sender_deleted_at"), // When sender deleted/archived
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
