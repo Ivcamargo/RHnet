@@ -38,6 +38,11 @@ export default function Documents() {
     queryKey: ["/api/documents"],
   });
 
+  // Fetch users for assignment dropdown
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+  });
+
   // Form for editing documents
   const form = useForm<DocumentFormData>({
     resolver: zodResolver(documentFormSchema),
@@ -138,14 +143,18 @@ export default function Documents() {
     setEditingDocument(document);
     form.reset({
       title: document.title || "",
-      assignedTo: document.assignedTo || "",
+      assignedTo: document.assignedTo || "none",
     });
     setShowEditDialog(true);
   };
 
   const handleUpdateDocument = (data: DocumentFormData) => {
     if (!editingDocument) return;
-    updateDocumentMutation.mutate({ id: editingDocument.id, data });
+    const updateData = {
+      ...data,
+      assignedTo: data.assignedTo === "none" ? null : data.assignedTo
+    };
+    updateDocumentMutation.mutate({ id: editingDocument.id, data: updateData });
   };
 
   const handleDeleteDocument = (documentId: string) => {
@@ -326,9 +335,12 @@ export default function Documents() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">Nenhum</SelectItem>
-                                  <SelectItem value="hr">RH</SelectItem>
-                                  <SelectItem value="admin">Administrador</SelectItem>
+                                  <SelectItem value="none">Nenhum</SelectItem>
+                                  {users.map((user) => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                      {user.firstName} {user.lastName} ({user.role})
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
