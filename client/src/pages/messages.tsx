@@ -942,17 +942,6 @@ export default function Messages() {
                               Arquivar
                             </Button>
                           )}
-                          
-                          {/* Botão Excluir: sempre disponível */}
-                          <Button 
-                            size="sm" 
-                            variant="destructive" 
-                            onClick={() => handleDeleteMessage(selectedMessage.id)}
-                            data-testid="button-delete-message"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Excluir
-                          </Button>
                         </div>
                       </div>
                     </div>
