@@ -466,6 +466,27 @@ export default function Training() {
                             <Play className="h-4 w-4 mr-1" />
                             Continuar
                           </Button>
+                          {isAdmin && item.course && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleManageQuestions(item.course)}
+                                data-testid={`button-questions-inprogress-${index}`}
+                                title="Gerenciar Perguntas"
+                              >
+                                <HelpCircle className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleEditCourse(item.course)}
+                                data-testid={`button-edit-inprogress-${index}`}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                           <Button 
                             variant="destructive" 
                             size="sm" 
