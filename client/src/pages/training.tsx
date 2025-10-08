@@ -51,7 +51,7 @@ export default function Training() {
 
   // Fetch questions for selected course
   const { data: courseQuestions = [], isLoading: questionsLoading } = useQuery<CourseQuestion[]>({
-    queryKey: ["/api/courses", selectedCourse?.id, "questions"],
+    queryKey: selectedCourse ? [`/api/courses/${selectedCourse.id}/questions`] : [""],
     enabled: !!selectedCourse && showQuestionsDialog,
   });
 
@@ -153,8 +153,8 @@ export default function Training() {
       });
     },
     onSuccess: async (_, { courseId }) => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/questions`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/courses/${courseId}/questions`] });
       setNewQuestion({ question: "", correctAnswer: "", options: ["", "", "", ""] });
       toast({
         title: "Sucesso",
@@ -176,8 +176,8 @@ export default function Training() {
       await apiRequest(`/api/courses/${courseId}/questions/${questionId}`, { method: "DELETE" });
     },
     onSuccess: async (_, { courseId }) => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}/questions`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/courses/${courseId}/questions`] });
       toast({
         title: "Sucesso",
         description: "Pergunta excluída com sucesso",
