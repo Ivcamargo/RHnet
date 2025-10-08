@@ -427,7 +427,7 @@ export default function Training() {
                                     <Input 
                                       type="number"
                                       placeholder="Ex: 120" 
-                                      {...field}
+                                      value={field.value || ""}
                                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                                     />
                                   </FormControl>
@@ -520,7 +520,7 @@ export default function Training() {
                                 <Input 
                                   type="number"
                                   placeholder="Ex: 120" 
-                                  {...field}
+                                  value={field.value || ""}
                                   onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                                   data-testid="input-course-duration-edit"
                                 />
