@@ -361,7 +361,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupLocalAuth(app);
 
   // Configure multer for file uploads
+  const uploadsDir = path.join(process.cwd(), 'uploads', 'documents');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
   const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+      }
+    }),
     limits: { 
       fileSize: 10 * 1024 * 1024 // 10MB limit
     },
@@ -3800,12 +3815,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use file info from multer
       const title = req.body.title || req.file.originalname;
       const mimeType = req.file.mimetype;
+      const description = req.body.description || `Arquivo enviado: ${req.file.originalname}`;
 
       // Validate with schema (excluding generated fields)
       const documentData: InsertDocument = insertDocumentSchema.parse({
         title,
-        content: `[File: ${req.file.originalname}, Size: ${req.file.size} bytes]`,
+        description,
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        fileSize: req.file.size,
         mimeType,
+        filePath: req.file.path,
         companyId: user.companyId,
         uploadedBy: userId,
       });
