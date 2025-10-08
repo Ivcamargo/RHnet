@@ -397,7 +397,12 @@ export default function Training() {
                           <DialogTitle>Criar Novo Curso</DialogTitle>
                         </DialogHeader>
                         <Form {...form}>
-                          <form onSubmit={form.handleSubmit(onSubmitCourse)} className="space-y-4">
+                          <form onSubmit={(e) => {
+                            console.log("Form submit event triggered");
+                            console.log("Form errors:", form.formState.errors);
+                            console.log("Form values:", form.getValues());
+                            form.handleSubmit(onSubmitCourse)(e);
+                          }} className="space-y-4">
                             <FormField
                               control={form.control}
                               name="title"
