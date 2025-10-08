@@ -16,6 +16,8 @@ import {
   insertMessageRecipientSchema,
   insertDocumentSchema,
   insertCourseSchema,
+  insertCourseQuestionSchema,
+  insertCourseAnswerSchema,
   insertEmployeeCourseSchema,
   insertCertificateSchema,
   updateDocumentSchema,
@@ -41,6 +43,8 @@ import {
   type InsertMessageCategory,
   type InsertDocument,
   type InsertCourse,
+  type InsertCourseQuestion,
+  type InsertCourseAnswer,
   type InsertEmployeeCourse,
   type InsertCertificate,
   type InsertCompleteEmployee,
@@ -4066,6 +4070,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error completing course:", error);
       res.status(500).json({ message: "Failed to complete course" });
+    }
+  });
+
+  // Get employee course by course ID
+  app.get('/api/employee-courses/course/:courseId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const courseId = parseInt(req.params.courseId);
+      
+      const employeeCourse = await storage.getEmployeeCourse(userId, courseId);
+      
+      if (!employeeCourse) {
+        return res.status(404).json({ message: "Employee course not found" });
+      }
+
+      res.json(employeeCourse);
+    } catch (error) {
+      console.error("Error fetching employee course:", error);
+      res.status(500).json({ message: "Failed to fetch employee course" });
+    }
+  });
+
+  // Complete employee course by ID
+  app.put('/api/employee-courses/:id/complete', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const employeeCourseId = parseInt(req.params.id);
+      const { score } = req.body;
+
+      const employeeCourse = await storage.updateEmployeeCourse(employeeCourseId, {
+        status: 'completed',
+        progress: 100,
+        score,
+        completedAt: new Date()
+      });
+      res.json(employeeCourse);
+    } catch (error) {
+      console.error("Error completing employee course:", error);
+      res.status(500).json({ message: "Failed to complete employee course" });
+    }
+  });
+
+  // Get course questions
+  app.get('/api/courses/:id/questions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const course = await storage.getCourse(courseId);
+      
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (course.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const questions = await storage.getCourseQuestions(courseId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching course questions:", error);
+      res.status(500).json({ message: "Failed to fetch course questions" });
+    }
+  });
+
+  // Submit quiz
+  app.post('/api/courses/:id/submit-quiz', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const { employeeCourseId, answers } = req.body;
+
+      if (!employeeCourseId || !answers || !Array.isArray(answers)) {
+        return res.status(400).json({ message: "Employee course ID and answers are required" });
+      }
+
+      // Security: Verify employee course belongs to authenticated user
+      const employeeCourse = await storage.getEmployeeCourseById(employeeCourseId);
+      if (!employeeCourse) {
+        return res.status(404).json({ message: "Employee course not found" });
+      }
+      
+      if (employeeCourse.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (employeeCourse.courseId !== courseId) {
+        return res.status(400).json({ message: "Course ID mismatch" });
+      }
+
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      const questions = await storage.getCourseQuestions(courseId);
+      
+      let correctAnswers = 0;
+      const totalQuestions = questions.length;
+
+      // Server-side validation: Calculate correctness by comparing with authoritative answers
+      for (const answer of answers) {
+        const question = questions.find(q => q.id === answer.questionId);
+        if (!question) {
+          return res.status(400).json({ message: `Invalid question ID: ${answer.questionId}` });
+        }
+
+        // Server determines correctness, not client
+        const isCorrect = answer.selectedAnswer === question.correctAnswer;
+
+        await storage.createCourseAnswer({
+          employeeCourseId,
+          questionId: answer.questionId,
+          answer: answer.selectedAnswer,
+          isCorrect
+        });
+
+        if (isCorrect) {
+          correctAnswers++;
+        }
+      }
+
+      const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+      const passed = score >= (course.passingScore || 70);
+
+      // Update employee course status
+      if (passed) {
+        await storage.updateEmployeeCourse(employeeCourseId, {
+          status: 'completed',
+          progress: 100,
+          score,
+          completedAt: new Date()
+        });
+      } else {
+        await storage.updateEmployeeCourse(employeeCourseId, {
+          status: 'failed',
+          score,
+          completedAt: new Date()
+        });
+      }
+
+      res.json({ 
+        score, 
+        passed,
+        correctAnswers,
+        totalQuestions
+      });
+    } catch (error) {
+      console.error("Error submitting quiz:", error);
+      res.status(500).json({ message: "Failed to submit quiz" });
     }
   });
 

@@ -163,7 +163,7 @@ export default function CourseView() {
       <div className="flex h-screen bg-background">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TopBar />
+          <TopBar title="Curso" />
           <main className="flex-1 overflow-auto p-8">
             <div>Carregando curso...</div>
           </main>
@@ -177,7 +177,7 @@ export default function CourseView() {
       <div className="flex h-screen bg-background">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TopBar />
+          <TopBar title="Curso" />
           <main className="flex-1 overflow-auto p-8">
             <div>Curso não encontrado</div>
           </main>
@@ -190,7 +190,7 @@ export default function CourseView() {
     <div className="flex h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
+        <TopBar title={course.title} />
         <main className="flex-1 overflow-auto p-8">
           <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex items-center justify-between">

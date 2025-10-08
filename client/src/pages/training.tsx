@@ -207,6 +207,8 @@ export default function Training() {
       description: course.description || "",
       duration: course.duration || 0,
       isRequired: course.isRequired || false,
+      videoUrl: course.videoUrl || "",
+      passingScore: course.passingScore || 70,
     });
     setShowEditDialog(true);
   };
