@@ -102,7 +102,9 @@ export default function Messages() {
         title: "Mensagem enviada",
         description: "Sua mensagem foi enviada com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
       setShowNewMessageDialog(false);
       messageForm.reset();
     },
@@ -148,7 +150,9 @@ export default function Messages() {
     mutationFn: (messageId: string) =>
       apiRequest(`/api/messages/${messageId}/read`, { method: "PATCH" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
     },
   });
 
@@ -161,7 +165,9 @@ export default function Messages() {
         title: "Mensagem atualizada",
         description: "A mensagem foi atualizada com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
       setShowEditMessageDialog(false);
       setEditingMessage(null);
       messageForm.reset();
@@ -184,7 +190,9 @@ export default function Messages() {
         title: "Mensagem excluída",
         description: "A mensagem foi excluída com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/archived"] });
       setSelectedMessage(null);
     },
     onError: (error: any) => {
