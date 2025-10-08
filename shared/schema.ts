@@ -846,6 +846,7 @@ export const insertCourseSchema = createInsertSchema(courses).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
+  companyId: z.number().optional(),
   description: z.string().optional().default(""),
   duration: z.number().optional().default(0),
   isRequired: z.boolean().optional().default(false),

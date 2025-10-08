@@ -180,13 +180,7 @@ export default function Training() {
   };
 
   const onSubmitCourse = (data: InsertCourse) => {
-    console.log("=== onSubmitCourse called ===");
-    console.log("Form data:", data);
-    console.log("User:", user);
-    console.log("User companyId:", user?.companyId);
-    
     if (!user?.companyId) {
-      console.log("ERROR: No companyId found");
       toast({
         title: "Erro",
         description: "Usuário sem empresa associada",
@@ -195,12 +189,10 @@ export default function Training() {
       return;
     }
     
-    const courseData = {
+    createCourseMutation.mutate({
       ...data,
       companyId: user.companyId,
-    };
-    console.log("Sending to mutation:", courseData);
-    createCourseMutation.mutate(courseData);
+    });
   };
 
   const handleEditCourse = (course: Course) => {
@@ -397,12 +389,7 @@ export default function Training() {
                           <DialogTitle>Criar Novo Curso</DialogTitle>
                         </DialogHeader>
                         <Form {...form}>
-                          <form onSubmit={(e) => {
-                            console.log("Form submit event triggered");
-                            console.log("Form errors:", form.formState.errors);
-                            console.log("Form values:", form.getValues());
-                            form.handleSubmit(onSubmitCourse)(e);
-                          }} className="space-y-4">
+                          <form onSubmit={form.handleSubmit(onSubmitCourse)} className="space-y-4">
                             <FormField
                               control={form.control}
                               name="title"
