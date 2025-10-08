@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
-import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCourse } from "@shared/schema";
+import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCourse, type User } from "@shared/schema";
 
 export default function Training() {
   const queryClient = useQueryClient();
@@ -27,7 +27,7 @@ export default function Training() {
   const { toast } = useToast();
 
   // Fetch user info
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User>({
     queryKey: ["/api/auth/user"],
   });
 
@@ -180,8 +180,18 @@ export default function Training() {
   };
 
   const onSubmitCourse = (data: InsertCourse) => {
-    console.log("onSubmitCourse called with data:", data);
-    createCourseMutation.mutate(data);
+    if (!user?.companyId) {
+      toast({
+        title: "Erro",
+        description: "Usuário sem empresa associada",
+        variant: "destructive",
+      });
+      return;
+    }
+    createCourseMutation.mutate({
+      ...data,
+      companyId: user.companyId,
+    });
   };
 
   const handleEditCourse = (course: Course) => {

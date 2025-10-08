@@ -845,6 +845,10 @@ export const insertCourseSchema = createInsertSchema(courses).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  description: z.string().optional().default(""),
+  duration: z.number().optional().default(0),
+  isRequired: z.boolean().optional().default(false),
 });
 
 export const insertEmployeeCourseSchema = createInsertSchema(employeeCourses).omit({
