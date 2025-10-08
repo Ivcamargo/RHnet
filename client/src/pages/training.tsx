@@ -180,6 +180,7 @@ export default function Training() {
   };
 
   const onSubmitCourse = (data: InsertCourse) => {
+    console.log("onSubmitCourse called with data:", data);
     createCourseMutation.mutate(data);
   };
 
