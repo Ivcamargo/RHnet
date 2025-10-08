@@ -12,6 +12,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 2025)
 
+### Course Questions Management Interface (October 8, 2025)
+- **Admin Question Management**: Added complete UI for managing course quiz questions
+- **Question CRUD Operations**: Admins can create, view, and delete questions directly from the training page
+- **Smart Validation**: Frontend validates that questions have at least 2 options and correct answer matches an option
+- **Radio Selection UX**: Improved UX by using radio buttons for selecting correct answers instead of free text
+- **Security Controls**: All question routes enforce company-level access control and admin-only modifications
+- **Backend APIs**:
+  - GET /api/courses/:id/questions - Retrieves all questions for a course
+  - POST /api/courses/:id/questions - Creates a new question (admin only, with Zod validation)
+  - DELETE /api/courses/:courseId/questions/:questionId - Deletes a question (admin only)
+- **UI Components**: 
+  - HelpCircle icon button on each course card opens questions management dialog
+  - Dialog shows existing questions with delete buttons
+  - Form to add new questions with 4 options and radio button selection for correct answer
+  - Real-time query invalidation keeps UI in sync with backend
+
 ### Messaging System Enhancements
 - **Archive/Delete for Sent Messages**: Added `senderDeleted` and `senderDeletedAt` fields to messages table to support sender-side archiving and deletion without affecting recipients
 - **Isolated Soft Delete**: Sender deletions (senderDeleted) are independent from recipient deletions (messageRecipients.isDeleted), preserving message visibility for recipients
