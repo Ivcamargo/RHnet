@@ -209,6 +209,8 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   createMessageRecipient(recipient: InsertMessageRecipient): Promise<MessageRecipient>;
   markMessageAsRead(messageId: number, userId: string): Promise<void>;
+  deleteMessage(messageId: number): Promise<void>;
+  archiveMessage(messageId: number, userId: string): Promise<void>;
   getMessageCategories(companyId: number): Promise<MessageCategory[]>;
   createMessageCategory(category: InsertMessageCategory): Promise<MessageCategory>;
   getCompanyEmployees(companyId: number): Promise<User[]>;
@@ -1426,6 +1428,33 @@ export class DatabaseStorage implements IStorage {
       .set({ 
         isRead: true, 
         readAt: new Date() 
+      })
+      .where(
+        and(
+          eq(messageRecipients.messageId, messageId),
+          eq(messageRecipients.userId, userId)
+        )
+      );
+  }
+
+  async deleteMessage(messageId: number): Promise<void> {
+    // Primeiro deleta os destinatários
+    await db
+      .delete(messageRecipients)
+      .where(eq(messageRecipients.messageId, messageId));
+    
+    // Depois deleta a mensagem
+    await db
+      .delete(messages)
+      .where(eq(messages.id, messageId));
+  }
+
+  async archiveMessage(messageId: number, userId: string): Promise<void> {
+    await db
+      .update(messageRecipients)
+      .set({ 
+        isDeleted: true, 
+        deletedAt: new Date() 
       })
       .where(
         and(

@@ -3628,7 +3628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only administrators can delete messages" });
       }
 
-      // TODO: Add delete message method to storage
+      await storage.deleteMessage(messageId);
       res.json({ success: true, message: "Message deleted successfully" });
     } catch (error) {
       console.error("Error deleting message:", error);
@@ -3642,7 +3642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const messageId = parseInt(req.params.id);
       
-      // TODO: Add archive message method to storage
+      await storage.archiveMessage(messageId, userId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error archiving message:", error);
