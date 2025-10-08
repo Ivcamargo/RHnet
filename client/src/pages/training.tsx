@@ -300,12 +300,35 @@ export default function Training() {
       return;
     }
 
+    // Filter out empty options
+    const validOptions = newQuestion.options.filter(opt => opt.trim() !== "");
+
+    // Validate at least 2 options
+    if (validOptions.length < 2) {
+      toast({
+        title: "Erro",
+        description: "Adicione pelo menos 2 opções de resposta",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate correct answer is one of the options
+    if (!validOptions.includes(newQuestion.correctAnswer)) {
+      toast({
+        title: "Erro",
+        description: "A resposta correta deve ser exatamente igual a uma das opções",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createQuestionMutation.mutate({
       courseId: selectedCourse.id,
       questionData: {
         question: newQuestion.question,
         questionType: "multiple_choice",
-        options: newQuestion.options.filter(opt => opt.trim() !== ""),
+        options: validOptions,
         correctAnswer: newQuestion.correctAnswer,
         order: 0,
       },
@@ -800,26 +823,26 @@ export default function Training() {
                     ) : (
                       courseQuestions.map((q, idx) => (
                         <div key={q.id} className="border rounded p-3 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="font-medium">Pergunta {idx + 1}: {q.question}</p>
-                              <p className="text-sm text-muted-foreground">Resposta correta: {q.correctAnswer}</p>
-                              {q.options && Array.isArray(q.options) && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  Opções: {(q.options as string[]).join(", ")}
-                                </div>
-                              )}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium">Pergunta {idx + 1}: {q.question}</p>
+                                <p className="text-sm text-muted-foreground">Resposta correta: {q.correctAnswer}</p>
+                                {q.options && Array.isArray(q.options) && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Opções: {(q.options as string[]).join(", ")}
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteQuestionMutation.mutate({ courseId: selectedCourse.id, questionId: q.id })}
+                                disabled={deleteQuestionMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteQuestionMutation.mutate({ courseId: selectedCourse.id, questionId: q.id })}
-                              disabled={deleteQuestionMutation.isPending}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
                           </div>
-                        </div>
                       ))
                     )}
                   </div>
@@ -855,11 +878,29 @@ export default function Training() {
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Resposta Correta</label>
-                      <Input
-                        placeholder="Digite a resposta correta (deve ser exatamente igual a uma das opções)"
-                        value={newQuestion.correctAnswer}
-                        onChange={(e) => setNewQuestion({ ...newQuestion, correctAnswer: e.target.value })}
-                      />
+                      <div className="space-y-2">
+                        {newQuestion.options.map((opt, idx) => (
+                          opt.trim() && (
+                            <div key={idx} className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id={`correct-${idx}`}
+                                name="correctAnswer"
+                                value={opt}
+                                checked={newQuestion.correctAnswer === opt}
+                                onChange={(e) => setNewQuestion({ ...newQuestion, correctAnswer: e.target.value })}
+                                className="w-4 h-4 text-primary"
+                              />
+                              <label htmlFor={`correct-${idx}`} className="text-sm">
+                                {opt}
+                              </label>
+                            </div>
+                          )
+                        ))}
+                        {!newQuestion.options.some(opt => opt.trim()) && (
+                          <p className="text-sm text-muted-foreground">Preencha as opções acima para selecionar a resposta correta</p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex gap-2">
