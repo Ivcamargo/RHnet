@@ -489,9 +489,10 @@ export const courses = pgTable("courses", {
   category: varchar("category"), // technical, soft-skills, compliance, etc.
   duration: integer("duration"), // in minutes
   isRequired: boolean("is_required").default(false),
+  videoUrl: text("video_url"), // URL do vídeo do curso (YouTube, Vimeo, etc)
   externalUrl: text("external_url"), // Link to external course platform
   certificateTemplate: text("certificate_template"), // For auto-generation
-  passingScore: integer("passing_score"), // Percentage required to pass
+  passingScore: integer("passing_score").default(70), // Percentage required to pass
   validityPeriod: integer("validity_period"), // in days, for renewal
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
@@ -565,6 +566,42 @@ export const employeeCourses = pgTable("employee_courses", {
     foreignColumns: [users.id],
   }).onDelete('set null'),
   uniqueUserCourse: uniqueIndex("unique_user_course_active").on(table.userId, table.courseId),
+}));
+
+// Course questions for quizzes
+export const courseQuestions = pgTable("course_questions", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull(),
+  question: text("question").notNull(),
+  questionType: varchar("question_type").default("multiple_choice"), // multiple_choice, true_false
+  options: jsonb("options").notNull(), // Array of options for multiple choice
+  correctAnswer: varchar("correct_answer").notNull(), // The correct answer
+  order: integer("order").default(0), // Question order in quiz
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  courseReference: foreignKey({
+    columns: [table.courseId],
+    foreignColumns: [courses.id],
+  }).onDelete('cascade'),
+}));
+
+// User answers to course questions
+export const courseAnswers = pgTable("course_answers", {
+  id: serial("id").primaryKey(),
+  employeeCourseId: integer("employee_course_id").notNull(),
+  questionId: integer("question_id").notNull(),
+  answer: varchar("answer").notNull(),
+  isCorrect: boolean("is_correct").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  employeeCourseReference: foreignKey({
+    columns: [table.employeeCourseId],
+    foreignColumns: [employeeCourses.id],
+  }).onDelete('cascade'),
+  questionReference: foreignKey({
+    columns: [table.questionId],
+    foreignColumns: [courseQuestions.id],
+  }).onDelete('cascade'),
 }));
 
 // Certificates earned by employees
@@ -677,6 +714,8 @@ export type Document = typeof documents.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type JobTrainingTrack = typeof jobTrainingTracks.$inferSelect;
 export type EmployeeCourse = typeof employeeCourses.$inferSelect;
+export type CourseQuestion = typeof courseQuestions.$inferSelect;
+export type CourseAnswer = typeof courseAnswers.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
@@ -850,6 +889,18 @@ export const insertCourseSchema = createInsertSchema(courses).omit({
   description: z.string().optional().default(""),
   duration: z.number().optional().default(0),
   isRequired: z.boolean().optional().default(false),
+  videoUrl: z.string().optional(),
+  passingScore: z.number().optional().default(70),
+});
+
+export const insertCourseQuestionSchema = createInsertSchema(courseQuestions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCourseAnswerSchema = createInsertSchema(courseAnswers).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertEmployeeCourseSchema = createInsertSchema(employeeCourses).omit({
@@ -968,6 +1019,8 @@ export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type InsertJobTrainingTrack = z.infer<typeof insertJobTrainingTrackSchema>;
 export type InsertEmployeeCourse = z.infer<typeof insertEmployeeCourseSchema>;
+export type InsertCourseQuestion = z.infer<typeof insertCourseQuestionSchema>;
+export type InsertCourseAnswer = z.infer<typeof insertCourseAnswerSchema>;
 export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
