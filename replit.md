@@ -12,6 +12,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 2025)
 
+### Password Change Functionality (October 8, 2025)
+- **User Password Management**: Added self-service password change functionality for all authenticated users
+- **Backend API**: POST /api/auth/change-password endpoint with current password validation and Zod schema validation
+- **Frontend Page**: Dedicated /change-password route with secure form (current password, new password, confirm password)
+- **Sidebar Integration**: Added "Alterar Senha" button with Key icon in sidebar footer for easy access
+- **Security**: Validates current password before allowing change; uses argon2id hashing; auto-clears mustChangePassword flag
+- **UX Features**: Success toast notification, auto-redirect to dashboard, form validation with error messages
+
+### Admin Access Improvements (October 8, 2025)
+- **In-Progress Course Management**: Fixed bug where admin controls (Edit and Questions buttons) only appeared in "Cursos Disponíveis" section
+- **Consistent Admin UX**: Admin buttons now visible in both "Cursos Disponíveis" and "Cursos em Andamento" sections
+- **Universal Access**: All admin/superadmin users can now manage questions and edit courses regardless of course enrollment status
+- **UI Enhancement**: Questions (HelpCircle) and Edit buttons added to in-progress course cards for admin users
+
 ### Course Questions Management Interface (October 8, 2025)
 - **Admin Question Management**: Added complete UI for managing course quiz questions
 - **Question CRUD Operations**: Admins can create, view, and delete questions directly from the training page
