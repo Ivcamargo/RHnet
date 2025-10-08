@@ -174,10 +174,17 @@ export function setupLocalAuth(app: any) {
 
       // Busca usuário por email ou CPF
       const users = await storage.getAllUsers();
-      const user = users.find(u => 
-        u.email?.toLowerCase() === email.toLowerCase() || 
-        u.cpf === email.replace(/\D/g, '') // Remove caracteres não numéricos do CPF
-      );
+      const emailOrCpfInput = email.toLowerCase();
+      const cpfInputClean = email.replace(/\D/g, ''); // Remove caracteres não numéricos do input
+      
+      const user = users.find(u => {
+        const emailMatch = u.email?.toLowerCase() === emailOrCpfInput;
+        const cpfMatch = u.cpf && (
+          u.cpf === email || // Match exato (com formatação)
+          u.cpf.replace(/\D/g, '') === cpfInputClean // Match sem formatação
+        );
+        return emailMatch || cpfMatch;
+      });
       
       if (!user || !user.passwordHash) {
         recordFailedAttempt(email);
