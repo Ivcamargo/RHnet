@@ -16,6 +16,8 @@ import {
   messageRecipients,
   documents,
   courses,
+  courseQuestions,
+  courseAnswers,
   employeeCourses,
   certificates,
   auditLog,
@@ -55,6 +57,10 @@ import {
   type InsertDocument,
   type Course,
   type InsertCourse,
+  type CourseQuestion,
+  type InsertCourseQuestion,
+  type CourseAnswer,
+  type InsertCourseAnswer,
   type EmployeeCourse,
   type InsertEmployeeCourse,
   type Certificate,
@@ -232,14 +238,23 @@ export interface IStorage {
   deleteCourse(id: number): Promise<void>;
   getRequiredCourses(companyId: number): Promise<Course[]>;
   
+  // Course question operations
+  getCourseQuestions(courseId: number): Promise<CourseQuestion[]>;
+  createCourseQuestion(question: InsertCourseQuestion): Promise<CourseQuestion>;
+  
   // Employee course operations
   getEmployeeCourses(userId: string, companyId: number): Promise<EmployeeCourse[]>;
   getEmployeeCourse(userId: string, courseId: number): Promise<EmployeeCourse | undefined>;
+  getEmployeeCourseById(id: number): Promise<EmployeeCourse | undefined>;
   createEmployeeCourse(employeeCourse: InsertEmployeeCourse): Promise<EmployeeCourse>;
   updateEmployeeCourse(id: number, employeeCourse: Partial<InsertEmployeeCourse>): Promise<EmployeeCourse>;
   startCourse(userId: string, courseId: number, companyId: number): Promise<EmployeeCourse>;
   updateCourseProgress(userId: string, courseId: number, progress: number): Promise<EmployeeCourse>;
   completeCourse(userId: string, courseId: number, score?: number): Promise<EmployeeCourse>;
+  
+  // Course answer operations
+  createCourseAnswer(answer: InsertCourseAnswer): Promise<CourseAnswer>;
+  getEmployeeCourseAnswers(employeeCourseId: number): Promise<CourseAnswer[]>;
   
   // Certificate operations
   getCertificates(userId: string, companyId: number): Promise<Certificate[]>;
@@ -1778,6 +1793,37 @@ export class DatabaseStorage implements IStorage {
       score,
       completedAt: new Date()
     });
+  }
+
+  // Course question operations
+  async getCourseQuestions(courseId: number): Promise<CourseQuestion[]> {
+    return await db
+      .select()
+      .from(courseQuestions)
+      .where(eq(courseQuestions.courseId, courseId))
+      .orderBy(courseQuestions.order);
+  }
+
+  async createCourseQuestion(question: InsertCourseQuestion): Promise<CourseQuestion> {
+    const [newQuestion] = await db.insert(courseQuestions).values(question).returning();
+    return newQuestion;
+  }
+
+  async getEmployeeCourseById(id: number): Promise<EmployeeCourse | undefined> {
+    const [employeeCourse] = await db.select().from(employeeCourses).where(eq(employeeCourses.id, id));
+    return employeeCourse;
+  }
+
+  async createCourseAnswer(answer: InsertCourseAnswer): Promise<CourseAnswer> {
+    const [newAnswer] = await db.insert(courseAnswers).values(answer).returning();
+    return newAnswer;
+  }
+
+  async getEmployeeCourseAnswers(employeeCourseId: number): Promise<CourseAnswer[]> {
+    return await db
+      .select()
+      .from(courseAnswers)
+      .where(eq(courseAnswers.employeeCourseId, employeeCourseId));
   }
 
   // Certificate operations

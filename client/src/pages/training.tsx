@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCourse, type User } from "@shared/schema";
 
 export default function Training() {
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -52,14 +54,17 @@ export default function Training() {
       description: "",
       duration: 0,
       isRequired: false,
+      videoUrl: "",
+      passingScore: 70,
     },
   });
 
   // Mutations for course actions
   const startCourseMutation = useMutation({
     mutationFn: (courseId: number) => apiRequest("/api/employee-courses/start", { method: "POST", body: JSON.stringify({ courseId }) }),
-    onSuccess: () => {
+    onSuccess: (_, courseId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-courses"] });
+      setLocation(`/course/${courseId}`);
     }
   });
 
@@ -430,6 +435,45 @@ export default function Training() {
                                       placeholder="Ex: 120" 
                                       value={field.value || ""}
                                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="videoUrl"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>URL do Vídeo (YouTube, Vimeo, etc)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="url"
+                                      placeholder="Ex: https://www.youtube.com/watch?v=..." 
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="passingScore"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nota Mínima para Aprovação (%)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      placeholder="Ex: 70" 
+                                      value={field.value || ""}
+                                      onChange={(e) => field.onChange(parseInt(e.target.value) || 70)}
+                                      min="0"
+                                      max="100"
                                     />
                                   </FormControl>
                                   <FormMessage />
