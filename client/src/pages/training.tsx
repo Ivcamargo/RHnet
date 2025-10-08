@@ -152,8 +152,9 @@ export default function Training() {
         body: JSON.stringify(questionData),
       });
     },
-    onSuccess: (_, { courseId }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+    onSuccess: async (_, { courseId }) => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/courses", courseId, "questions"] });
       setNewQuestion({ question: "", correctAnswer: "", options: ["", "", "", ""] });
       toast({
         title: "Sucesso",
@@ -174,8 +175,9 @@ export default function Training() {
     mutationFn: async ({ courseId, questionId }: { courseId: number; questionId: number }) => {
       await apiRequest(`/api/courses/${courseId}/questions/${questionId}`, { method: "DELETE" });
     },
-    onSuccess: (_, { courseId }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+    onSuccess: async (_, { courseId }) => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/courses", courseId, "questions"] });
       toast({
         title: "Sucesso",
         description: "Pergunta excluída com sucesso",

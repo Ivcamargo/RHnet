@@ -112,7 +112,7 @@ export default function Dashboard() {
   });
 
   const { data: employeeCourses } = useQuery({
-    queryKey: [`/api/courses/employee`],
+    queryKey: [`/api/employee-courses`],
   });
 
   // Combine real data with fallbacks
