@@ -21,7 +21,7 @@ const argon2Config = {
 
 // Schemas de validação
 const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().min(1, 'Email ou CPF é obrigatório'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
 });
 
@@ -172,13 +172,16 @@ export function setupLocalAuth(app: any) {
         });
       }
 
-      // Busca usuário por email
+      // Busca usuário por email ou CPF
       const users = await storage.getAllUsers();
-      const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      const user = users.find(u => 
+        u.email?.toLowerCase() === email.toLowerCase() || 
+        u.cpf === email.replace(/\D/g, '') // Remove caracteres não numéricos do CPF
+      );
       
       if (!user || !user.passwordHash) {
         recordFailedAttempt(email);
-        return res.status(401).json({ message: 'Email ou senha inválidos' });
+        return res.status(401).json({ message: 'Email/CPF ou senha inválidos' });
       }
 
       if (!user.isActive) {
@@ -189,7 +192,7 @@ export function setupLocalAuth(app: any) {
       const isValidPassword = await verifyPassword(user.passwordHash, password);
       if (!isValidPassword) {
         recordFailedAttempt(email);
-        return res.status(401).json({ message: 'Email ou senha inválidos' });
+        return res.status(401).json({ message: 'Email/CPF ou senha inválidos' });
       }
 
       // Login bem-sucedido

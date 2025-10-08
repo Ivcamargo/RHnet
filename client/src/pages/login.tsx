@@ -15,7 +15,7 @@ import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import loginLogo from "@assets/rhnetp_1758411296813.jpg";
 
 const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().min(1, "Email ou CPF é obrigatório"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 });
 
@@ -110,11 +110,11 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email ou CPF</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="seu@email.com"
+                type="text"
+                placeholder="seu@email.com ou 000.000.000-00"
                 {...form.register("email")}
                 data-testid="input-email"
               />
