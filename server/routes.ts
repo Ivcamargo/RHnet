@@ -3554,7 +3554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               messageId: message.id,
               userId: employee.id,
               isDelivered: true,
-              deliveredAt: new Date().toISOString()
+              deliveredAt: new Date()
             });
           }
         }
@@ -3564,7 +3564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messageId: message.id,
           userId: messageData.recipientId,
           isDelivered: true,
-          deliveredAt: new Date().toISOString()
+          deliveredAt: new Date()
         });
       }
 
