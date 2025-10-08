@@ -15,7 +15,8 @@ import {
   GraduationCap,
   Calendar,
   Upload,
-  Timer
+  Timer,
+  Key
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -117,10 +118,22 @@ export default function Sidebar() {
             <p className="uppercase">{(user as any).role}</p>
           </div>
         )}
+        <Link href="/change-password">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-gray-600 hover:text-blue-800 hover:bg-teal-100"
+            onClick={() => setIsMobileMenuOpen(false)}
+            data-testid="button-change-password"
+          >
+            <Key className="mr-3 h-5 w-5" />
+            Alterar Senha
+          </Button>
+        </Link>
         <Button
           onClick={handleLogout}
           variant="ghost"
           className="w-full justify-start text-gray-600 hover:text-blue-800 hover:bg-teal-100"
+          data-testid="button-logout"
         >
           <LogOut className="mr-3 h-5 w-5" />
           Sair

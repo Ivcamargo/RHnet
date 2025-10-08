@@ -632,5 +632,58 @@ export function setupLocalAuth(app: any) {
     }
   });
 
+  // Alterar senha do próprio usuário
+  authRouter.post('/change-password', isAuthenticatedHybrid, async (req, res) => {
+    try {
+      const changePasswordSchema = z.object({
+        currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
+        newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
+        confirmPassword: z.string(),
+      }).refine(data => data.newPassword === data.confirmPassword, {
+        message: 'As senhas não coincidem',
+        path: ['confirmPassword'],
+      });
+
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      
+      const user = await storage.getUser(req.user.claims.sub);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      if (!user.passwordHash) {
+        return res.status(400).json({ message: 'Usuário não possui senha configurada' });
+      }
+
+      // Verifica senha atual
+      const isValidPassword = await verifyPassword(user.passwordHash, currentPassword);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Senha atual incorreta' });
+      }
+
+      // Hash da nova senha
+      const passwordHash = await hashPassword(newPassword);
+      
+      // Atualiza senha
+      await storage.updateUser(user.id, {
+        passwordHash,
+        mustChangePassword: false,
+      });
+      
+      res.json({ message: 'Senha alterada com sucesso!' });
+
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Dados inválidos', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  });
+
   app.use('/api/auth', authRouter);
 }

@@ -12,6 +12,7 @@ import Register from "@/pages/register";
 import SetPassword from "@/pages/set-password";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import ChangePassword from "@/pages/change-password";
 import Dashboard from "@/pages/dashboard";
 import TimeClock from "@/pages/time-clock";
 import Departments from "@/pages/departments";
@@ -72,6 +73,7 @@ function Router() {
       
       {/* Rotas protegidas - redirecionam para login se não autenticado */}
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/change-password" component={() => <ProtectedRoute component={ChangePassword} />} />
       <Route path="/messages" component={() => <ProtectedRoute component={Messages} />} />
       <Route path="/documents" component={() => <ProtectedRoute component={Documents} />} />
       <Route path="/training" component={() => <ProtectedRoute component={Training} />} />
