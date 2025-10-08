@@ -4140,6 +4140,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create course question (admin only)
+  app.post('/api/courses/:id/questions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can create questions" });
+      }
+
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (course.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const questionData: InsertCourseQuestion = insertCourseQuestionSchema.parse({
+        ...req.body,
+        courseId
+      });
+
+      const question = await storage.createCourseQuestion(questionData);
+      res.status(201).json(question);
+    } catch (error) {
+      console.error("Error creating question:", error);
+      res.status(500).json({ message: "Failed to create question" });
+    }
+  });
+
+  // Delete course question (admin only)
+  app.delete('/api/courses/:courseId/questions/:questionId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const questionId = parseInt(req.params.questionId);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can delete questions" });
+      }
+
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (course.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteCourseQuestion(questionId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      res.status(500).json({ message: "Failed to delete question" });
+    }
+  });
+
   // Submit quiz
   app.post('/api/courses/:id/submit-quiz', isAuthenticatedHybrid, async (req: any, res) => {
     try {

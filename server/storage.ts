@@ -241,6 +241,7 @@ export interface IStorage {
   // Course question operations
   getCourseQuestions(courseId: number): Promise<CourseQuestion[]>;
   createCourseQuestion(question: InsertCourseQuestion): Promise<CourseQuestion>;
+  deleteCourseQuestion(questionId: number): Promise<void>;
   
   // Employee course operations
   getEmployeeCourses(userId: string, companyId: number): Promise<EmployeeCourse[]>;
@@ -1807,6 +1808,10 @@ export class DatabaseStorage implements IStorage {
   async createCourseQuestion(question: InsertCourseQuestion): Promise<CourseQuestion> {
     const [newQuestion] = await db.insert(courseQuestions).values(question).returning();
     return newQuestion;
+  }
+
+  async deleteCourseQuestion(questionId: number): Promise<void> {
+    await db.delete(courseQuestions).where(eq(courseQuestions.id, questionId));
   }
 
   async getEmployeeCourseById(id: number): Promise<EmployeeCourse | undefined> {

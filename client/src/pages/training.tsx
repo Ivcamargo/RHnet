@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { GraduationCap, Play, Award, Clock, CheckCircle, Plus, Edit, Trash2, X } from "lucide-react";
+import { GraduationCap, Play, Award, Clock, CheckCircle, Plus, Edit, Trash2, X, HelpCircle } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
-import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCourse, type User } from "@shared/schema";
+import { Course, EmployeeCourse, Certificate, insertCourseSchema, type InsertCourse, type User, type CourseQuestion } from "@shared/schema";
 
 export default function Training() {
   const [, setLocation] = useLocation();
@@ -26,6 +26,9 @@ export default function Training() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showQuestionsDialog, setShowQuestionsDialog] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [newQuestion, setNewQuestion] = useState({ question: "", correctAnswer: "", options: ["", "", "", ""] });
   const { toast } = useToast();
 
   // Fetch user info
@@ -44,6 +47,12 @@ export default function Training() {
 
   const { data: certificates = [], isLoading: certificatesLoading } = useQuery<Certificate[]>({
     queryKey: ["/api/certificates"],
+  });
+
+  // Fetch questions for selected course
+  const { data: courseQuestions = [], isLoading: questionsLoading } = useQuery<CourseQuestion[]>({
+    queryKey: ["/api/courses", selectedCourse?.id, "questions"],
+    enabled: !!selectedCourse && showQuestionsDialog,
   });
 
   // Form for creating courses
@@ -124,6 +133,52 @@ export default function Training() {
       toast({
         title: "Sucesso",
         description: "Curso excluído com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create question mutation
+  const createQuestionMutation = useMutation({
+    mutationFn: async ({ courseId, questionData }: { courseId: number; questionData: any }) => {
+      await apiRequest(`/api/courses/${courseId}/questions`, {
+        method: "POST",
+        body: JSON.stringify(questionData),
+      });
+    },
+    onSuccess: (_, { courseId }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+      setNewQuestion({ question: "", correctAnswer: "", options: ["", "", "", ""] });
+      toast({
+        title: "Sucesso",
+        description: "Pergunta adicionada com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete question mutation
+  const deleteQuestionMutation = useMutation({
+    mutationFn: async ({ courseId, questionId }: { courseId: number; questionId: number }) => {
+      await apiRequest(`/api/courses/${courseId}/questions/${questionId}`, { method: "DELETE" });
+    },
+    onSuccess: (_, { courseId }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "questions"] });
+      toast({
+        title: "Sucesso",
+        description: "Pergunta excluída com sucesso",
       });
     },
     onError: (error: Error) => {
@@ -228,6 +283,33 @@ export default function Training() {
     if (confirm("Tem certeza que deseja parar este curso?")) {
       stopCourseMutation.mutate(employeeCourseId);
     }
+  };
+
+  const handleManageQuestions = (course: Course) => {
+    setSelectedCourse(course);
+    setShowQuestionsDialog(true);
+  };
+
+  const handleAddQuestion = () => {
+    if (!selectedCourse || !newQuestion.question || !newQuestion.correctAnswer) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createQuestionMutation.mutate({
+      courseId: selectedCourse.id,
+      questionData: {
+        question: newQuestion.question,
+        questionType: "multiple_choice",
+        options: newQuestion.options.filter(opt => opt.trim() !== ""),
+        correctAnswer: newQuestion.correctAnswer,
+        order: 0,
+      },
+    });
   };
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
@@ -667,6 +749,15 @@ export default function Training() {
                             <Button 
                               size="sm" 
                               variant="outline" 
+                              onClick={() => handleManageQuestions(course)}
+                              data-testid={`button-questions-${index}`}
+                              title="Gerenciar Perguntas"
+                            >
+                              <HelpCircle className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
                               onClick={() => handleEditCourse(course)}
                               data-testid={`button-edit-course-${index}`}
                             >
@@ -689,6 +780,105 @@ export default function Training() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Questions Management Dialog */}
+          <Dialog open={showQuestionsDialog} onOpenChange={setShowQuestionsDialog}>
+            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Gerenciar Perguntas - {selectedCourse?.title}</DialogTitle>
+              </DialogHeader>
+              
+              {selectedCourse && (
+                <div className="space-y-6">
+                  {/* Existing Questions */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Perguntas Existentes</h3>
+                    {questionsLoading ? (
+                      <p className="text-sm text-muted-foreground">Carregando...</p>
+                    ) : courseQuestions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nenhuma pergunta adicionada ainda</p>
+                    ) : (
+                      courseQuestions.map((q, idx) => (
+                        <div key={q.id} className="border rounded p-3 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">Pergunta {idx + 1}: {q.question}</p>
+                              <p className="text-sm text-muted-foreground">Resposta correta: {q.correctAnswer}</p>
+                              {q.options && Array.isArray(q.options) && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Opções: {(q.options as string[]).join(", ")}
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteQuestionMutation.mutate({ courseId: selectedCourse.id, questionId: q.id })}
+                              disabled={deleteQuestionMutation.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add New Question */}
+                  <div className="border-t pt-4 space-y-4">
+                    <h3 className="font-medium">Adicionar Nova Pergunta</h3>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Pergunta</label>
+                      <Textarea
+                        placeholder="Digite a pergunta do questionário..."
+                        value={newQuestion.question}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Opções de Resposta</label>
+                      {newQuestion.options.map((opt, idx) => (
+                        <Input
+                          key={idx}
+                          placeholder={`Opção ${idx + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const newOpts = [...newQuestion.options];
+                            newOpts[idx] = e.target.value;
+                            setNewQuestion({ ...newQuestion, options: newOpts });
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Resposta Correta</label>
+                      <Input
+                        placeholder="Digite a resposta correta (deve ser exatamente igual a uma das opções)"
+                        value={newQuestion.correctAnswer}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, correctAnswer: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleAddQuestion}
+                        disabled={createQuestionMutation.isPending}
+                        className="point-primary"
+                      >
+                        {createQuestionMutation.isPending ? "Adicionando..." : "Adicionar Pergunta"}
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowQuestionsDialog(false)}>
+                        Fechar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Certificates */}
           <Card className="mt-8">
