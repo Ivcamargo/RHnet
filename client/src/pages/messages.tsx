@@ -55,7 +55,7 @@ export default function Messages() {
 
   // Fetch messages based on current tab  
   const { data: messages, isLoading: loadingMessages } = useQuery({
-    queryKey: ["/api/messages", selectedTab],
+    queryKey: [`/api/messages/${selectedTab}`],
   });
 
   // Fetch message categories
@@ -93,7 +93,8 @@ export default function Messages() {
         body: JSON.stringify({
           ...data,
           companyId: user?.companyId,
-          senderId: user?.id
+          senderId: user?.id,
+          isMassMessage: data.recipientId === "all" || data.isMassMessage
         }) 
       }),
     onSuccess: () => {
