@@ -1,0 +1,29 @@
+{
+  "name": "RHNet - A Rede do RH",
+  "short_name": "RHNet",
+  "description": "Sistema completo de gestão de recursos humanos com controle de ponto, mensageria, documentos e capacitação",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#001a40",
+  "theme_color": "#001a40",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "scope": "/",
+  "screenshots": []
+}
