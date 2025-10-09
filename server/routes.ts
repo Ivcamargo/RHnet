@@ -3827,7 +3827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Use file info from multer
-      const title = req.body.title || req.file.originalname;
+      let title = req.body.title || req.file.originalname;
       const mimeType = req.file.mimetype;
       const description = req.body.description || `Arquivo enviado: ${req.file.originalname}`;
       
@@ -3835,6 +3835,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assignedTo = req.body.assignedTo && req.body.assignedTo !== 'none' 
         ? req.body.assignedTo 
         : null;
+
+      // Check for duplicate titles and add suffix if needed
+      const existingDocs = await storage.getDocuments(user.companyId);
+      const sameTitleDocs = existingDocs.filter(doc => 
+        doc.title.toLowerCase() === title.toLowerCase() && doc.isActive
+      );
+      
+      if (sameTitleDocs.length > 0) {
+        // Extract file extension
+        const lastDot = title.lastIndexOf('.');
+        const baseName = lastDot > 0 ? title.substring(0, lastDot) : title;
+        const extension = lastDot > 0 ? title.substring(lastDot) : '';
+        
+        // Add counter suffix
+        let counter = 1;
+        let newTitle = `${baseName} (${counter})${extension}`;
+        while (existingDocs.some(doc => doc.title.toLowerCase() === newTitle.toLowerCase() && doc.isActive)) {
+          counter++;
+          newTitle = `${baseName} (${counter})${extension}`;
+        }
+        title = newTitle;
+      }
 
       // Validate with schema (excluding generated fields)
       const documentData: InsertDocument = insertDocumentSchema.parse({
