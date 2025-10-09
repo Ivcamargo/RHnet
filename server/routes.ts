@@ -3830,6 +3830,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const title = req.body.title || req.file.originalname;
       const mimeType = req.file.mimetype;
       const description = req.body.description || `Arquivo enviado: ${req.file.originalname}`;
+      
+      // Get assignedTo from FormData (convert empty/none to null)
+      const assignedTo = req.body.assignedTo && req.body.assignedTo !== 'none' 
+        ? req.body.assignedTo 
+        : null;
 
       // Validate with schema (excluding generated fields)
       const documentData: InsertDocument = insertDocumentSchema.parse({
@@ -3842,6 +3847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filePath: req.file.path,
         companyId: user.companyId,
         uploadedBy: userId,
+        assignedTo,
       });
 
       const document = await storage.createDocument(documentData);
