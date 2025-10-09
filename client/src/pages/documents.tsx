@@ -26,12 +26,22 @@ const documentFormSchema = z.object({
 
 type DocumentFormData = z.infer<typeof documentFormSchema>;
 
+// Schema for upload form
+const uploadFormSchema = z.object({
+  title: z.string().min(1, "Título é obrigatório"),
+  assignedTo: z.string().optional(),
+});
+
+type UploadFormData = z.infer<typeof uploadFormSchema>;
+
 export default function Documents() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Fetch documents from API
   const { data: documents = [], isLoading, error } = useQuery<Document[]>({
@@ -52,13 +62,25 @@ export default function Documents() {
     },
   });
 
+  // Form for uploading documents
+  const uploadForm = useForm<UploadFormData>({
+    resolver: zodResolver(uploadFormSchema),
+    defaultValues: {
+      title: "",
+      assignedTo: "none",
+    },
+  });
+
   // Upload mutation
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, title, assignedTo }: { file: File; title: string; assignedTo?: string | null }) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('title', file.name);
+      formData.append('title', title);
       formData.append('mimeType', file.type);
+      if (assignedTo && assignedTo !== 'none') {
+        formData.append('assignedTo', assignedTo);
+      }
       
       return fetch('/api/documents/upload', {
         method: 'POST',
@@ -71,6 +93,9 @@ export default function Documents() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      setShowUploadDialog(false);
+      setSelectedFile(null);
+      uploadForm.reset();
       toast({
         title: "Sucesso!",
         description: "Documento enviado com sucesso.",
@@ -132,11 +157,22 @@ export default function Documents() {
   const pendingDocs = documents.filter(doc => !doc.assignedTo).length;
   const receivedDocs = documents.filter(doc => doc.assignedTo).length;
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      uploadMutation.mutate(file);
+      setSelectedFile(file);
+      uploadForm.setValue('title', file.name);
+      setShowUploadDialog(true);
     }
+  };
+
+  const handleUploadSubmit = (data: UploadFormData) => {
+    if (!selectedFile) return;
+    uploadMutation.mutate({
+      file: selectedFile,
+      title: data.title,
+      assignedTo: data.assignedTo === 'none' ? null : data.assignedTo
+    });
   };
 
   const handleEditDocument = (document: Document) => {
@@ -218,28 +254,90 @@ export default function Documents() {
                 <Upload className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <label htmlFor="file-upload" className="w-full">
-                  <Button 
-                    className="w-full" 
-                    data-testid="button-upload-document"
-                    disabled={uploadMutation.isPending}
-                    asChild
-                  >
-                    <span>
-                      {uploadMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4 mr-2" />
-                      )}
-                      {uploadMutation.isPending ? 'Enviando...' : 'Fazer Upload'}
-                    </span>
-                  </Button>
-                </label>
+                <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                  <DialogTrigger asChild>
+                    <label htmlFor="file-upload" className="w-full">
+                      <Button 
+                        className="w-full" 
+                        data-testid="button-upload-document"
+                        disabled={uploadMutation.isPending}
+                        asChild
+                      >
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Fazer Upload
+                        </span>
+                      </Button>
+                    </label>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Enviar Documento</DialogTitle>
+                    </DialogHeader>
+                    <Form {...uploadForm}>
+                      <form onSubmit={uploadForm.handleSubmit(handleUploadSubmit)} className="space-y-4">
+                        <FormField
+                          control={uploadForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Título</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nome do documento" {...field} data-testid="input-upload-title" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={uploadForm.control}
+                          name="assignedTo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Enviar para</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-upload-assigned-to">
+                                    <SelectValue placeholder="Selecione um destinatário" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="none">Todos da empresa</SelectItem>
+                                  {users.map((user) => (
+                                    <SelectItem key={user.id} value={user.id}>
+                                      {user.firstName} {user.lastName} ({user.role})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => setShowUploadDialog(false)}>
+                            Cancelar
+                          </Button>
+                          <Button type="submit" disabled={uploadMutation.isPending} data-testid="button-submit-upload">
+                            {uploadMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Enviando...
+                              </>
+                            ) : (
+                              'Enviar'
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
                 <input
                   id="file-upload"
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={handleFileUpload}
+                  onChange={handleFileSelect}
                   style={{ display: 'none' }}
                 />
               </CardContent>
