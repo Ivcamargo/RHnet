@@ -3712,7 +3712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get users (for recipient selection)
+  // Get users (for recipient selection - hierarchical filtering)
   app.get('/api/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
@@ -3723,15 +3723,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let users;
       if (scope.type === 'superadmin') {
+        // Superadmin sees all users
         users = await storage.getAllUsers();
       } else if (scope.type === 'admin') {
+        // Admin sees all users in their company
         users = await storage.getCompanyEmployees(scope.companyId!);
       } else if (scope.type === 'supervisor') {
-        // Supervisors can only see users from their assigned sectors
-        users = await storage.getUsersByScope(scope.companyId, scope.departmentIds!);
+        // Supervisor sees: employees from their assigned sectors + admins/superadmins
+        const employeesInSectors = await storage.getUsersByScope(scope.companyId, scope.departmentIds!);
+        const companyAdmins = await storage.getCompanyEmployees(scope.companyId!);
+        const admins = companyAdmins.filter(u => u.role === 'admin' || u.role === 'superadmin');
+        
+        // Combine and remove duplicates
+        const userMap = new Map();
+        [...employeesInSectors, ...admins].forEach(u => userMap.set(u.id, u));
+        users = Array.from(userMap.values());
       } else {
-        // Employees can see all users in their company (for recipient selection)
-        users = await storage.getCompanyEmployees(scope.companyId!);
+        // Employee sees: their supervisor + admins/superadmins from their company
+        const allCompanyUsers = await storage.getCompanyEmployees(scope.companyId!);
+        
+        // Filter to only show supervisors and admins
+        users = allCompanyUsers.filter(u => 
+          u.role === 'supervisor' || u.role === 'admin' || u.role === 'superadmin'
+        );
       }
 
       res.json(users);
