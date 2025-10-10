@@ -16,7 +16,8 @@ import {
   Calendar,
   Upload,
   Timer,
-  Key
+  Key,
+  Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +48,7 @@ export default function Sidebar() {
   // Admin-only navigation items
   const adminNavigation = [
     { name: "Funcionários", href: "/employees", icon: Users },
+    { name: "Recrutamento", href: "/recruitment", icon: Briefcase },
     { name: "Departamentos", href: "/departments", icon: Building },
     { name: "Setores", href: "/sectors", icon: Building },
     { name: "Feriados", href: "/holidays", icon: Calendar },
