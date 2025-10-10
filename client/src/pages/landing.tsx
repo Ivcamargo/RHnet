@@ -17,7 +17,8 @@ import {
   Lock,
   Smartphone,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Briefcase
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
@@ -25,6 +26,10 @@ import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartpho
 export default function Landing() {
   const handleLogin = () => {
     window.location.href = "/login";
+  };
+
+  const handleJobsPage = () => {
+    window.location.href = "/vagas";
   };
 
   return (
@@ -62,13 +67,24 @@ export default function Landing() {
               <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
               <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</h1>
             </div>
-            <Button 
-              onClick={handleLogin} 
-              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
-              data-testid="button-login"
-            >
-              Fazer Login
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleJobsPage} 
+                variant="outline"
+                className="border-orange-600 text-orange-600 hover:bg-orange-50 px-6 py-2"
+                data-testid="button-jobs"
+              >
+                <Briefcase className="mr-2 h-4 w-4" />
+                Trabalhe Conosco
+              </Button>
+              <Button 
+                onClick={handleLogin} 
+                className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2"
+                data-testid="button-login"
+              >
+                Fazer Login
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -81,6 +97,30 @@ export default function Landing() {
             <strong> mensageria corporativa</strong>, <strong>gestão de documentos</strong> e 
             <strong> capacitação de funcionários</strong>.
           </p>
+        </div>
+
+        {/* Trabalhe Conosco - Destaque */}
+        <div className="mb-20 bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl p-10 shadow-2xl">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-6">
+              <Briefcase className="h-10 w-10 text-green-600" />
+            </div>
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Trabalhe Conosco!
+            </h2>
+            <p className="text-xl text-green-50 mb-8 max-w-3xl mx-auto">
+              Estamos em busca de talentos! Confira nossas vagas abertas e faça parte do nosso time.
+            </p>
+            <Button 
+              onClick={handleJobsPage}
+              size="lg"
+              className="bg-white text-green-600 hover:bg-gray-100 text-lg px-10 py-4 font-semibold shadow-lg"
+              data-testid="button-jobs-hero"
+            >
+              Ver Vagas Disponíveis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Core Features - Sistema Integrado */}
@@ -268,16 +308,20 @@ export default function Landing() {
               onClick={handleLogin} 
               size="lg"
               className="bg-white text-orange-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold"
+              data-testid="button-login-cta"
             >
               Acessar Sistema Agora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
+              onClick={handleJobsPage}
               variant="outline"
               size="lg"
               className="border-white text-white hover:bg-white hover:text-orange-600 text-lg px-8 py-3"
+              data-testid="button-jobs-cta"
             >
-              Solicitar Demonstração
+              <Briefcase className="mr-2 h-5 w-5" />
+              Ver Vagas Disponíveis
             </Button>
           </div>
         </div>
@@ -286,10 +330,29 @@ export default function Landing() {
       {/* Footer */}
       <footer className="bg-white/90 backdrop-blur-sm border-t border-orange-200 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-11 w-11 mr-3 rounded" />
               <span className="text-xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <Button 
+                onClick={handleJobsPage}
+                variant="ghost"
+                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                data-testid="button-jobs-footer"
+              >
+                <Briefcase className="mr-2 h-4 w-4" />
+                Trabalhe Conosco
+              </Button>
+              <Button 
+                onClick={handleLogin}
+                variant="ghost"
+                className="text-[hsl(215,80%,25%)] hover:bg-blue-50"
+                data-testid="button-login-footer"
+              >
+                Login
+              </Button>
             </div>
             <div className="text-gray-600">
               <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
