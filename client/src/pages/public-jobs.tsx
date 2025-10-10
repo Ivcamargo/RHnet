@@ -259,6 +259,109 @@ export default function PublicJobs() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Dialog de Candidatura */}
+        <Dialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {applicationSuccess ? 'Candidatura Enviada!' : `Candidatar-se: ${selectedJob?.title}`}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {applicationSuccess ? (
+              <div className="text-center py-8">
+                <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Candidatura enviada com sucesso!</h3>
+                <p className="text-muted-foreground mb-6">
+                  Recebemos sua candidatura e entraremos em contato em breve.
+                </p>
+                <Button onClick={() => setIsApplyDialogOpen(false)}>
+                  Fechar
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitApplication} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nome Completo *</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    required
+                    placeholder="Seu nome completo"
+                    data-testid="input-applicant-name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="email">E-mail *</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="seu@email.com"
+                    data-testid="input-applicant-email"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="phone">Telefone *</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    required
+                    placeholder="(00) 00000-0000"
+                    data-testid="input-applicant-phone"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="resume">Link do Currículo</Label>
+                  <Input
+                    id="resume"
+                    name="resume"
+                    type="url"
+                    placeholder="https://..."
+                    data-testid="input-applicant-resume"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Link para Google Drive, Dropbox, LinkedIn, etc.
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="coverLetter">Carta de Apresentação</Label>
+                  <Textarea
+                    id="coverLetter"
+                    name="coverLetter"
+                    placeholder="Conte um pouco sobre você e por que quer trabalhar conosco..."
+                    rows={4}
+                    data-testid="input-cover-letter"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsApplyDialogOpen(false)}
+                    data-testid="button-cancel-apply"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={applyMutation.isPending}
+                    data-testid="button-submit-application"
+                  >
+                    {applyMutation.isPending ? "Enviando..." : "Enviar Candidatura"}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -297,12 +400,12 @@ export default function PublicJobs() {
               
               <div>
                 <Label htmlFor="filter-location">Cidade</Label>
-                <Select value={filterLocation} onValueChange={setFilterLocation}>
+                <Select value={filterLocation} onValueChange={(value) => setFilterLocation(value === 'all' ? '' : value)}>
                   <SelectTrigger id="filter-location" data-testid="filter-location">
                     <SelectValue placeholder="Todas as cidades" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as cidades</SelectItem>
+                    <SelectItem value="all">Todas as cidades</SelectItem>
                     {uniqueLocations.map((location: string) => (
                       <SelectItem key={location} value={location}>
                         {location}
@@ -314,12 +417,12 @@ export default function PublicJobs() {
 
               <div>
                 <Label htmlFor="filter-employment-type">Tipo de Emprego</Label>
-                <Select value={filterEmploymentType} onValueChange={setFilterEmploymentType}>
+                <Select value={filterEmploymentType} onValueChange={(value) => setFilterEmploymentType(value === 'all' ? '' : value)}>
                   <SelectTrigger id="filter-employment-type" data-testid="filter-employment-type">
                     <SelectValue placeholder="Todos os tipos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os tipos</SelectItem>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
                     {uniqueEmploymentTypes.map((type: string) => (
                       <SelectItem key={type} value={type}>
                         {getEmploymentTypeLabel(type)}
