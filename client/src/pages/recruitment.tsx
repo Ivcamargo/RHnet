@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import {
   Select,
   SelectContent,
@@ -43,9 +43,11 @@ export default function Recruitment() {
   const [activeTab, setActiveTab] = useState('jobs');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: jobOpenings = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/job-openings'],
+    refetchOnMount: 'always',
   });
 
   const { data: candidates = [] } = useQuery<any[]>({
@@ -63,8 +65,8 @@ export default function Recruitment() {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+    onSuccess: async () => {
+      queryClient.resetQueries({ queryKey: ['/api/job-openings'] });
       setIsCreateDialogOpen(false);
       toast({
         title: "Vaga criada com sucesso!",
@@ -86,8 +88,8 @@ export default function Recruitment() {
         method: 'POST',
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+    onSuccess: async () => {
+      queryClient.resetQueries({ queryKey: ['/api/job-openings'] });
       toast({
         title: "Vaga publicada!",
         description: "A vaga está agora visível para candidatos.",
