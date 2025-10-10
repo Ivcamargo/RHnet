@@ -28,12 +28,12 @@ export default function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
   });
 
-  const isAdmin = user && 'role' in user && (user.role === 'admin' || user.role === 'superadmin');
-  const isSuperAdmin = user && 'role' in user && user.role === 'superadmin';
+  const isAdmin = user && typeof user === 'object' && 'role' in user && (user.role === 'admin' || user.role === 'superadmin');
+  const isSuperAdmin = user && typeof user === 'object' && 'role' in user && user.role === 'superadmin';
 
   // Base navigation for all users - prioritizing HR and messaging features
   const baseNavigation = [
