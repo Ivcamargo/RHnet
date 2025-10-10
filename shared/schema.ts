@@ -1283,3 +1283,317 @@ export const insertUserShiftAssignmentSequentialSchema = insertUserShiftAssignme
   message: "Data final deve ser posterior à data inicial",
   path: ["endDate"]
 });
+
+// ========================================================================================
+// RECRUITMENT & SELECTION MODULE
+// ========================================================================================
+
+// Job openings / Vagas
+export const jobOpenings = pgTable("job_openings", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  departmentId: integer("department_id"),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  requirements: text("requirements"),
+  responsibilities: text("responsibilities"),
+  benefits: text("benefits"),
+  location: varchar("location"),
+  employmentType: varchar("employment_type").notNull(), // "CLT", "PJ", "Estágio", "Temporário"
+  salaryRange: varchar("salary_range"), // "R$ 3.000 - R$ 5.000"
+  workSchedule: varchar("work_schedule"), // "Segunda a Sexta, 8h-17h"
+  vacancies: integer("vacancies").default(1), // Número de vagas
+  status: varchar("status").default("draft"), // draft, published, closed, filled
+  publishedAt: timestamp("published_at"),
+  closedAt: timestamp("closed_at"),
+  expiresAt: timestamp("expires_at"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  departmentReference: foreignKey({
+    columns: [table.departmentId],
+    foreignColumns: [departments.id],
+  }),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Candidates / Candidatos
+export const candidates = pgTable("candidates", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
+  cpf: varchar("cpf"),
+  birthDate: date("birth_date"),
+  address: text("address"),
+  city: varchar("city"),
+  state: varchar("state"),
+  zipCode: varchar("zip_code"),
+  latitude: real("latitude"), // Para cálculo de distância
+  longitude: real("longitude"),
+  resumeUrl: text("resume_url"), // URL do currículo
+  linkedinUrl: text("linkedin_url"),
+  portfolioUrl: text("portfolio_url"),
+  skills: text("skills").array(), // Array de habilidades
+  experience: text("experience"), // Experiência profissional resumida
+  education: text("education"), // Formação acadêmica
+  sourceChannel: varchar("source_channel"), // "LinkedIn", "Indeed", "Indicação", etc.
+  notes: text("notes"), // Anotações internas
+  status: varchar("status").default("active"), // active, blacklisted, hired
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  uniqueEmail: uniqueIndex("unique_candidate_email").on(table.companyId, table.email),
+}));
+
+// Applications / Candidaturas
+export const applications = pgTable("applications", {
+  id: serial("id").primaryKey(),
+  jobOpeningId: integer("job_opening_id").notNull(),
+  candidateId: integer("candidate_id").notNull(),
+  status: varchar("status").default("applied"), // applied, screening, interview, test, approved, rejected, hired
+  currentStageId: integer("current_stage_id"), // Etapa atual do processo
+  score: integer("score").default(0), // Pontuação automática (0-100)
+  distanceKm: real("distance_km"), // Distância em km do candidato até o local da vaga
+  coverLetter: text("cover_letter"),
+  appliedAt: timestamp("applied_at").defaultNow(),
+  screeningNotes: text("screening_notes"),
+  rejectionReason: text("rejection_reason"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  jobOpeningReference: foreignKey({
+    columns: [table.jobOpeningId],
+    foreignColumns: [jobOpenings.id],
+  }).onDelete('cascade'),
+  candidateReference: foreignKey({
+    columns: [table.candidateId],
+    foreignColumns: [candidates.id],
+  }).onDelete('cascade'),
+  uniqueApplication: uniqueIndex("unique_application").on(table.jobOpeningId, table.candidateId),
+}));
+
+// Selection stages / Etapas do processo seletivo
+export const selectionStages = pgTable("selection_stages", {
+  id: serial("id").primaryKey(),
+  jobOpeningId: integer("job_opening_id").notNull(),
+  name: varchar("name").notNull(), // "Triagem", "Entrevista RH", "Entrevista Técnica", "Teste Prático"
+  description: text("description"),
+  order: integer("order").notNull(), // Ordem da etapa (1, 2, 3...)
+  type: varchar("type").notNull(), // "screening", "interview", "test", "approval"
+  isRequired: boolean("is_required").default(true),
+  durationDays: integer("duration_days").default(3), // Prazo esperado em dias
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  jobOpeningReference: foreignKey({
+    columns: [table.jobOpeningId],
+    foreignColumns: [jobOpenings.id],
+  }).onDelete('cascade'),
+}));
+
+// Interview templates / Templates de roteiro de entrevista
+export const interviewTemplates = pgTable("interview_templates", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // "rh", "technical", "behavioral", "manager"
+  questions: jsonb("questions").notNull(), // Array de objetos com perguntas e critérios
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Interviews / Entrevistas agendadas
+export const interviews = pgTable("interviews", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull(),
+  templateId: integer("template_id"),
+  interviewerIds: varchar("interviewer_ids").array(), // Array de IDs dos entrevistadores
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  location: varchar("location"), // "Presencial - Sala 1", "Google Meet", etc.
+  meetingUrl: text("meeting_url"),
+  status: varchar("status").default("scheduled"), // scheduled, completed, cancelled, no_show
+  feedback: text("feedback"),
+  rating: integer("rating"), // 1-5
+  evaluation: jsonb("evaluation"), // Respostas do template de entrevista
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  applicationReference: foreignKey({
+    columns: [table.applicationId],
+    foreignColumns: [applications.id],
+  }).onDelete('cascade'),
+  templateReference: foreignKey({
+    columns: [table.templateId],
+    foreignColumns: [interviewTemplates.id],
+  }),
+}));
+
+// Onboarding links / Links de admissão digital
+export const onboardingLinks = pgTable("onboarding_links", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull(),
+  token: varchar("token").notNull().unique(), // Token único para o link
+  candidateName: varchar("candidate_name").notNull(),
+  candidateEmail: varchar("candidate_email").notNull(),
+  candidatePhone: varchar("candidate_phone"),
+  position: varchar("position").notNull(), // Cargo
+  department: varchar("department"),
+  startDate: date("start_date"), // Data de início prevista
+  status: varchar("status").default("pending"), // pending, in_progress, completed, expired
+  expiresAt: timestamp("expires_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  applicationReference: foreignKey({
+    columns: [table.applicationId],
+    foreignColumns: [applications.id],
+  }).onDelete('cascade'),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Onboarding documents / Documentos de admissão
+export const onboardingDocuments = pgTable("onboarding_documents", {
+  id: serial("id").primaryKey(),
+  onboardingLinkId: integer("onboarding_link_id").notNull(),
+  documentType: varchar("document_type").notNull(), // "rg", "cpf", "ctps", "titulo_eleitor", "comprovante_residencia", etc.
+  fileName: varchar("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: varchar("mime_type"),
+  status: varchar("status").default("pending_review"), // pending_review, approved, rejected
+  reviewNotes: text("review_notes"),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: varchar("reviewed_by"),
+}, (table) => ({
+  onboardingLinkReference: foreignKey({
+    columns: [table.onboardingLinkId],
+    foreignColumns: [onboardingLinks.id],
+  }).onDelete('cascade'),
+  reviewedByReference: foreignKey({
+    columns: [table.reviewedBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Onboarding form data / Dados do formulário de admissão
+export const onboardingFormData = pgTable("onboarding_form_data", {
+  id: serial("id").primaryKey(),
+  onboardingLinkId: integer("onboarding_link_id").notNull().unique(),
+  personalData: jsonb("personal_data"), // Dados pessoais
+  contactData: jsonb("contact_data"), // Dados de contato
+  bankData: jsonb("bank_data"), // Dados bancários
+  dependents: jsonb("dependents"), // Dependentes
+  emergencyContact: jsonb("emergency_contact"), // Contato de emergência
+  contractData: jsonb("contract_data"), // Dados do contrato
+  isComplete: boolean("is_complete").default(false),
+  submittedAt: timestamp("submitted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  onboardingLinkReference: foreignKey({
+    columns: [table.onboardingLinkId],
+    foreignColumns: [onboardingLinks.id],
+  }).onDelete('cascade'),
+}));
+
+// ========================================================================================
+// RECRUITMENT & SELECTION TYPES AND VALIDATION
+// ========================================================================================
+
+export type JobOpening = typeof jobOpenings.$inferSelect;
+export type Candidate = typeof candidates.$inferSelect;
+export type Application = typeof applications.$inferSelect;
+export type SelectionStage = typeof selectionStages.$inferSelect;
+export type InterviewTemplate = typeof interviewTemplates.$inferSelect;
+export type Interview = typeof interviews.$inferSelect;
+export type OnboardingLink = typeof onboardingLinks.$inferSelect;
+export type OnboardingDocument = typeof onboardingDocuments.$inferSelect;
+export type OnboardingFormData = typeof onboardingFormData.$inferSelect;
+
+export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertJobOpening = z.infer<typeof insertJobOpeningSchema>;
+
+export const insertCandidateSchema = createInsertSchema(candidates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCandidate = z.infer<typeof insertCandidateSchema>;
+
+export const insertApplicationSchema = createInsertSchema(applications).omit({
+  id: true,
+  appliedAt: true,
+  updatedAt: true,
+});
+export type InsertApplication = z.infer<typeof insertApplicationSchema>;
+
+export const insertSelectionStageSchema = createInsertSchema(selectionStages).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSelectionStage = z.infer<typeof insertSelectionStageSchema>;
+
+export const insertInterviewTemplateSchema = createInsertSchema(interviewTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInterviewTemplate = z.infer<typeof insertInterviewTemplateSchema>;
+
+export const insertInterviewSchema = createInsertSchema(interviews).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertInterview = z.infer<typeof insertInterviewSchema>;
+
+export const insertOnboardingLinkSchema = createInsertSchema(onboardingLinks).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertOnboardingLink = z.infer<typeof insertOnboardingLinkSchema>;
+
+export const insertOnboardingDocumentSchema = createInsertSchema(onboardingDocuments).omit({
+  id: true,
+  uploadedAt: true,
+});
+export type InsertOnboardingDocument = z.infer<typeof insertOnboardingDocumentSchema>;
+
+export const insertOnboardingFormDataSchema = createInsertSchema(onboardingFormData).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertOnboardingFormData = z.infer<typeof insertOnboardingFormDataSchema>;
