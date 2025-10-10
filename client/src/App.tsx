@@ -74,6 +74,9 @@ function Router() {
       <Route path="/vagas/:id" component={PublicJobs} />
       <Route path="/vagas" component={PublicJobs} />
       
+      {/* Landing page - acessível para todos */}
+      <Route path="/landing" component={Landing} />
+      
       {/* Landing page para usuários não autenticados */}
       {!isAuthenticated && <Route path="/" component={Landing} />}
       

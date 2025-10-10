@@ -238,7 +238,18 @@ export function setupLocalAuth(app: any) {
     }
   });
 
-  // Logout
+  // Logout - GET route for redirects
+  authRouter.get('/logout', (req, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error('Erro ao destruir sessão:', err);
+        return res.status(500).json({ message: 'Erro ao fazer logout' });
+      }
+      res.redirect('/landing');
+    });
+  });
+
+  // Logout - POST route for API calls
   authRouter.post('/logout', (req, res) => {
     req.session.destroy((err: any) => {
       if (err) {

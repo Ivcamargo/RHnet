@@ -20,13 +20,14 @@ import {
   Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 export default function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
   
   const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
@@ -72,8 +73,24 @@ export default function Sidebar() {
     navigation = [...baseNavigation, ...adminNavigation];
   }
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      // First, clear all React Query cache
+      queryClient.clear();
+      
+      // Then call logout API with credentials to include session cookie
+      await fetch("/api/logout", { 
+        method: "POST",
+        credentials: "include"
+      });
+      
+      // Finally redirect to landing page
+      window.location.href = "/landing";
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if there's an error, redirect to landing
+      window.location.href = "/landing";
+    }
   };
 
   const SidebarContent = () => (
