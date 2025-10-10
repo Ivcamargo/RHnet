@@ -5035,6 +5035,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // RECRUITMENT & SELECTION ROUTES
   // ========================================================================================
 
+  // PUBLIC ROUTES (No authentication required)
+  
+  // Get published job openings (public)
+  app.get('/api/public/jobs', async (req, res) => {
+    try {
+      // For now, get all published jobs from all companies
+      // In production, you might want to filter by company based on subdomain or query param
+      const allJobs = await storage.getJobOpenings(2, 'published'); // Company ID 2 for now
+      res.json(allJobs);
+    } catch (error) {
+      console.error("Error fetching public jobs:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  // Submit job application (public)
+  app.post('/api/public/apply', async (req, res) => {
+    try {
+      const { jobOpeningId, name, email, phone, resume, coverLetter } = req.body;
+
+      if (!jobOpeningId || !name || !email || !phone) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Get job to verify it exists and get company
+      const job = await storage.getJobOpening(jobOpeningId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Create or get candidate
+      let candidate = await storage.getCandidateByEmail(job.companyId, email);
+      if (!candidate) {
+        candidate = await storage.createCandidate({
+          companyId: job.companyId,
+          name,
+          email,
+          phone,
+          resume,
+        });
+      }
+
+      // Create application
+      const application = await storage.createApplication({
+        jobOpeningId,
+        candidateId: candidate.id,
+        status: 'pending',
+        coverLetter,
+        appliedAt: new Date(),
+      });
+
+      res.status(201).json({ 
+        success: true, 
+        message: "Application submitted successfully",
+        applicationId: application.id 
+      });
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // ADMIN ROUTES (Authentication required)
+  
   // Job Openings Routes
   app.get('/api/job-openings', isAuthenticatedHybrid, async (req: any, res) => {
     try {
