@@ -89,6 +89,258 @@ export default function Landing() {
         </div>
       </header>
 
+      {/* Hero Section */}
+      <section className="relative z-10 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-5xl font-extrabold text-[hsl(215,80%,25%)] mb-6">
+            Gestão de RH Completa e Inteligente
+          </h2>
+          <p className="text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
+            RHNet é a solução completa para gerenciar sua equipe com eficiência. 
+            Controle de ponto com geolocalização, mensagens corporativas, gestão de documentos, 
+            treinamentos e muito mais, tudo em um único sistema.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={handleLogin} 
+              size="lg"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-6 text-lg"
+            >
+              Começar Agora
+            </Button>
+            <Button 
+              onClick={handleJobsPage} 
+              size="lg"
+              variant="outline"
+              className="border-orange-600 text-orange-600 hover:bg-orange-50 px-8 py-6 text-lg"
+            >
+              Ver Vagas Disponíveis
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="relative z-10 py-16 bg-white/70 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-3xl font-bold text-center text-[hsl(215,80%,25%)] mb-12">
+            Recursos Principais
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Ponto Eletrônico */}
+            <Card className="border-orange-200 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-orange-100 rounded-lg">
+                    <Clock className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-xl">Ponto Eletrônico</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Registro de ponto com verificação por geolocalização e reconhecimento facial. 
+                  Controle preciso de jornada de trabalho.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Geolocalização */}
+            <Card className="border-orange-200 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <MapPin className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-xl">Geolocalização</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Valide a presença dos funcionários no local de trabalho com precisão GPS 
+                  e cercas virtuais configuráveis.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Mensagens Corporativas */}
+            <Card className="border-orange-200 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <MessageSquare className="h-6 w-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-xl">Mensagens</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Sistema de mensagens interno para comunicação eficiente entre equipes 
+                  e departamentos.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Gestão de Documentos */}
+            <Card className="border-orange-200 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <FileText className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-xl">Documentos</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Gerencie e compartilhe documentos com controle de acesso hierárquico 
+                  e versionamento completo.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Treinamento */}
+            <Card className="border-orange-200 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-yellow-100 rounded-lg">
+                    <GraduationCap className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <CardTitle className="text-xl">Capacitação</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Cursos online com quizzes, certificados e acompanhamento do 
+                  desenvolvimento profissional.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Recrutamento */}
+            <Card className="border-orange-200 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <Briefcase className="h-6 w-6 text-red-600" />
+                  </div>
+                  <CardTitle className="text-xl">Recrutamento</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Portal de vagas público, gestão de candidatos, entrevistas e 
+                  onboarding digital via WhatsApp.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Security & Analytics */}
+      <section className="relative z-10 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <Shield className="h-8 w-8 text-blue-600" />
+                  <CardTitle className="text-2xl">Segurança Avançada</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <Lock className="h-5 w-5 text-blue-600 mt-1" />
+                  <p className="text-gray-700">Autenticação segura com controle de acesso baseado em funções</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Camera className="h-5 w-5 text-blue-600 mt-1" />
+                  <p className="text-gray-700">Reconhecimento facial para validação de identidade</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <UserCheck className="h-5 w-5 text-blue-600 mt-1" />
+                  <p className="text-gray-700">Controle hierárquico de permissões e acessos</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 bg-green-50/50">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <BarChart3 className="h-8 w-8 text-green-600" />
+                  <CardTitle className="text-2xl">Relatórios & Analytics</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-1" />
+                  <p className="text-gray-700">Dashboards intuitivos com métricas em tempo real</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Building2 className="h-5 w-5 text-green-600 mt-1" />
+                  <p className="text-gray-700">Relatórios por departamento e setor</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Users className="h-5 w-5 text-green-600 mt-1" />
+                  <p className="text-gray-700">Análise de desempenho e produtividade</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile Access */}
+      <section className="relative z-10 py-16 bg-gradient-to-r from-orange-100/50 to-red-100/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Smartphone className="h-16 w-16 text-orange-600 mx-auto mb-6" />
+          <h3 className="text-3xl font-bold text-[hsl(215,80%,25%)] mb-4">
+            Acesso Mobile
+          </h3>
+          <p className="text-xl text-gray-700 max-w-3xl mx-auto mb-8">
+            Acesse o RHNet de qualquer lugar, a qualquer momento. 
+            Nossa plataforma é totalmente responsiva e otimizada para dispositivos móveis, 
+            permitindo que sua equipe registre ponto, visualize documentos e se comunique em movimento.
+          </p>
+          <Badge variant="outline" className="text-lg px-6 py-2 border-orange-600 text-orange-600">
+            <Globe className="mr-2 h-5 w-5" />
+            Progressive Web App (PWA)
+          </Badge>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="relative z-10 py-20 bg-gradient-to-r from-blue-600 to-teal-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-4xl font-bold text-white mb-6">
+            Pronto para Transformar sua Gestão de RH?
+          </h3>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Junte-se às empresas que já otimizaram seus processos de RH com o RHNet
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={handleLogin} 
+              size="lg"
+              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-6 text-lg"
+            >
+              <ArrowRight className="mr-2 h-5 w-5" />
+              Acessar Sistema
+            </Button>
+            <Button 
+              onClick={handleJobsPage} 
+              size="lg"
+              variant="outline"
+              className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg"
+            >
+              <Briefcase className="mr-2 h-5 w-5" />
+              Ver Oportunidades
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-white/90 backdrop-blur-sm border-t border-orange-200 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
