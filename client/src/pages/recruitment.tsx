@@ -55,7 +55,7 @@ export default function Recruitment() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: jobOpenings = [], isLoading } = useQuery<any[]>({
+  const { data: jobOpenings = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/job-openings'],
     staleTime: 0,
     refetchOnMount: true,
@@ -79,6 +79,7 @@ export default function Recruitment() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+      await refetch();
       setIsCreateDialogOpen(false);
       toast({
         title: "Vaga criada com sucesso!",
@@ -102,6 +103,7 @@ export default function Recruitment() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+      await refetch();
       toast({
         title: "Vaga publicada!",
         description: "A vaga está agora visível para candidatos.",
@@ -118,6 +120,7 @@ export default function Recruitment() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+      await refetch();
       setIsEditDialogOpen(false);
       setSelectedJob(null);
       toast({
@@ -142,6 +145,7 @@ export default function Recruitment() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+      await refetch();
       toast({
         title: "Vaga excluída!",
         description: "A vaga foi removida do sistema.",
