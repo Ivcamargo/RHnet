@@ -48,12 +48,18 @@ export default function Recruitment() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [createEmploymentType, setCreateEmploymentType] = useState('full_time');
+  const [createExperienceLevel, setCreateExperienceLevel] = useState('mid');
+  const [editEmploymentType, setEditEmploymentType] = useState('full_time');
+  const [editExperienceLevel, setEditExperienceLevel] = useState('mid');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: jobOpenings = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/job-openings'],
-    refetchOnMount: 'always',
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const { data: candidates = [] } = useQuery<any[]>({
@@ -72,7 +78,7 @@ export default function Recruitment() {
       });
     },
     onSuccess: async () => {
-      queryClient.resetQueries({ queryKey: ['/api/job-openings'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
       setIsCreateDialogOpen(false);
       toast({
         title: "Vaga criada com sucesso!",
@@ -95,7 +101,7 @@ export default function Recruitment() {
       });
     },
     onSuccess: async () => {
-      queryClient.resetQueries({ queryKey: ['/api/job-openings'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
       toast({
         title: "Vaga publicada!",
         description: "A vaga está agora visível para candidatos.",
@@ -106,12 +112,12 @@ export default function Recruitment() {
   const updateJobMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       return await apiRequest(`/api/job-openings/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify(data),
       });
     },
     onSuccess: async () => {
-      queryClient.resetQueries({ queryKey: ['/api/job-openings'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
       setIsEditDialogOpen(false);
       setSelectedJob(null);
       toast({
@@ -135,7 +141,7 @@ export default function Recruitment() {
       });
     },
     onSuccess: async () => {
-      queryClient.resetQueries({ queryKey: ['/api/job-openings'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
       toast({
         title: "Vaga excluída!",
         description: "A vaga foi removida do sistema.",
@@ -188,6 +194,8 @@ export default function Recruitment() {
 
   const handleEditJob = (job: any) => {
     setSelectedJob(job);
+    setEditEmploymentType(job.employmentType || 'full_time');
+    setEditExperienceLevel(job.experienceLevel || 'mid');
     setIsEditDialogOpen(true);
   };
 
@@ -302,7 +310,10 @@ export default function Recruitment() {
 
                 <div>
                   <Label htmlFor="employmentType">Tipo de Contrato</Label>
-                  <Select name="employmentType" defaultValue="full_time">
+                  <Select 
+                    value={createEmploymentType} 
+                    onValueChange={setCreateEmploymentType}
+                  >
                     <SelectTrigger data-testid="select-employment-type">
                       <SelectValue />
                     </SelectTrigger>
@@ -314,6 +325,7 @@ export default function Recruitment() {
                       <SelectItem value="internship">Estágio</SelectItem>
                     </SelectContent>
                   </Select>
+                  <input type="hidden" name="employmentType" value={createEmploymentType} />
                 </div>
               </div>
 
@@ -345,7 +357,10 @@ export default function Recruitment() {
 
               <div>
                 <Label htmlFor="experienceLevel">Nível de Experiência</Label>
-                <Select name="experienceLevel" defaultValue="mid">
+                <Select 
+                  value={createExperienceLevel} 
+                  onValueChange={setCreateExperienceLevel}
+                >
                   <SelectTrigger data-testid="select-experience-level">
                     <SelectValue />
                   </SelectTrigger>
@@ -356,6 +371,7 @@ export default function Recruitment() {
                     <SelectItem value="lead">Especialista</SelectItem>
                   </SelectContent>
                 </Select>
+                <input type="hidden" name="experienceLevel" value={createExperienceLevel} />
               </div>
 
               <div className="flex justify-end gap-2">
@@ -435,7 +451,10 @@ export default function Recruitment() {
 
                   <div>
                     <Label htmlFor="edit-employmentType">Tipo de Contrato</Label>
-                    <Select name="employmentType" defaultValue={selectedJob.employmentType}>
+                    <Select 
+                      value={editEmploymentType} 
+                      onValueChange={setEditEmploymentType}
+                    >
                       <SelectTrigger data-testid="select-edit-employment-type">
                         <SelectValue />
                       </SelectTrigger>
@@ -447,6 +466,7 @@ export default function Recruitment() {
                         <SelectItem value="internship">Estágio</SelectItem>
                       </SelectContent>
                     </Select>
+                    <input type="hidden" name="employmentType" value={editEmploymentType} />
                   </div>
                 </div>
 
@@ -478,7 +498,10 @@ export default function Recruitment() {
 
                 <div>
                   <Label htmlFor="edit-experienceLevel">Nível de Experiência</Label>
-                  <Select name="experienceLevel" defaultValue={selectedJob.experienceLevel}>
+                  <Select 
+                    value={editExperienceLevel} 
+                    onValueChange={setEditExperienceLevel}
+                  >
                     <SelectTrigger data-testid="select-edit-experience-level">
                       <SelectValue />
                     </SelectTrigger>
@@ -489,6 +512,7 @@ export default function Recruitment() {
                       <SelectItem value="lead">Especialista</SelectItem>
                     </SelectContent>
                   </Select>
+                  <input type="hidden" name="experienceLevel" value={editExperienceLevel} />
                 </div>
 
                 <div className="flex justify-end gap-2">
