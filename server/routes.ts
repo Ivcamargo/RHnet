@@ -5031,6 +5031,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================================================================
+  // RECRUITMENT & SELECTION ROUTES
+  // ========================================================================================
+
+  // Job Openings Routes
+  app.get('/api/job-openings', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+      
+      const { status } = req.query;
+      const jobOpenings = await storage.getJobOpenings(user.companyId, status as string);
+      res.json(jobOpenings);
+    } catch (error) {
+      console.error("Error fetching job openings:", error);
+      res.status(500).json({ message: "Failed to fetch job openings" });
+    }
+  });
+
+  app.post('/api/job-openings', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const jobOpening = await storage.createJobOpening({
+        ...req.body,
+        companyId: user.companyId,
+        createdBy: user.id
+      });
+      
+      res.status(201).json(jobOpening);
+    } catch (error) {
+      console.error("Error creating job opening:", error);
+      res.status(500).json({ message: "Failed to create job opening" });
+    }
+  });
+
+  app.put('/api/job-openings/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const jobOpening = await storage.updateJobOpening(parseInt(req.params.id), req.body);
+      res.json(jobOpening);
+    } catch (error) {
+      console.error("Error updating job opening:", error);
+      res.status(500).json({ message: "Failed to update job opening" });
+    }
+  });
+
+  app.post('/api/job-openings/:id/publish', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const jobOpening = await storage.publishJobOpening(parseInt(req.params.id));
+      res.json(jobOpening);
+    } catch (error) {
+      console.error("Error publishing job opening:", error);
+      res.status(500).json({ message: "Failed to publish job opening" });
+    }
+  });
+
+  // Candidates Routes
+  app.get('/api/candidates', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const candidates = await storage.getCandidates(user.companyId);
+      res.json(candidates);
+    } catch (error) {
+      console.error("Error fetching candidates:", error);
+      res.status(500).json({ message: "Failed to fetch candidates" });
+    }
+  });
+
+  app.post('/api/candidates', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const candidate = await storage.createCandidate({
+        ...req.body,
+        companyId: user.companyId
+      });
+      
+      res.status(201).json(candidate);
+    } catch (error) {
+      console.error("Error creating candidate:", error);
+      res.status(500).json({ message: "Failed to create candidate" });
+    }
+  });
+
+  // Applications Routes
+  app.get('/api/job-openings/:jobId/applications', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const applications = await storage.getApplications(parseInt(req.params.jobId));
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  app.post('/api/applications', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const application = await storage.createApplication(req.body);
+      res.status(201).json(application);
+    } catch (error) {
+      console.error("Error creating application:", error);
+      res.status(500).json({ message: "Failed to create application" });
+    }
+  });
+
+  app.put('/api/applications/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const application = await storage.updateApplication(parseInt(req.params.id), req.body);
+      res.json(application);
+    } catch (error) {
+      console.error("Error updating application:", error);
+      res.status(500).json({ message: "Failed to update application" });
+    }
+  });
+
+  // Onboarding Links Routes
+  app.get('/api/onboarding-links', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      const links = await storage.getOnboardingLinks(user.companyId);
+      res.json(links);
+    } catch (error) {
+      console.error("Error fetching onboarding links:", error);
+      res.status(500).json({ message: "Failed to fetch onboarding links" });
+    }
+  });
+
+  app.post('/api/onboarding-links', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Generate unique token
+      const token = `onb_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      const link = await storage.createOnboardingLink({
+        ...req.body,
+        token,
+        createdBy: user.id
+      });
+      
+      res.status(201).json(link);
+    } catch (error) {
+      console.error("Error creating onboarding link:", error);
+      res.status(500).json({ message: "Failed to create onboarding link" });
+    }
+  });
+
+  // Public onboarding route (no auth required)
+  app.get('/api/onboarding/:token', async (req, res) => {
+    try {
+      const link = await storage.getOnboardingLinkByToken(req.params.token);
+      if (!link) {
+        return res.status(404).json({ message: "Onboarding link not found" });
+      }
+      if (link.status === 'expired' || (link.expiresAt && new Date(link.expiresAt) < new Date())) {
+        return res.status(410).json({ message: "Onboarding link has expired" });
+      }
+      
+      const formData = await storage.getOnboardingFormData(link.id);
+      res.json({ link, formData });
+    } catch (error) {
+      console.error("Error fetching onboarding:", error);
+      res.status(500).json({ message: "Failed to fetch onboarding" });
+    }
+  });
+
+  app.post('/api/onboarding/:token/submit', async (req, res) => {
+    try {
+      const link = await storage.getOnboardingLinkByToken(req.params.token);
+      if (!link) {
+        return res.status(404).json({ message: "Onboarding link not found" });
+      }
+
+      const formData = await storage.upsertOnboardingFormData({
+        onboardingLinkId: link.id,
+        ...req.body,
+        isComplete: true,
+        submittedAt: new Date()
+      });
+
+      await storage.updateOnboardingLink(link.id, { status: 'in_progress' });
+      
+      res.json({ success: true, formData });
+    } catch (error) {
+      console.error("Error submitting onboarding:", error);
+      res.status(500).json({ message: "Failed to submit onboarding" });
+    }
+  });
+
   // Note: Static file serving for uploads will be added separately
 
   const httpServer = createServer(app);

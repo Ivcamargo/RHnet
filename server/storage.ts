@@ -28,6 +28,15 @@ import {
   rotationUserAssignments,
   rotationExceptions,
   rotationAudit,
+  jobOpenings,
+  candidates,
+  applications,
+  selectionStages,
+  interviewTemplates,
+  interviews,
+  onboardingLinks,
+  onboardingDocuments,
+  onboardingFormData,
   type User,
   type UpsertUser,
   type Department,
@@ -330,6 +339,71 @@ export interface IStorage {
   // Rotation audit operations
   createRotationAudit(audit: InsertRotationException): Promise<RotationAudit>;
   getRotationAuditHistory(templateId: number, limit?: number): Promise<RotationAudit[]>;
+  
+  // ========================================================================================
+  // RECRUITMENT & SELECTION OPERATIONS
+  // ========================================================================================
+  
+  // Job opening operations
+  getJobOpenings(companyId: number, status?: string): Promise<any[]>;
+  getJobOpening(id: number): Promise<any | undefined>;
+  createJobOpening(jobOpening: any): Promise<any>;
+  updateJobOpening(id: number, jobOpening: Partial<any>): Promise<any>;
+  deleteJobOpening(id: number): Promise<void>;
+  publishJobOpening(id: number): Promise<any>;
+  closeJobOpening(id: number): Promise<any>;
+  
+  // Candidate operations
+  getCandidates(companyId: number): Promise<any[]>;
+  getCandidate(id: number): Promise<any | undefined>;
+  createCandidate(candidate: any): Promise<any>;
+  updateCandidate(id: number, candidate: Partial<any>): Promise<any>;
+  getCandidateByEmail(companyId: number, email: string): Promise<any | undefined>;
+  
+  // Application operations
+  getApplications(jobOpeningId: number): Promise<any[]>;
+  getApplication(id: number): Promise<any | undefined>;
+  createApplication(application: any): Promise<any>;
+  updateApplication(id: number, application: Partial<any>): Promise<any>;
+  getCandidateApplications(candidateId: number): Promise<any[]>;
+  getApplicationsByStatus(jobOpeningId: number, status: string): Promise<any[]>;
+  
+  // Selection stage operations
+  getSelectionStages(jobOpeningId: number): Promise<any[]>;
+  createSelectionStage(stage: any): Promise<any>;
+  updateSelectionStage(id: number, stage: Partial<any>): Promise<any>;
+  deleteSelectionStage(id: number): Promise<void>;
+  
+  // Interview template operations
+  getInterviewTemplates(companyId: number): Promise<any[]>;
+  getInterviewTemplate(id: number): Promise<any | undefined>;
+  createInterviewTemplate(template: any): Promise<any>;
+  updateInterviewTemplate(id: number, template: Partial<any>): Promise<any>;
+  deleteInterviewTemplate(id: number): Promise<void>;
+  
+  // Interview operations
+  getInterviews(applicationId: number): Promise<any[]>;
+  getInterview(id: number): Promise<any | undefined>;
+  createInterview(interview: any): Promise<any>;
+  updateInterview(id: number, interview: Partial<any>): Promise<any>;
+  completeInterview(id: number, feedback: string, rating: number, evaluation: any): Promise<any>;
+  
+  // Onboarding link operations
+  getOnboardingLinks(companyId: number): Promise<any[]>;
+  getOnboardingLinkByToken(token: string): Promise<any | undefined>;
+  createOnboardingLink(link: any): Promise<any>;
+  updateOnboardingLink(id: number, link: Partial<any>): Promise<any>;
+  completeOnboarding(token: string): Promise<any>;
+  
+  // Onboarding document operations
+  getOnboardingDocuments(onboardingLinkId: number): Promise<any[]>;
+  createOnboardingDocument(document: any): Promise<any>;
+  updateOnboardingDocument(id: number, document: Partial<any>): Promise<any>;
+  reviewOnboardingDocument(id: number, status: string, reviewNotes: string, reviewedBy: string): Promise<any>;
+  
+  // Onboarding form data operations
+  getOnboardingFormData(onboardingLinkId: number): Promise<any | undefined>;
+  upsertOnboardingFormData(formData: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2491,6 +2565,355 @@ export class DatabaseStorage implements IStorage {
       .where(eq(rotationAudit.templateId, templateId))
       .orderBy(desc(rotationAudit.performedAt))
       .limit(limit);
+  }
+
+  // ========================================================================================
+  // RECRUITMENT & SELECTION IMPLEMENTATIONS
+  // ========================================================================================
+
+  // Job opening operations
+  async getJobOpenings(companyId: number, status?: string): Promise<any[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(jobOpenings)
+        .where(and(eq(jobOpenings.companyId, companyId), eq(jobOpenings.status, status)))
+        .orderBy(desc(jobOpenings.createdAt));
+    }
+    return await db
+      .select()
+      .from(jobOpenings)
+      .where(eq(jobOpenings.companyId, companyId))
+      .orderBy(desc(jobOpenings.createdAt));
+  }
+
+  async getJobOpening(id: number): Promise<any | undefined> {
+    const [job] = await db.select().from(jobOpenings).where(eq(jobOpenings.id, id));
+    return job;
+  }
+
+  async createJobOpening(jobOpening: any): Promise<any> {
+    const [newJob] = await db.insert(jobOpenings).values(jobOpening).returning();
+    return newJob;
+  }
+
+  async updateJobOpening(id: number, jobOpening: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(jobOpenings)
+      .set({ ...jobOpening, updatedAt: new Date() })
+      .where(eq(jobOpenings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteJobOpening(id: number): Promise<void> {
+    await db.delete(jobOpenings).where(eq(jobOpenings.id, id));
+  }
+
+  async publishJobOpening(id: number): Promise<any> {
+    const [updated] = await db
+      .update(jobOpenings)
+      .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
+      .where(eq(jobOpenings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async closeJobOpening(id: number): Promise<any> {
+    const [updated] = await db
+      .update(jobOpenings)
+      .set({ status: 'closed', closedAt: new Date(), updatedAt: new Date() })
+      .where(eq(jobOpenings.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Candidate operations
+  async getCandidates(companyId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(candidates)
+      .where(eq(candidates.companyId, companyId))
+      .orderBy(desc(candidates.createdAt));
+  }
+
+  async getCandidate(id: number): Promise<any | undefined> {
+    const [candidate] = await db.select().from(candidates).where(eq(candidates.id, id));
+    return candidate;
+  }
+
+  async createCandidate(candidate: any): Promise<any> {
+    const [newCandidate] = await db.insert(candidates).values(candidate).returning();
+    return newCandidate;
+  }
+
+  async updateCandidate(id: number, candidate: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(candidates)
+      .set({ ...candidate, updatedAt: new Date() })
+      .where(eq(candidates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getCandidateByEmail(companyId: number, email: string): Promise<any | undefined> {
+    const [candidate] = await db
+      .select()
+      .from(candidates)
+      .where(and(eq(candidates.companyId, companyId), eq(candidates.email, email)));
+    return candidate;
+  }
+
+  // Application operations
+  async getApplications(jobOpeningId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(applications)
+      .where(eq(applications.jobOpeningId, jobOpeningId))
+      .orderBy(desc(applications.appliedAt));
+  }
+
+  async getApplication(id: number): Promise<any | undefined> {
+    const [application] = await db.select().from(applications).where(eq(applications.id, id));
+    return application;
+  }
+
+  async createApplication(application: any): Promise<any> {
+    const [newApplication] = await db.insert(applications).values(application).returning();
+    return newApplication;
+  }
+
+  async updateApplication(id: number, application: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(applications)
+      .set({ ...application, updatedAt: new Date() })
+      .where(eq(applications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getCandidateApplications(candidateId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(applications)
+      .where(eq(applications.candidateId, candidateId))
+      .orderBy(desc(applications.appliedAt));
+  }
+
+  async getApplicationsByStatus(jobOpeningId: number, status: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(applications)
+      .where(and(eq(applications.jobOpeningId, jobOpeningId), eq(applications.status, status)))
+      .orderBy(desc(applications.appliedAt));
+  }
+
+  // Selection stage operations
+  async getSelectionStages(jobOpeningId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(selectionStages)
+      .where(eq(selectionStages.jobOpeningId, jobOpeningId))
+      .orderBy(selectionStages.order);
+  }
+
+  async createSelectionStage(stage: any): Promise<any> {
+    const [newStage] = await db.insert(selectionStages).values(stage).returning();
+    return newStage;
+  }
+
+  async updateSelectionStage(id: number, stage: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(selectionStages)
+      .set(stage)
+      .where(eq(selectionStages.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSelectionStage(id: number): Promise<void> {
+    await db.delete(selectionStages).where(eq(selectionStages.id, id));
+  }
+
+  // Interview template operations
+  async getInterviewTemplates(companyId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(interviewTemplates)
+      .where(eq(interviewTemplates.companyId, companyId))
+      .orderBy(desc(interviewTemplates.createdAt));
+  }
+
+  async getInterviewTemplate(id: number): Promise<any | undefined> {
+    const [template] = await db.select().from(interviewTemplates).where(eq(interviewTemplates.id, id));
+    return template;
+  }
+
+  async createInterviewTemplate(template: any): Promise<any> {
+    const [newTemplate] = await db.insert(interviewTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updateInterviewTemplate(id: number, template: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(interviewTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(interviewTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteInterviewTemplate(id: number): Promise<void> {
+    await db.delete(interviewTemplates).where(eq(interviewTemplates.id, id));
+  }
+
+  // Interview operations
+  async getInterviews(applicationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(interviews)
+      .where(eq(interviews.applicationId, applicationId))
+      .orderBy(desc(interviews.scheduledAt));
+  }
+
+  async getInterview(id: number): Promise<any | undefined> {
+    const [interview] = await db.select().from(interviews).where(eq(interviews.id, id));
+    return interview;
+  }
+
+  async createInterview(interview: any): Promise<any> {
+    const [newInterview] = await db.insert(interviews).values(interview).returning();
+    return newInterview;
+  }
+
+  async updateInterview(id: number, interview: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(interviews)
+      .set(interview)
+      .where(eq(interviews.id, id))
+      .returning();
+    return updated;
+  }
+
+  async completeInterview(id: number, feedback: string, rating: number, evaluation: any): Promise<any> {
+    const [updated] = await db
+      .update(interviews)
+      .set({ 
+        status: 'completed', 
+        feedback, 
+        rating, 
+        evaluation, 
+        completedAt: new Date() 
+      })
+      .where(eq(interviews.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Onboarding link operations
+  async getOnboardingLinks(companyId: number): Promise<any[]> {
+    const links = await db
+      .select({
+        onboardingLink: onboardingLinks,
+        application: applications,
+        jobOpening: jobOpenings
+      })
+      .from(onboardingLinks)
+      .leftJoin(applications, eq(onboardingLinks.applicationId, applications.id))
+      .leftJoin(jobOpenings, eq(applications.jobOpeningId, jobOpenings.id))
+      .where(eq(jobOpenings.companyId, companyId))
+      .orderBy(desc(onboardingLinks.createdAt));
+    
+    return links.map(l => ({ ...l.onboardingLink, application: l.application, jobOpening: l.jobOpening }));
+  }
+
+  async getOnboardingLinkByToken(token: string): Promise<any | undefined> {
+    const [link] = await db.select().from(onboardingLinks).where(eq(onboardingLinks.token, token));
+    return link;
+  }
+
+  async createOnboardingLink(link: any): Promise<any> {
+    const [newLink] = await db.insert(onboardingLinks).values(link).returning();
+    return newLink;
+  }
+
+  async updateOnboardingLink(id: number, link: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(onboardingLinks)
+      .set(link)
+      .where(eq(onboardingLinks.id, id))
+      .returning();
+    return updated;
+  }
+
+  async completeOnboarding(token: string): Promise<any> {
+    const [updated] = await db
+      .update(onboardingLinks)
+      .set({ status: 'completed', completedAt: new Date() })
+      .where(eq(onboardingLinks.token, token))
+      .returning();
+    return updated;
+  }
+
+  // Onboarding document operations
+  async getOnboardingDocuments(onboardingLinkId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(onboardingDocuments)
+      .where(eq(onboardingDocuments.onboardingLinkId, onboardingLinkId))
+      .orderBy(onboardingDocuments.uploadedAt);
+  }
+
+  async createOnboardingDocument(document: any): Promise<any> {
+    const [newDocument] = await db.insert(onboardingDocuments).values(document).returning();
+    return newDocument;
+  }
+
+  async updateOnboardingDocument(id: number, document: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(onboardingDocuments)
+      .set(document)
+      .where(eq(onboardingDocuments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async reviewOnboardingDocument(id: number, status: string, reviewNotes: string, reviewedBy: string): Promise<any> {
+    const [updated] = await db
+      .update(onboardingDocuments)
+      .set({ 
+        status, 
+        reviewNotes, 
+        reviewedBy, 
+        reviewedAt: new Date() 
+      })
+      .where(eq(onboardingDocuments.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Onboarding form data operations
+  async getOnboardingFormData(onboardingLinkId: number): Promise<any | undefined> {
+    const [formData] = await db
+      .select()
+      .from(onboardingFormData)
+      .where(eq(onboardingFormData.onboardingLinkId, onboardingLinkId));
+    return formData;
+  }
+
+  async upsertOnboardingFormData(formData: any): Promise<any> {
+    const [data] = await db
+      .insert(onboardingFormData)
+      .values(formData)
+      .onConflictDoUpdate({
+        target: onboardingFormData.onboardingLinkId,
+        set: {
+          ...formData,
+          updatedAt: new Date()
+        }
+      })
+      .returning();
+    return data;
   }
 }
 
