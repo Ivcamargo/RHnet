@@ -78,15 +78,17 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-gradient-to-b from-blue-50 to-teal-50 border-r border-blue-200">
-      {/* Logo */}
-      <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-blue-600 to-teal-600">
-        <div className="flex items-center">
-          <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
-          <h1 className="text-xl font-bold text-white">
-            RHNet
-          </h1>
+      {/* Logo - Clicável para voltar ao início */}
+      <Link href="/">
+        <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-blue-600 to-teal-600 cursor-pointer hover:from-blue-700 hover:to-teal-700 transition-all duration-200">
+          <div className="flex items-center">
+            <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
+            <h1 className="text-xl font-bold text-white">
+              RHNet
+            </h1>
+          </div>
         </div>
-      </div>
+      </Link>
       
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1">
