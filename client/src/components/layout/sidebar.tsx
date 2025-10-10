@@ -91,7 +91,7 @@ export default function Sidebar() {
       </Link>
       
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
         {navigation.map((item) => {
           const isActive = location === item.href;
           const Icon = item.icon;
@@ -136,7 +136,7 @@ export default function Sidebar() {
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-gray-600 hover:text-blue-800 hover:bg-teal-100"
+          className="w-full justify-start text-red-600 hover:text-white hover:bg-red-600 font-medium"
           data-testid="button-logout"
         >
           <LogOut className="mr-3 h-5 w-5" />
