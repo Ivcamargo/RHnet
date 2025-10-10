@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRoute } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,8 +11,16 @@ import {
   Calendar,
   ArrowLeft,
   Send,
-  CheckCircle
+  CheckCircle,
+  Filter
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +39,11 @@ export default function PublicJobs() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
   const { toast } = useToast();
+  
+  // Filtros
+  const [filterLocation, setFilterLocation] = useState<string>('');
+  const [filterEmploymentType, setFilterEmploymentType] = useState<string>('');
+  const [filterTitle, setFilterTitle] = useState<string>('');
 
   // Buscar vagas publicadas (rota pública)
   const { data: jobs = [], isLoading } = useQuery<any[]>({
@@ -106,6 +119,27 @@ export default function PublicJobs() {
     };
     return labels[level] || level;
   };
+
+  // Filtrar vagas
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job: any) => {
+      if (filterLocation && job.location !== filterLocation) return false;
+      if (filterEmploymentType && job.employmentType !== filterEmploymentType) return false;
+      if (filterTitle && !job.title.toLowerCase().includes(filterTitle.toLowerCase())) return false;
+      return true;
+    });
+  }, [jobs, filterLocation, filterEmploymentType, filterTitle]);
+
+  // Obter opções únicas para os filtros
+  const uniqueLocations = useMemo(() => {
+    const locations = jobs.map((job: any) => job.location).filter(Boolean);
+    return Array.from(new Set(locations)).sort();
+  }, [jobs]);
+
+  const uniqueEmploymentTypes = useMemo(() => {
+    const types = jobs.map((job: any) => job.employmentType).filter(Boolean);
+    return Array.from(new Set(types)).sort();
+  }, [jobs]);
 
   if (isLoading) {
     return (
@@ -240,21 +274,100 @@ export default function PublicJobs() {
           </p>
         </div>
 
-        {jobs.length === 0 ? (
-          <Card>
+        {/* Filtros */}
+        <Card className="mb-8 max-w-4xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="filter-title">Cargo</Label>
+                <Input
+                  id="filter-title"
+                  placeholder="Buscar por cargo..."
+                  value={filterTitle}
+                  onChange={(e) => setFilterTitle(e.target.value)}
+                  data-testid="filter-title"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="filter-location">Cidade</Label>
+                <Select value={filterLocation} onValueChange={setFilterLocation}>
+                  <SelectTrigger id="filter-location" data-testid="filter-location">
+                    <SelectValue placeholder="Todas as cidades" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as cidades</SelectItem>
+                    {uniqueLocations.map((location: string) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="filter-employment-type">Tipo de Emprego</Label>
+                <Select value={filterEmploymentType} onValueChange={setFilterEmploymentType}>
+                  <SelectTrigger id="filter-employment-type" data-testid="filter-employment-type">
+                    <SelectValue placeholder="Todos os tipos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos os tipos</SelectItem>
+                    {uniqueEmploymentTypes.map((type: string) => (
+                      <SelectItem key={type} value={type}>
+                        {getEmploymentTypeLabel(type)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {(filterLocation || filterEmploymentType || filterTitle) && (
+              <div className="mt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFilterLocation('');
+                    setFilterEmploymentType('');
+                    setFilterTitle('');
+                  }}
+                  data-testid="button-clear-filters"
+                >
+                  Limpar Filtros
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {filteredJobs.length === 0 ? (
+          <Card className="max-w-4xl mx-auto">
             <CardContent className="py-12 text-center">
               <Briefcase className="mx-auto h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg text-muted-foreground">
-                Não há vagas abertas no momento
+                {jobs.length === 0 
+                  ? "Não há vagas abertas no momento" 
+                  : "Nenhuma vaga encontrada com esses filtros"}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                Volte em breve para conferir novas oportunidades
+                {jobs.length === 0 
+                  ? "Volte em breve para conferir novas oportunidades"
+                  : "Tente ajustar os filtros para ver mais vagas"}
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-6 max-w-4xl mx-auto">
-            {jobs.map((job: any) => (
+            {filteredJobs.map((job: any) => (
               <Card key={job.id} className="hover:shadow-lg transition-shadow" data-testid={`job-card-${job.id}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
