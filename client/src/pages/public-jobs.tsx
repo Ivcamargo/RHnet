@@ -12,8 +12,10 @@ import {
   ArrowLeft,
   Send,
   CheckCircle,
-  Filter
+  Filter,
+  Home
 } from 'lucide-react';
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import {
   Select,
   SelectContent,
@@ -158,13 +160,36 @@ export default function PublicJobs() {
     
     if (!job) {
       return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">Vaga não encontrada</h1>
-            <Button onClick={() => window.location.href = '/vagas'}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Ver todas as vagas
-            </Button>
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+          {/* Header */}
+          <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center py-6">
+                <div className="flex items-center">
+                  <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
+                  <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Trabalhe Conosco</h1>
+                </div>
+                <Button 
+                  onClick={() => window.location.href = '/'} 
+                  variant="outline"
+                  className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                  data-testid="button-home"
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Página Inicial
+                </Button>
+              </div>
+            </div>
+          </header>
+          
+          <div className="flex items-center justify-center mt-20">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-2">Vaga não encontrada</h1>
+              <Button onClick={() => window.location.href = '/vagas'}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Ver todas as vagas
+              </Button>
+            </div>
           </div>
         </div>
       );
@@ -172,6 +197,27 @@ export default function PublicJobs() {
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        {/* Header */}
+        <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div className="flex items-center">
+                <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
+                <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Trabalhe Conosco</h1>
+              </div>
+              <Button 
+                onClick={() => window.location.href = '/'} 
+                variant="outline"
+                className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                data-testid="button-home"
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Página Inicial
+              </Button>
+            </div>
+          </div>
+        </header>
+        
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <Button 
             variant="ghost" 
@@ -369,9 +415,29 @@ export default function PublicJobs() {
   // Lista de vagas
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Header */}
+      <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
+              <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Trabalhe Conosco</h1>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/'} 
+              variant="outline"
+              className="border-orange-600 text-orange-600 hover:bg-orange-50"
+              data-testid="button-home"
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Página Inicial
+            </Button>
+          </div>
+        </div>
+      </header>
+      
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">Trabalhe Conosco</h1>
           <p className="text-xl text-muted-foreground">
             Encontre a vaga perfeita para você
           </p>
