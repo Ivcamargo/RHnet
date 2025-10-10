@@ -100,25 +100,25 @@ export default function Landing() {
         </div>
 
         {/* Trabalhe Conosco - Destaque */}
-        <div className="mb-20 bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl p-10 shadow-2xl">
+        <div className="mb-8 bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-4 shadow-lg">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-6">
-              <Briefcase className="h-10 w-10 text-green-600" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-white rounded-full mb-3">
+              <Briefcase className="h-6 w-6 text-green-600" />
             </div>
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-xl font-bold text-white mb-2">
               Trabalhe Conosco!
             </h2>
-            <p className="text-xl text-green-50 mb-8 max-w-3xl mx-auto">
+            <p className="text-sm text-green-50 mb-4 max-w-xl mx-auto">
               Estamos em busca de talentos! Confira nossas vagas abertas e faça parte do nosso time.
             </p>
             <Button 
               onClick={handleJobsPage}
-              size="lg"
-              className="bg-white text-green-600 hover:bg-gray-100 text-lg px-10 py-4 font-semibold shadow-lg"
+              size="sm"
+              className="bg-white text-green-600 hover:bg-gray-100 text-sm px-6 py-2 font-semibold shadow-md"
               data-testid="button-jobs-hero"
             >
               Ver Vagas Disponíveis
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
