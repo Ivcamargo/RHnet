@@ -1,11 +1,14 @@
 // Utilitários para lidar com timezone brasileiro (GMT-3)
 
 /**
- * Obtém a data/hora atual ajustada para o fuso horário brasileiro (GMT-3)
+ * Obtém a data/hora atual no fuso horário brasileiro (America/Sao_Paulo)
+ * Retorna um timestamp UTC que representa a hora atual no Brasil
  */
 export function getBrazilianTime(): Date {
+  // Pega hora atual UTC
   const now = new Date();
-  // Usar Intl.DateTimeFormat para obter o offset correto do timezone
+  
+  // Formata para o timezone do Brasil
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -23,17 +26,11 @@ export function getBrazilianTime(): Date {
     return obj;
   }, {} as any);
   
-  // Criar Date object com horário brasileiro correto
-  const brazilTime = new Date(
-    parseInt(partObj.year),
-    parseInt(partObj.month) - 1, // Month é 0-indexed
-    parseInt(partObj.day),
-    parseInt(partObj.hour),
-    parseInt(partObj.minute),
-    parseInt(partObj.second)
-  );
+  // Cria string ISO no formato que será interpretado como UTC
+  const isoString = `${partObj.year}-${partObj.month}-${partObj.day}T${partObj.hour}:${partObj.minute}:${partObj.second}.000Z`;
   
-  return brazilTime;
+  // Retorna Date que representa exatamente o horário brasileiro como UTC
+  return new Date(isoString);
 }
 
 /**
