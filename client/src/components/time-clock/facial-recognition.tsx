@@ -31,6 +31,19 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
     };
   }, [isActive, stream]);
 
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.onloadedmetadata = () => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(err => {
+            console.error("❌ Erro ao reproduzir vídeo:", err);
+          });
+        }
+      };
+    }
+  }, [stream]);
+
   const startCamera = async () => {
     setIsInitializing(true);
     setCameraError(null);
@@ -53,6 +66,14 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.error("❌ Erro ao reproduzir vídeo:", err);
+            });
+          }
+        };
       }
     } catch (error) {
       console.error("❌ Erro ao acessar câmera:", error);
