@@ -155,6 +155,9 @@ export default function ClockInterface() {
       });
     },
     onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/status"] });
+      setIsFaceRecognitionActive(false);
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Não autorizado",
@@ -209,6 +212,9 @@ export default function ClockInterface() {
       });
     },
     onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/status"] });
+      setIsFaceRecognitionActive(false);
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Não autorizado",
