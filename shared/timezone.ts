@@ -2,35 +2,12 @@
 
 /**
  * Obtém a data/hora atual no fuso horário brasileiro (America/Sao_Paulo)
- * Retorna um timestamp UTC que representa a hora atual no Brasil
+ * Retorna um timestamp que quando salvo no banco, será exibido corretamente no Brasil
  */
 export function getBrazilianTime(): Date {
-  // Pega hora atual UTC
-  const now = new Date();
-  
-  // Formata para o timezone do Brasil
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(now);
-  const partObj = parts.reduce((obj, part) => {
-    obj[part.type] = part.value;
-    return obj;
-  }, {} as any);
-  
-  // Cria string ISO no formato que será interpretado como UTC
-  const isoString = `${partObj.year}-${partObj.month}-${partObj.day}T${partObj.hour}:${partObj.minute}:${partObj.second}.000Z`;
-  
-  // Retorna Date que representa exatamente o horário brasileiro como UTC
-  return new Date(isoString);
+  // Simplesmente retorna a hora UTC real do sistema
+  // O PostgreSQL salva timestamps em UTC e o frontend faz a conversão para exibição
+  return new Date();
 }
 
 /**
@@ -109,6 +86,20 @@ export function formatBrazilianDateTime(date: Date | string): string {
  * Obtém a data no formato YYYY-MM-DD para o fuso brasileiro
  */
 export function getBrazilianDateString(): string {
-  const brazilTime = getBrazilianTime();
-  return brazilTime.toISOString().split('T')[0];
+  // Pega a data atual no timezone do Brasil
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(new Date());
+  const partObj = parts.reduce((obj, part) => {
+    obj[part.type] = part.value;
+    return obj;
+  }, {} as any);
+  
+  // Retorna no formato YYYY-MM-DD
+  return `${partObj.year}-${partObj.month}-${partObj.day}`;
 }

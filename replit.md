@@ -39,7 +39,7 @@ Preferred communication style: Simple, everyday language.
 ### Features
 - **Progressive Web App (PWA)**: Full offline support, installability, manifest configuration, service worker for intelligent caching, and PWA meta tags.
 - **Geolocation**: Browser Geolocation API, Haversine formula for distance, department geofencing, real-time location status.
-- **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Timezone**: All timestamps saved in UTC, displayed in Brazil timezone (America/Sao_Paulo). Function `getBrazilianTime()` returns UTC timestamp representing current Brazil time.
+- **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Timezone**: All timestamps saved in UTC (real server time), frontend converts to Brazil timezone (America/Sao_Paulo) for display. Function `getBrazilianTime()` returns current UTC time, `getBrazilianDateString()` returns current date in Brazil timezone.
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
 - **Employee-Shift Assignment**: Advanced system for linking employees to shifts with optional start/end dates for flexible rotations, visual indicators, and dedicated assignment management dialogs.
