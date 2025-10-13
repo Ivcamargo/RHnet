@@ -523,6 +523,7 @@ export default function ClockInterface() {
                       Iniciado às{" "}
                       {activeBreak.breakStart
                         ? new Date(activeBreak.breakStart).toLocaleTimeString('pt-BR', {
+                            timeZone: 'America/Sao_Paulo',
                             hour: '2-digit',
                             minute: '2-digit'
                           })
@@ -584,6 +585,7 @@ export default function ClockInterface() {
                     <span>
                       {breakEntry.breakStart
                         ? new Date(breakEntry.breakStart).toLocaleTimeString('pt-BR', {
+                            timeZone: 'America/Sao_Paulo',
                             hour: '2-digit',
                             minute: '2-digit'
                           })
@@ -591,6 +593,7 @@ export default function ClockInterface() {
                       -{" "}
                       {breakEntry.breakEnd
                         ? new Date(breakEntry.breakEnd).toLocaleTimeString('pt-BR', {
+                            timeZone: 'America/Sao_Paulo',
                             hour: '2-digit',
                             minute: '2-digit'
                           })
