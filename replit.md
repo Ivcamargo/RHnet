@@ -37,7 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Shift Assignments**: userShiftAssignments table with userId, shiftId, startDate, endDate for flexible temporal assignments.
 
 ### Features
-- **Progressive Web App (PWA)**: Full offline support, installability, manifest configuration, service worker for intelligent caching, and PWA meta tags.
+- **Progressive Web App (PWA)**: Full offline support, installability, manifest configuration, service worker for intelligent caching, and PWA meta tags. **Service Worker Strategy**: Network-first for API requests (always fetch fresh data, no caching), cache-first for static assets (JS, CSS, images) for optimal performance without stale data issues.
 - **Geolocation & Geofencing**: 
   - Browser Geolocation API, Haversine formula for distance validation
   - Interactive map-based geofencing with react-leaflet (click-to-set location, radius adjustment 10-1000m)
@@ -47,7 +47,8 @@ Preferred communication style: Simple, everyday language.
 - **Sector Management**:
   - Auto-population of company field for non-superadmin users (uses logged-in user's company)
   - Backend filtering: superadmin sees all sectors, admin/employee see only their company's sectors, supervisors see assigned sectors
-  - Geofencing configuration integrated into sector creation/editing workflow
+  - Geofencing configuration integrated into sector creation/editing workflow with landscape dialog layout (max-w-6xl, two-column grid)
+  - Real-time cache invalidation and refetch after mutations ensures immediate UI updates
 - **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Timezone**: All timestamps saved in UTC (real server time), frontend converts to Brazil timezone (America/Sao_Paulo) for display. Function `getBrazilianTime()` returns current UTC time, `getBrazilianDateString()` returns current date in Brazil timezone.
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.

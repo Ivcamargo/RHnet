@@ -222,7 +222,7 @@ export default function Sectors() {
   });
 
   // Fetch sectors
-  const { data: sectors = [], isLoading: sectorsLoading } = useQuery<Sector[]>({
+  const { data: sectors = [], isLoading: sectorsLoading, refetch: refetchSectors } = useQuery<Sector[]>({
     queryKey: ["/api/sectors"],
   });
 
@@ -337,7 +337,9 @@ export default function Sectors() {
       body: JSON.stringify(data),
     }),
     onSuccess: async () => {
+      // Invalidate and refetch to ensure the list updates
       await queryClient.invalidateQueries({ queryKey: ["/api/sectors"] });
+      await refetchSectors();
       setIsCreateSectorDialogOpen(false);
       sectorForm.reset();
       toast({
@@ -664,7 +666,13 @@ export default function Sectors() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    try {
+      if (!dateString) return '-';
+      return new Date(dateString).toLocaleDateString('pt-BR');
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return '-';
+    }
   };
 
   const getSectorName = (sectorId?: number) => {
@@ -804,7 +812,7 @@ export default function Sectors() {
                         Novo Setor
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle data-testid="dialog-sector-title">
                           {editingSector ? "Editar Setor" : "Novo Setor"}
@@ -813,89 +821,104 @@ export default function Sectors() {
                       
                       <Form {...sectorForm}>
                         <form onSubmit={sectorForm.handleSubmit(onSubmitSector)} className="space-y-4">
-                          <FormField
-                            control={sectorForm.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nome do Setor</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Ex: Vendas, RH, TI"
-                                    data-testid="input-sector-name"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={sectorForm.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Descrição (Opcional)</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Descrição do setor"
-                                    data-testid="textarea-sector-description"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          {/* Company selector - only for superadmins */}
-                          {(currentUser as any)?.role === 'superadmin' && (
-                            <FormField
-                              control={sectorForm.control}
-                              name="companyId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Empresa *</FormLabel>
-                                  <Select 
-                                    onValueChange={(value) => field.onChange(parseInt(value))} 
-                                    value={field.value?.toString()}
-                                  >
+                          {/* Grid layout - formulário à esquerda, mapa à direita */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Coluna esquerda - Formulário */}
+                            <div className="space-y-4">
+                              <FormField
+                                control={sectorForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Nome do Setor</FormLabel>
                                     <FormControl>
-                                      <SelectTrigger data-testid="select-company">
-                                        <SelectValue placeholder="Selecione uma empresa" />
-                                      </SelectTrigger>
+                                      <Input 
+                                        placeholder="Ex: Vendas, RH, TI"
+                                        data-testid="input-sector-name"
+                                        {...field} 
+                                      />
                                     </FormControl>
-                                    <SelectContent>
-                                      {companies.map((company) => (
-                                        <SelectItem key={company.id} value={company.id.toString()}>
-                                          {company.name} ({company.cnpj})
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                          <div className="space-y-4 border-t pt-4">
-                            <GeofencingMap
-                              latitude={sectorForm.watch('latitude') || null}
-                              longitude={sectorForm.watch('longitude') || null}
-                              radius={sectorForm.watch('radius') || 100}
-                              onLocationChange={(lat, lng) => {
-                                sectorForm.setValue('latitude', lat);
-                                sectorForm.setValue('longitude', lng);
-                              }}
-                              onRadiusChange={(radius) => {
-                                sectorForm.setValue('radius', radius);
-                              }}
-                            />
+                              <FormField
+                                control={sectorForm.control}
+                                name="description"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Descrição (Opcional)</FormLabel>
+                                    <FormControl>
+                                      <Textarea 
+                                        placeholder="Descrição do setor"
+                                        data-testid="textarea-sector-description"
+                                        rows={3}
+                                        {...field} 
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {/* Company selector - only for superadmins */}
+                              {(currentUser as any)?.role === 'superadmin' && (
+                                <FormField
+                                  control={sectorForm.control}
+                                  name="companyId"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Empresa *</FormLabel>
+                                      <Select 
+                                        onValueChange={(value) => field.onChange(parseInt(value))} 
+                                        value={field.value?.toString()}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-company">
+                                            <SelectValue placeholder="Selecione uma empresa" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {companies.map((company) => (
+                                            <SelectItem key={company.id} value={company.id.toString()}>
+                                              {company.name} ({company.cnpj})
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              )}
+                            </div>
+
+                            {/* Coluna direita - Mapa de Geofencing */}
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <h3 className="text-sm font-medium">Configuração de Geofencing</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  Defina a localização e o raio permitido para registro de ponto
+                                </p>
+                              </div>
+                              <GeofencingMap
+                                latitude={sectorForm.watch('latitude') || null}
+                                longitude={sectorForm.watch('longitude') || null}
+                                radius={sectorForm.watch('radius') || 100}
+                                onLocationChange={(lat, lng) => {
+                                  sectorForm.setValue('latitude', lat);
+                                  sectorForm.setValue('longitude', lng);
+                                }}
+                                onRadiusChange={(radius) => {
+                                  sectorForm.setValue('radius', radius);
+                                }}
+                              />
+                            </div>
                           </div>
 
-                          <div className="flex justify-end space-x-2 pt-4">
+                          {/* Botões sempre visíveis no final */}
+                          <div className="flex justify-end space-x-2 pt-4 border-t">
                             <Button 
                               type="button" 
                               variant="outline"

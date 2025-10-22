@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rhnet-v2';
+const CACHE_NAME = 'rhnet-v3-no-api-cache';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -35,8 +35,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - different strategies for APIs vs static assets
 self.addEventListener('fetch', (event) => {
+  // Network-first strategy for API requests (always fetch fresh data)
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Don't cache API responses to avoid stale data
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback for API requests
+          return new Response(
+            JSON.stringify({ error: 'Offline - request failed' }),
+            {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        })
+    );
+    return;
+  }
+
+  // Cache-first strategy for static assets
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -54,9 +78,8 @@ self.addEventListener('fetch', (event) => {
           // Clone the response
           const responseToCache = response.clone();
 
-          // Cache API responses and static assets
-          if (event.request.url.includes('/api/') || 
-              event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|gif|woff|woff2)$/)) {
+          // Cache static assets only
+          if (event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|gif|woff|woff2)$/)) {
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
             });
@@ -64,24 +87,11 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         }).catch(() => {
-          // Only return cached app shell for navigation requests
+          // Return cached app shell for navigation requests
           if (event.request.mode === 'navigate') {
             return caches.match('/');
           }
           
-          // For API requests, return a proper error response
-          if (event.request.url.includes('/api/')) {
-            return new Response(
-              JSON.stringify({ error: 'Offline - request failed' }),
-              {
-                status: 503,
-                statusText: 'Service Unavailable',
-                headers: { 'Content-Type': 'application/json' }
-              }
-            );
-          }
-          
-          // For other requests, return network error
           return Promise.reject('no-match');
         });
       })
