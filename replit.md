@@ -38,7 +38,16 @@ Preferred communication style: Simple, everyday language.
 
 ### Features
 - **Progressive Web App (PWA)**: Full offline support, installability, manifest configuration, service worker for intelligent caching, and PWA meta tags.
-- **Geolocation**: Browser Geolocation API, Haversine formula for distance, department geofencing, real-time location status.
+- **Geolocation & Geofencing**: 
+  - Browser Geolocation API, Haversine formula for distance validation
+  - Interactive map-based geofencing with react-leaflet (click-to-set location, radius adjustment 10-1000m)
+  - Address/CEP search using Nominatim API (OpenStreetMap) for easier location selection
+  - Real-time location status and visual circle overlay showing allowed area
+  - Geofence coordinates stored in sectors table (latitude, longitude, radius)
+- **Sector Management**:
+  - Auto-population of company field for non-superadmin users (uses logged-in user's company)
+  - Backend filtering: superadmin sees all sectors, admin/employee see only their company's sectors, supervisors see assigned sectors
+  - Geofencing configuration integrated into sector creation/editing workflow
 - **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Timezone**: All timestamps saved in UTC (real server time), frontend converts to Brazil timezone (America/Sao_Paulo) for display. Function `getBrazilianTime()` returns current UTC time, `getBrazilianDateString()` returns current date in Brazil timezone.
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
@@ -66,6 +75,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Geolocation Services
 - **Browser Geolocation API**: Native location services
+- **Nominatim API (OpenStreetMap)**: Free geocoding service for address/CEP search with automatic Brazil filtering
+
+### Mapping
+- **react-leaflet**: Interactive maps with Leaflet.js integration
+- **OpenStreetMap**: Tile layer provider for map visualization
 
 ### Facial Recognition
 - **MediaDevices API**: Camera access

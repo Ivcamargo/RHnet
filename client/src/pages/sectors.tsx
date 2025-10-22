@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -276,6 +276,31 @@ export default function Sectors() {
     queryKey: [`/api/shifts/${managingShiftEmployees?.id}/assignments`],
     enabled: !!managingShiftEmployees?.id,
   });
+
+  // Auto-fill company for non-superadmins when dialog opens
+  useEffect(() => {
+    if ((isCreateSectorDialogOpen || editingSector) && currentUser) {
+      if ((currentUser as any)?.role !== 'superadmin') {
+        // For non-superadmins, auto-fill with their company
+        const userCompanyId = (currentUser as any)?.companyId;
+        if (userCompanyId && !editingSector) {
+          sectorForm.setValue('companyId', userCompanyId);
+        }
+      }
+      
+      // If editing, populate form with existing sector data
+      if (editingSector) {
+        sectorForm.reset({
+          name: editingSector.name,
+          description: editingSector.description || "",
+          companyId: editingSector.companyId,
+          latitude: editingSector.latitude,
+          longitude: editingSector.longitude,
+          radius: editingSector.radius,
+        });
+      }
+    }
+  }, [isCreateSectorDialogOpen, editingSector, currentUser]);
 
   // Component to show shift count badge for a department
   const ShiftCountBadge = ({ departmentId }: { departmentId: number }) => {
@@ -714,7 +739,7 @@ export default function Sectors() {
               </div>
               
               {/* Botão Rotações */}
-              {currentUser && typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
+              {((currentUser as any)?.role === 'admin' || (currentUser as any)?.role === 'superadmin') && (
                 <Button 
                   onClick={() => window.location.href = '/admin/rotation-management'}
                   className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white flex items-center gap-2"

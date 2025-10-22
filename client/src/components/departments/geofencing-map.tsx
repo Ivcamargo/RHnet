@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Circle, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Circle, Marker, useMapEvents, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Target } from "lucide-react";
+import { MapPin, Target, Search, Loader2 } from "lucide-react";
 
 // Fix Leaflet default icon issue
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -37,6 +37,14 @@ function LocationMarker({ onLocationSelect }: { onLocationSelect: (lat: number, 
   return null;
 }
 
+function MapCenterUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
+
 export function GeofencingMap({
   latitude,
   longitude,
@@ -46,10 +54,14 @@ export function GeofencingMap({
 }: GeofencingMapProps) {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
 
   // Default center (São Paulo, Brasil)
   const defaultCenter: [number, number] = [-23.5505, -46.6333];
   const center: [number, number] = 
+    mapCenter ? mapCenter :
     latitude && longitude ? [latitude, longitude] : 
     currentLocation ? [currentLocation.lat, currentLocation.lng] :
     defaultCenter;
@@ -62,6 +74,7 @@ export function GeofencingMap({
         (position) => {
           const { latitude, longitude } = position.coords;
           setCurrentLocation({ lat: latitude, lng: longitude });
+          setMapCenter([latitude, longitude]);
           onLocationChange(latitude, longitude);
           setIsLoadingLocation(false);
         },
@@ -82,6 +95,64 @@ export function GeofencingMap({
     onLocationChange(lat, lng);
   };
 
+  const handleSearchLocation = async () => {
+    if (!searchQuery.trim()) {
+      alert('Por favor, digite um CEP ou endereço para buscar.');
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      // Try to detect if it's a CEP (Brazilian postal code)
+      const cepPattern = /^\d{5}-?\d{3}$/;
+      const isCEP = cepPattern.test(searchQuery.replace(/\s/g, ''));
+
+      let searchTerm = searchQuery;
+      if (isCEP) {
+        // For CEP, add "Brazil" to improve results
+        searchTerm = `${searchQuery}, Brasil`;
+      } else if (!searchQuery.toLowerCase().includes('brasil') && !searchQuery.toLowerCase().includes('brazil')) {
+        // If not a CEP and doesn't mention Brazil, add it
+        searchTerm = `${searchQuery}, Brasil`;
+      }
+
+      // Use backend geocoding endpoint (proxy for Nominatim)
+      const response = await fetch(
+        `/api/geocode?query=${encodeURIComponent(searchTerm)}`,
+        {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar localização');
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+        
+        setCurrentLocation({ lat: latitude, lng: longitude });
+        setMapCenter([latitude, longitude]);
+        onLocationChange(latitude, longitude);
+      } else {
+        alert('Localização não encontrada. Tente outro CEP ou endereço.');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar localização:', error);
+      alert('Erro ao buscar localização. Tente novamente.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <Card className="material-shadow">
       <CardHeader>
@@ -91,6 +162,43 @@ export function GeofencingMap({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Address/CEP Search */}
+        <div className="space-y-2">
+          <Label htmlFor="search-address">Buscar Endereço ou CEP</Label>
+          <div className="flex gap-2">
+            <Input
+              id="search-address"
+              type="text"
+              placeholder="Ex: Av. Paulista, São Paulo ou 01310-100"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearchLocation();
+                }
+              }}
+              className="flex-1"
+              data-testid="input-search-address"
+            />
+            <Button
+              type="button"
+              onClick={handleSearchLocation}
+              disabled={isSearching}
+              data-testid="button-search-location"
+            >
+              {isSearching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Digite um endereço ou CEP para localizar no mapa
+          </p>
+        </div>
+
         {/* Controls */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -161,6 +269,7 @@ export function GeofencingMap({
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             
+            <MapCenterUpdater center={center} />
             <LocationMarker onLocationSelect={handleLocationSelect} />
             
             {latitude && longitude && (

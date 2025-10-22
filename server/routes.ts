@@ -5097,6 +5097,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Geocoding endpoint (proxy for Nominatim API)
+  app.get('/api/geocode', async (req, res) => {
+    try {
+      const { query } = req.query;
+
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Query parameter is required" });
+      }
+
+      // Call Nominatim API with proper headers
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
+      
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'RHNet/1.0 (HR Management System)',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Geocoding service error');
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Error geocoding:", error);
+      res.status(500).json({ message: "Failed to geocode address" });
+    }
+  });
+
   // ADMIN ROUTES (Authentication required)
   
   // Job Openings Routes
