@@ -714,7 +714,7 @@ export default function Sectors() {
               </div>
               
               {/* Botão Rotações */}
-              {currentUser && ('role' in currentUser) && (currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
+              {currentUser && typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'superadmin') && (
                 <Button 
                   onClick={() => window.location.href = '/admin/rotation-management'}
                   className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white flex items-center gap-2"

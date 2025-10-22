@@ -100,7 +100,7 @@ export function GeofencingMap({
                 id="radius"
                 type="number"
                 min="10"
-                max="5000"
+                max="1000"
                 step="10"
                 value={radius}
                 onChange={(e) => onRadiusChange(Number(e.target.value))}
