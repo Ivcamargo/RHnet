@@ -53,6 +53,9 @@ Preferred communication style: Simple, everyday language.
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
 - **Employee-Shift Assignment**: Advanced system for linking employees to shifts with optional start/end dates for flexible rotations, visual indicators, and dedicated assignment management dialogs.
+  - **Superadmin Cross-Company Assignment**: Superadmins can assign employees from any company to any shift (bypasses company validation in routes.ts)
+  - **Cross-Department Flexibility**: Employees can be assigned to shifts in different departments within the same company (storage validates company, not department)
+  - **Validation Hierarchy**: Route-level checks user role and company permissions; storage-level validates company match for data integrity
 - **Password Management**: Self-service password change functionality for users, including backend API, frontend page, and sidebar integration.
 - **Course Management**: Admin interface for managing course quiz questions (CRUD operations), smart validation, radio button selection for correct answers, and security controls.
 - **Messaging System**: Enhanced with `senderDeleted` and `senderDeletedAt` fields for isolated sender-side archiving/deletion, preserving recipient view.

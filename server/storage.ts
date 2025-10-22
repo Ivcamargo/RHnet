@@ -896,20 +896,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserShiftAssignment(assignment: InsertUserShiftAssignment): Promise<SelectUserShiftAssignment> {
-    // Validate user exists and get their department
-    const [user] = await db.select({ departmentId: users.departmentId }).from(users).where(eq(users.id, assignment.userId));
+    // Validate user exists and get their company
+    const [user] = await db.select({ 
+      companyId: users.companyId,
+      departmentId: users.departmentId 
+    }).from(users).where(eq(users.id, assignment.userId));
     if (!user) {
       throw new Error("User not found");
     }
 
-    // Validate shift exists and belongs to user's department
-    const [shift] = await db.select({ departmentId: departmentShifts.departmentId }).from(departmentShifts).where(eq(departmentShifts.id, assignment.shiftId));
-    if (!shift) {
+    // Validate shift exists and get its department's company
+    const shiftWithDept = await db
+      .select({
+        departmentId: departmentShifts.departmentId,
+        companyId: departments.companyId
+      })
+      .from(departmentShifts)
+      .innerJoin(departments, eq(departmentShifts.departmentId, departments.id))
+      .where(eq(departmentShifts.id, assignment.shiftId));
+
+    if (shiftWithDept.length === 0) {
       throw new Error("Shift not found");
     }
 
-    if (user.departmentId !== shift.departmentId) {
-      throw new Error("User and shift must be in the same department");
+    const shift = shiftWithDept[0];
+
+    // Only validate that user and shift are in the same company
+    // Allow cross-department assignments for flexibility (transfers, coverage, etc)
+    if (user.companyId !== shift.companyId) {
+      throw new Error("User and shift must be in the same company");
     }
 
     const [newAssignment] = await db.insert(userShiftAssignments).values(assignment).returning();

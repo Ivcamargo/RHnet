@@ -1062,10 +1062,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Shift not found" });
       }
 
-      // Verify shift's department belongs to user's company
-      const department = await storage.getDepartment(shift.departmentId);
-      if (!department || department.companyId !== user.companyId) {
-        return res.status(403).json({ message: "Access denied: shift not accessible" });
+      // Verify shift's department belongs to user's company (skip for superadmin)
+      if (user.role !== 'superadmin') {
+        const department = await storage.getDepartment(shift.departmentId);
+        if (!department || department.companyId !== user.companyId) {
+          return res.status(403).json({ message: "Access denied: shift not accessible" });
+        }
       }
 
       const assignments = await storage.getShiftAssignments(shiftId);
@@ -1089,9 +1091,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const assignmentData = insertUserShiftAssignmentSchema.parse(req.body);
 
-      // Verify target user is from the same company
+      // Verify target user is from the same company (skip for superadmin)
       const targetUser = await storage.getUser(assignmentData.userId);
-      if (!targetUser || targetUser.companyId !== user.companyId) {
+      if (!targetUser) {
+        return res.status(400).json({ message: "User not found" });
+      }
+      
+      // Only enforce company match for non-superadmins
+      if (user.role !== 'superadmin' && targetUser.companyId !== user.companyId) {
         return res.status(400).json({ message: "User must be from your company" });
       }
 
@@ -1126,10 +1133,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Assignment not found" });
       }
 
-      // Verify assignment's user is from the same company
-      const targetUser = await storage.getUser(assignment.userId);
-      if (!targetUser || targetUser.companyId !== user.companyId) {
-        return res.status(403).json({ message: "Access denied: assignment not accessible" });
+      // Verify assignment's user is from the same company (skip for superadmin)
+      if (user.role !== 'superadmin') {
+        const targetUser = await storage.getUser(assignment.userId);
+        if (!targetUser || targetUser.companyId !== user.companyId) {
+          return res.status(403).json({ message: "Access denied: assignment not accessible" });
+        }
       }
 
       const assignmentData = insertUserShiftAssignmentSchema.partial().parse(req.body);
@@ -1161,10 +1170,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Assignment not found" });
       }
 
-      // Verify assignment's user is from the same company
-      const targetUser = await storage.getUser(assignment.userId);
-      if (!targetUser || targetUser.companyId !== user.companyId) {
-        return res.status(403).json({ message: "Access denied: assignment not accessible" });
+      // Verify assignment's user is from the same company (skip for superadmin)
+      if (user.role !== 'superadmin') {
+        const targetUser = await storage.getUser(assignment.userId);
+        if (!targetUser || targetUser.companyId !== user.companyId) {
+          return res.status(403).json({ message: "Access denied: assignment not accessible" });
+        }
       }
 
       await storage.deleteUserShiftAssignment(id);
@@ -5001,9 +5012,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const assignmentData = insertUserShiftAssignmentSchema.parse(req.body);
 
-      // Verify target user is from the same company
+      // Verify target user is from the same company (skip for superadmin)
       const targetUser = await storage.getUser(assignmentData.userId);
-      if (!targetUser || targetUser.companyId !== user.companyId) {
+      if (!targetUser) {
+        return res.status(400).json({ message: "User not found" });
+      }
+      
+      // Only enforce company match for non-superadmins
+      if (user.role !== 'superadmin' && targetUser.companyId !== user.companyId) {
         return res.status(400).json({ message: "User must be from your company" });
       }
 
