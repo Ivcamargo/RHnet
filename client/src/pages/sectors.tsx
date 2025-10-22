@@ -33,6 +33,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { GeofencingMap } from "@/components/departments/geofencing-map";
 
 // Schema for sector form validation
 const getSectorFormSchema = (isSuperadmin: boolean) => z.object({
@@ -855,69 +856,17 @@ export default function Sectors() {
                           )}
 
                           <div className="space-y-4 border-t pt-4">
-                            <h4 className="text-sm font-medium text-gray-700">Localização da Cerca Virtual</h4>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={sectorForm.control}
-                                name="latitude"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Latitude</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number"
-                                        step="any"
-                                        placeholder="Ex: -23.5505"
-                                        data-testid="input-sector-latitude"
-                                        {...field} 
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={sectorForm.control}
-                                name="longitude"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Longitude</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number"
-                                        step="any"
-                                        placeholder="Ex: -46.6333"
-                                        data-testid="input-sector-longitude"
-                                        {...field} 
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            
-                            <FormField
-                              control={sectorForm.control}
-                              name="radius"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Raio da Cerca Virtual (metros)</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number"
-                                      min="1"
-                                      max="1000"
-                                      placeholder="Ex: 100"
-                                      data-testid="input-sector-radius"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                            <GeofencingMap
+                              latitude={sectorForm.watch('latitude') || null}
+                              longitude={sectorForm.watch('longitude') || null}
+                              radius={sectorForm.watch('radius') || 100}
+                              onLocationChange={(lat, lng) => {
+                                sectorForm.setValue('latitude', lat);
+                                sectorForm.setValue('longitude', lng);
+                              }}
+                              onRadiusChange={(radius) => {
+                                sectorForm.setValue('radius', radius);
+                              }}
                             />
                           </div>
 

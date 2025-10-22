@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
+import { GeofencingMap } from "@/components/departments/geofencing-map";
 
 export default function Departments() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
