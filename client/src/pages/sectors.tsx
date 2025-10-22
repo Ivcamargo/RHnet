@@ -336,8 +336,8 @@ export default function Sectors() {
       method: "POST",
       body: JSON.stringify(data),
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sectors"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/sectors"] });
       setIsCreateSectorDialogOpen(false);
       sectorForm.reset();
       toast({
@@ -361,8 +361,8 @@ export default function Sectors() {
         method: "PUT",
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sectors"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/sectors"] });
       setEditingSector(null);
       sectorForm.reset();
       toast({
