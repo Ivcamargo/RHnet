@@ -54,6 +54,7 @@ Preferred communication style: Simple, everyday language.
   - **Geofence Validation**: Compares user location against sector boundaries, records compliance status and distance
   - **Shift Compliance**: Validates clock time against assigned shift schedule, handles overnight shifts (e.g., 22:00-06:00), checks day of week and time range
   - **Validation Messages**: Stores and displays user-friendly messages with ✓/⚠ indicators for location and shift compliance
+  - **Photo Visualization**: Facial recognition photos (clockInPhotoUrl, clockOutPhotoUrl) displayed in both employee reports (/reports "Ver detalhes" dialog) and admin interface (/admin/time-entries expanded cards) with click-to-enlarge modal functionality
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
 - **Employee-Shift Assignment**: Advanced system for linking employees to shifts with optional start/end dates for flexible rotations, visual indicators, and dedicated assignment management dialogs.
