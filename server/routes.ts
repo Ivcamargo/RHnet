@@ -4362,7 +4362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+      const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
       const passed = score >= (course.passingScore || 70);
 
       // Update employee course status
