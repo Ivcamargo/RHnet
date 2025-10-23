@@ -63,6 +63,11 @@ Preferred communication style: Simple, everyday language.
 - **Password Management**: Self-service password change functionality for users, including backend API, frontend page, and sidebar integration.
 - **Course Management**: Admin interface for managing course quiz questions (CRUD operations), smart validation, radio button selection for correct answers, and security controls.
 - **Messaging System**: Enhanced with `senderDeleted` and `senderDeletedAt` fields for isolated sender-side archiving/deletion, preserving recipient view.
+- **CSV Import/Export**: Bulk employee management via CSV with template download, validation, error reporting, and company-filtered export. Uses semicolon delimiter and UTF-8 BOM for Excel compatibility.
+  - **Template Download**: Pre-formatted CSV template with all employee fields and example data
+  - **Import Validation**: Row-by-row validation with detailed error messages (duplicates, missing fields, company checks)
+  - **Export Filtering**: Exports only employees from logged-in user's company (admin) or all companies (superadmin)
+  - **Audit Trail**: All CSV imports logged with source tracking and user attribution
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages.
 
 ## External Dependencies

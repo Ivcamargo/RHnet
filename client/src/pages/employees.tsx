@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2, Key, Lock } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2, Key, Lock, Download, Upload, FileDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -65,6 +65,9 @@ export default function Employees() {
   const [managingUser, setManagingUser] = useState<any>(null);
   const [isResetPasswordLoading, setIsResetPasswordLoading] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [importResults, setImportResults] = useState<any>(null);
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -544,6 +547,119 @@ export default function Employees() {
 
 
 
+  // CSV Handlers
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch('/api/admin/users/csv/template', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao baixar modelo');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modelo_funcionarios.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Modelo baixado",
+        description: "Modelo CSV baixado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao baixar modelo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImportCSV = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Erro",
+        description: "Selecione um arquivo CSV",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', csvFile);
+
+    try {
+      const response = await fetch('/api/admin/users/csv/import', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Erro ao importar CSV');
+      }
+      
+      setImportResults(result);
+      
+      toast({
+        title: "Importação concluída",
+        description: result.message,
+      });
+      
+      // Refresh users list
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao importar CSV",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const response = await fetch('/api/admin/users/csv/export', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao exportar dados');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().split('T')[0];
+      a.download = `funcionarios_${timestamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Exportação concluída",
+        description: "Dados exportados com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao exportar dados",
+        variant: "destructive",
+      });
+    }
+  };
+
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   if (!isAdmin) {
@@ -599,15 +715,115 @@ export default function Employees() {
               </div>
             </div>
             
-            {/* Add Employee Button on the right */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="point-primary" data-testid="button-add-employee">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Cadastrar Funcionário
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Action Buttons on the right */}
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadTemplate}
+                data-testid="button-download-template"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Baixar Modelo
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleExportCSV}
+                data-testid="button-export-csv"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+              
+              <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" data-testid="button-import-csv">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Importar CSV
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Importar Funcionários via CSV</DialogTitle>
+                    <DialogDescription>
+                      Selecione um arquivo CSV para importar funcionários. Use o modelo fornecido como referência.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="csv-file">Arquivo CSV</Label>
+                      <Input
+                        id="csv-file"
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setCsvFile(file);
+                            setImportResults(null);
+                          }
+                        }}
+                        data-testid="input-csv-file"
+                      />
+                    </div>
+                    
+                    {csvFile && (
+                      <Alert>
+                        <FileText className="h-4 w-4" />
+                        <AlertDescription>
+                          Arquivo selecionado: {csvFile.name}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    {importResults && (
+                      <Alert>
+                        <AlertDescription>
+                          <div className="space-y-2">
+                            <p className="font-semibold">Resultado da Importação:</p>
+                            <p>✅ {importResults.success} funcionários importados com sucesso</p>
+                            {importResults.errors && importResults.errors.length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-red-600 font-semibold">❌ Erros encontrados:</p>
+                                <div className="max-h-40 overflow-y-auto">
+                                  {importResults.errors.map((err: any, idx: number) => (
+                                    <p key={idx} className="text-sm text-red-600">
+                                      Linha {err.row} ({err.email}): {err.error}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsImportDialogOpen(false);
+                      setCsvFile(null);
+                      setImportResults(null);
+                    }}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleImportCSV} disabled={!csvFile} data-testid="button-confirm-import">
+                      Importar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="point-primary" data-testid="button-add-employee">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar Funcionário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Cadastro Completo de Funcionário</DialogTitle>
                 </DialogHeader>
@@ -1429,6 +1645,7 @@ export default function Employees() {
                 </Form>
               </DialogContent>
             </Dialog>
+            </div>
 
             {/* Edit Employee Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

@@ -399,6 +399,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for CSV uploads
+  const csvUpload = multer({
+    storage: multer.memoryStorage(), // Store in memory for parsing
+    limits: { 
+      fileSize: 5 * 1024 * 1024 // 5MB limit for CSV
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'text/csv',
+        'text/plain',
+        'application/csv',
+        'application/vnd.ms-excel'
+      ];
+      if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only CSV files are allowed.'), false);
+      }
+    }
+  });
+
   // Database health check endpoint (no auth required for operational monitoring)
   app.get('/api/db-health', async (req, res) => {
     try {
@@ -1707,7 +1728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CSV Import
-  app.post('/api/admin/users/csv/import', isAuthenticatedHybrid, upload.single('file'), async (req: any, res) => {
+  app.post('/api/admin/users/csv/import', isAuthenticatedHybrid, csvUpload.single('file'), async (req: any, res) => {
     try {
       const scope = await getUserScope(req.user.claims.sub);
       
