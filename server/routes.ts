@@ -3119,25 +3119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Image data is required" });
       }
       
-      // Create uploads directory if it doesn't exist
-      const fs = require('fs');
-      const path = require('path');
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'face-captures');
-      
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      
-      // Generate unique filename
-      const filename = `face_${userId}_${Date.now()}.jpg`;
-      const filepath = path.join(uploadsDir, filename);
-      
-      // Convert base64 to buffer and save file
-      const imageBuffer = Buffer.from(image, 'base64');
-      fs.writeFileSync(filepath, imageBuffer);
-      
-      // Generate photo URL (relative path for serving)
-      const photoUrl = `/uploads/face-captures/${filename}`;
+      // Store image as data URL directly (no file system needed)
+      // This works in all environments including Replit
+      const photoUrl = `data:image/jpeg;base64,${image}`;
+      console.log("📸 Photo saved as data URL, length:", photoUrl.length);
       
       // Mock face recognition processing
       // In a real implementation, this would analyze the image for facial features
