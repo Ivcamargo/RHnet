@@ -20,6 +20,17 @@ interface TimeEntry {
   clockOutShiftCompliant?: boolean;
   clockInValidationMessage?: string;
   clockOutValidationMessage?: string;
+  // Additional details
+  clockInPhotoUrl?: string | null;
+  clockOutPhotoUrl?: string | null;
+  clockInIpAddress?: string | null;
+  clockOutIpAddress?: string | null;
+  clockInLatitude?: number | null;
+  clockInLongitude?: number | null;
+  clockOutLatitude?: number | null;
+  clockOutLongitude?: number | null;
+  regularHours?: string | null;
+  overtimeHours?: string | null;
 }
 
 interface MonthlyTimeTableProps {
@@ -68,6 +79,15 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   const getStatusBadge = (entry: TimeEntry) => {
     const today = new Date().toISOString().split('T')[0];
     const isToday = entry.date === today;
+    
+    // Prioridade para "Irregular" se houver problemas
+    if (isIrregular(entry)) {
+      return (
+        <Badge variant="destructive" className="bg-red-600">
+          Irregular
+        </Badge>
+      );
+    }
     
     if (entry.status === "active" && isToday) {
       return (
@@ -142,6 +162,15 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
     return hasGeofenceIssue || hasShiftIssue;
   };
 
+  const isIrregular = (entry: TimeEntry) => {
+    // Irregular se: falta de registro, atraso, horário não cumprido, falta de saída
+    if (entry.status === "incomplete") return true;
+    if (!entry.clockInTime) return true; // Falta
+    if (!entry.clockOutTime && entry.status !== "active") return true; // Não bateu saída
+    if (entry.clockInShiftCompliant === false || entry.clockOutShiftCompliant === false) return true; // Fora do horário
+    return false;
+  };
+
   return (
     <>
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -154,23 +183,31 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
           </DialogHeader>
           
           {selectedEntry && (
-            <div className="space-y-6 mt-4">
+            <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto">
+              {/* Status */}
+              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                <span className="text-sm font-medium">Status do Registro:</span>
+                {getStatusBadge(selectedEntry)}
+              </div>
+
               {/* Entrada */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
+                <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
+                  <Clock className="h-5 w-5" />
                   Registro de Entrada - {formatTime(selectedEntry.clockInTime)}
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  {/* Validação */}
                   {selectedEntry.clockInValidationMessage ? (
-                    <div className="text-sm whitespace-pre-line">
+                    <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
                       {selectedEntry.clockInValidationMessage}
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
                   )}
                   
-                  <div className="flex gap-4 mt-3 pt-3 border-t">
+                  {/* Status de Conformidade */}
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
                     <div className="flex items-center gap-2">
                       {selectedEntry.clockInWithinGeofence ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
@@ -192,26 +229,60 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       </span>
                     </div>
                   </div>
+
+                  {/* IP e Localização */}
+                  <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t">
+                    {selectedEntry.clockInIpAddress && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span className="font-medium">IP:</span>
+                        <span className="font-mono">{selectedEntry.clockInIpAddress}</span>
+                      </div>
+                    )}
+                    {selectedEntry.clockInLatitude && selectedEntry.clockInLongitude && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span className="font-medium">Localização:</span>
+                        <span className="font-mono">
+                          {selectedEntry.clockInLatitude.toFixed(6)}, {selectedEntry.clockInLongitude.toFixed(6)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Foto */}
+                  {selectedEntry.clockInPhotoUrl && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs font-medium mb-2">Foto de Entrada:</p>
+                      <img 
+                        src={selectedEntry.clockInPhotoUrl} 
+                        alt="Foto de entrada" 
+                        className="w-32 h-32 object-cover rounded border"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Saída */}
               {selectedEntry.clockOutTime && (
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
+                  <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
+                    <Clock className="h-5 w-5" />
                     Registro de Saída - {formatTime(selectedEntry.clockOutTime)}
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    {/* Validação */}
                     {selectedEntry.clockOutValidationMessage ? (
-                      <div className="text-sm whitespace-pre-line">
+                      <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
                         {selectedEntry.clockOutValidationMessage}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
                     )}
                     
-                    <div className="flex gap-4 mt-3 pt-3 border-t">
+                    {/* Status de Conformidade */}
+                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
                       <div className="flex items-center gap-2">
                         {selectedEntry.clockOutWithinGeofence ? (
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -233,18 +304,62 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                         </span>
                       </div>
                     </div>
+
+                    {/* IP e Localização */}
+                    <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t">
+                      {selectedEntry.clockOutIpAddress && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium">IP:</span>
+                          <span className="font-mono">{selectedEntry.clockOutIpAddress}</span>
+                        </div>
+                      )}
+                      {selectedEntry.clockOutLatitude && selectedEntry.clockOutLongitude && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium">Localização:</span>
+                          <span className="font-mono">
+                            {selectedEntry.clockOutLatitude.toFixed(6)}, {selectedEntry.clockOutLongitude.toFixed(6)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Foto */}
+                    {selectedEntry.clockOutPhotoUrl && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs font-medium mb-2">Foto de Saída:</p>
+                        <img 
+                          src={selectedEntry.clockOutPhotoUrl} 
+                          alt="Foto de saída" 
+                          className="w-32 h-32 object-cover rounded border"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Total de Horas */}
-              <div className="bg-blue-50 p-4 rounded-lg">
+              {/* Resumo de Horas */}
+              <div className="bg-blue-50 p-4 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-blue-800">Total de Horas Trabalhadas</span>
                   <span className="text-lg font-bold text-blue-900">
                     {formatHours(selectedEntry.totalHours)}
                   </span>
                 </div>
+                {(selectedEntry.regularHours || selectedEntry.overtimeHours) && (
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-200">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-blue-700">Horas Regulares:</span>
+                      <span className="font-semibold">{formatHours(selectedEntry.regularHours || '0')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-blue-700">Horas Extras:</span>
+                      <span className="font-semibold">{formatHours(selectedEntry.overtimeHours || '0')}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -296,15 +411,19 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                   ) : (
                     <span className="text-gray-400 text-xs">-</span>
                   )}
-                  {(entry.clockInValidationMessage || entry.clockOutValidationMessage) && (
-                    <button
-                      onClick={() => openDetails(entry)}
-                      className="text-xs text-amber-600 hover:text-amber-700 underline cursor-pointer text-left"
-                      data-testid={`button-details-${entry.id}`}
-                    >
-                      ⚠ Ver detalhes
-                    </button>
-                  )}
+                  <button
+                    onClick={() => openDetails(entry)}
+                    className={`text-xs underline cursor-pointer text-left ${
+                      (entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
+                        ? 'text-amber-600 hover:text-amber-700'
+                        : 'text-blue-600 hover:text-blue-700'
+                    }`}
+                    data-testid={`button-details-${entry.id}`}
+                  >
+                    {(entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
+                      ? '⚠ Ver detalhes'
+                      : 'Ver detalhes'}
+                  </button>
                 </div>
               </TableCell>
             </TableRow>
