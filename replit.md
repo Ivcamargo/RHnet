@@ -15,7 +15,7 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: TanStack Query for server state, React Hook Form for form state
 - **Routing**: Wouter for client-side routing
 - **UI Components**: shadcn/ui built on Radix UI primitives
-- **Styling**: Tailwind CSS with custom CSS variables (primary: hsl(210, 100%, 25%), secondary: hsl(180, 60%, 70%), accent: hsl(120, 50%, 70%))
+- **Styling**: Tailwind CSS with custom CSS variables (Brand palette: Navy Blue hsl(220, 65%, 18%) primary, Turquoise hsl(175, 65%, 45%) secondary, modernized icon set from lucide-react)
 - **Build Tool**: Vite
 
 ### Backend Architecture
