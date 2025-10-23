@@ -362,7 +362,7 @@ export default function Landing() {
               <Button 
                 onClick={handleJobsPage}
                 variant="ghost"
-                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                className="text-gray-700 hover:bg-gray-100"
                 data-testid="button-jobs-footer"
               >
                 <Briefcase className="mr-2 h-4 w-4" />
