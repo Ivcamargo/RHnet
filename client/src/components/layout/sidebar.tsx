@@ -2,22 +2,22 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Clock, 
-  Home, 
-  Building, 
-  BarChart3, 
-  Users, 
+  LayoutDashboard, 
+  Building2, 
+  TrendingUp, 
+  UsersRound, 
   Settings, 
   LogOut, 
   Menu, 
-  Shield, 
-  MessageCircle,
+  ShieldCheck, 
+  MessageSquare,
   FileText,
   GraduationCap,
-  Calendar,
+  CalendarDays,
   Upload,
   Timer,
-  Key,
-  Briefcase
+  KeyRound,
+  BriefcaseBusiness
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,28 +38,28 @@ export default function Sidebar() {
 
   // Base navigation for all users - prioritizing HR and messaging features
   const baseNavigation = [
-    { name: "Dashboard RH", href: "/", icon: Home },
-    { name: "Mensagens", href: "/messages", icon: MessageCircle },
+    { name: "Dashboard RH", href: "/", icon: LayoutDashboard },
+    { name: "Mensagens", href: "/messages", icon: MessageSquare },
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
     { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
-    { name: "Relatórios", href: "/reports", icon: BarChart3 },
+    { name: "Relatórios", href: "/reports", icon: TrendingUp },
   ];
 
   // Admin-only navigation items
   const adminNavigation = [
-    { name: "Funcionários", href: "/employees", icon: Users },
-    { name: "Recrutamento", href: "/recruitment", icon: Briefcase },
-    { name: "Departamentos", href: "/departments", icon: Building },
-    { name: "Setores", href: "/sectors", icon: Building },
-    { name: "Feriados", href: "/holidays", icon: Calendar },
+    { name: "Funcionários", href: "/employees", icon: UsersRound },
+    { name: "Recrutamento", href: "/recruitment", icon: BriefcaseBusiness },
+    { name: "Departamentos", href: "/departments", icon: Building2 },
+    { name: "Setores", href: "/sectors", icon: Building2 },
+    { name: "Feriados", href: "/holidays", icon: CalendarDays },
     { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer },
     { name: "Administrar Pontos", href: "/admin/time-entries", icon: Clock },
   ];
 
   // Superadmin-only navigation items
   const superAdminNavigation = [
-    { name: "Gerenciar Sistema", href: "/superadmin", icon: Shield },
+    { name: "Gerenciar Sistema", href: "/superadmin", icon: ShieldCheck },
   ];
 
   // Combine navigation based on user role
@@ -94,10 +94,10 @@ export default function Sidebar() {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-gradient-to-b from-blue-50 to-teal-50 border-r border-blue-200">
+    <div className="flex flex-col h-full bg-gradient-to-b from-[hsl(220,20%,98%)] to-[hsl(175,20%,98%)] dark:from-[hsl(220,20%,12%)] dark:to-[hsl(220,20%,10%)] border-r border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)]">
       {/* Logo - Clicável para voltar ao início */}
       <Link href="/">
-        <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-blue-600 to-teal-600 cursor-pointer hover:from-blue-700 hover:to-teal-700 transition-all duration-200">
+        <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] cursor-pointer hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] transition-all duration-200">
           <div className="flex items-center">
             <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
             <h1 className="text-xl font-bold text-white">
@@ -118,8 +118,8 @@ export default function Sidebar() {
               <div 
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-teal-100 hover:text-blue-800"
+                    ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
+                    : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -132,28 +132,28 @@ export default function Sidebar() {
       </nav>
       
       {/* User Info & Logout */}
-      <div className="p-4 border-t border-blue-200 space-y-2">
+      <div className="p-4 border-t border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)] space-y-2">
         {user && (
-          <div className="text-xs text-gray-600 px-2">
+          <div className="text-xs text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] px-2">
             <p className="font-medium">{(user as any).firstName} {(user as any).lastName}</p>
-            <p className="uppercase">{(user as any).role}</p>
+            <p className="uppercase text-[10px]">{(user as any).role}</p>
           </div>
         )}
         <Link href="/change-password">
           <Button
             variant="ghost"
-            className="w-full justify-start text-gray-600 hover:text-blue-800 hover:bg-teal-100"
+            className="w-full justify-start text-[hsl(220,15%,40%)] hover:text-[hsl(220,65%,18%)] hover:bg-[hsl(175,40%,92%)] dark:text-[hsl(220,15%,75%)] dark:hover:bg-[hsl(220,15%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
             onClick={() => setIsMobileMenuOpen(false)}
             data-testid="button-change-password"
           >
-            <Key className="mr-3 h-5 w-5" />
+            <KeyRound className="mr-3 h-5 w-5" />
             Alterar Senha
           </Button>
         </Link>
         <Button
           onClick={handleLogout}
           variant="ghost"
-          className="w-full justify-start text-red-600 hover:text-white hover:bg-red-600 font-medium"
+          className="w-full justify-start text-[hsl(0,72%,51%)] hover:text-white hover:bg-[hsl(0,72%,51%)] font-medium"
           data-testid="button-logout"
         >
           <LogOut className="mr-3 h-5 w-5" />
