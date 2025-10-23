@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle, Camera } from "lucide-react";
 
 interface TimeEntry {
   id: number;
@@ -278,17 +278,25 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     )}
                   </div>
 
-                  {/* Foto */}
-                  {selectedEntry.clockInPhotoUrl && (
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-xs font-medium mb-2">Foto de Entrada:</p>
+                  {/* Reconhecimento Facial */}
+                  <div className="mt-3 pt-3 border-t">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Camera className="h-4 w-4 text-blue-600" />
+                      <p className="text-xs font-medium text-blue-800">Reconhecimento Facial:</p>
+                    </div>
+                    {selectedEntry.clockInPhotoUrl ? (
                       <img 
                         src={selectedEntry.clockInPhotoUrl} 
                         alt="Foto de entrada" 
-                        className="w-32 h-32 object-cover rounded border"
+                        className="w-32 h-32 object-cover rounded border border-blue-300"
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-dashed">
+                        <Camera className="h-4 w-4" />
+                        <span>Foto não disponível para este registro</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -353,17 +361,25 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       )}
                     </div>
 
-                    {/* Foto */}
-                    {selectedEntry.clockOutPhotoUrl && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-xs font-medium mb-2">Foto de Saída:</p>
+                    {/* Reconhecimento Facial */}
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Camera className="h-4 w-4 text-blue-600" />
+                        <p className="text-xs font-medium text-blue-800">Reconhecimento Facial:</p>
+                      </div>
+                      {selectedEntry.clockOutPhotoUrl ? (
                         <img 
                           src={selectedEntry.clockOutPhotoUrl} 
                           alt="Foto de saída" 
-                          className="w-32 h-32 object-cover rounded border"
+                          className="w-32 h-32 object-cover rounded border border-blue-300"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-dashed">
+                          <Camera className="h-4 w-4" />
+                          <span>Foto não disponível para este registro</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

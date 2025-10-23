@@ -436,56 +436,64 @@ export default function AdminTimeEntries() {
                           )}
 
                           {/* Fotos de Reconhecimento Facial */}
-                          {(entry.clockInPhotoUrl || entry.clockOutPhotoUrl) && (
-                            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                              <div className="flex items-start gap-2 mb-3">
-                                <Camera className="h-4 w-4 text-blue-600 mt-0.5" />
-                                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                                  Fotos de Reconhecimento Facial
+                          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                            <div className="flex items-start gap-2 mb-3">
+                              <Camera className="h-4 w-4 text-blue-600 mt-0.5" />
+                              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                                Fotos de Reconhecimento Facial
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              {/* Foto de Entrada */}
+                              <div>
+                                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-2">
+                                  Foto de Entrada
                                 </p>
-                              </div>
-                              <div className="grid grid-cols-2 gap-4">
-                                {entry.clockInPhotoUrl && (
-                                  <div>
-                                    <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-2">
-                                      Foto de Entrada
-                                    </p>
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <button 
-                                          className="cursor-pointer hover:opacity-75 transition-opacity"
-                                          data-testid={`button-view-clockin-photo-${entry.id}`}
-                                        >
-                                          <img 
-                                            src={entry.clockInPhotoUrl} 
-                                            alt="Foto de entrada" 
-                                            className="w-32 h-32 object-cover rounded border border-blue-300 dark:border-blue-700"
-                                          />
-                                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 underline">
-                                            Clique para ampliar
-                                          </p>
-                                        </button>
-                                      </DialogTrigger>
-                                      <DialogContent className="max-w-2xl">
-                                        <DialogHeader>
-                                          <DialogTitle>Foto de Reconhecimento Facial - Entrada</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="flex justify-center">
-                                          <img 
-                                            src={entry.clockInPhotoUrl} 
-                                            alt="Foto de entrada ampliada" 
-                                            className="max-w-full h-auto rounded"
-                                          />
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
+                                {entry.clockInPhotoUrl ? (
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <button 
+                                        className="cursor-pointer hover:opacity-75 transition-opacity"
+                                        data-testid={`button-view-clockin-photo-${entry.id}`}
+                                      >
+                                        <img 
+                                          src={entry.clockInPhotoUrl} 
+                                          alt="Foto de entrada" 
+                                          className="w-32 h-32 object-cover rounded border border-blue-300 dark:border-blue-700"
+                                        />
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 underline">
+                                          Clique para ampliar
+                                        </p>
+                                      </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl">
+                                      <DialogHeader>
+                                        <DialogTitle>Foto de Reconhecimento Facial - Entrada</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="flex justify-center">
+                                        <img 
+                                          src={entry.clockInPhotoUrl} 
+                                          alt="Foto de entrada ampliada" 
+                                          className="max-w-full h-auto rounded"
+                                        />
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded border border-dashed h-32">
+                                    <Camera className="h-4 w-4" />
+                                    <span>Não disponível</span>
                                   </div>
                                 )}
-                                {entry.clockOutPhotoUrl && (
-                                  <div>
-                                    <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-2">
-                                      Foto de Saída
-                                    </p>
+                              </div>
+                              
+                              {/* Foto de Saída */}
+                              {entry.clockOutTime && (
+                                <div>
+                                  <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-2">
+                                    Foto de Saída
+                                  </p>
+                                  {entry.clockOutPhotoUrl ? (
                                     <Dialog>
                                       <DialogTrigger asChild>
                                         <button 
@@ -515,11 +523,16 @@ export default function AdminTimeEntries() {
                                         </div>
                                       </DialogContent>
                                     </Dialog>
-                                  </div>
-                                )}
-                              </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded border border-dashed h-32">
+                                      <Camera className="h-4 w-4" />
+                                      <span>Não disponível</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
 
                           <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
