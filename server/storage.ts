@@ -346,6 +346,7 @@ export interface IStorage {
   
   // Job opening operations
   getJobOpenings(companyId: number, status?: string): Promise<any[]>;
+  getPublicJobOpenings(companyId?: number): Promise<any[]>;
   getJobOpening(id: number): Promise<any | undefined>;
   createJobOpening(jobOpening: any): Promise<any>;
   updateJobOpening(id: number, jobOpening: Partial<any>): Promise<any>;
@@ -2599,6 +2600,27 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(jobOpenings)
       .where(eq(jobOpenings.companyId, companyId))
+      .orderBy(desc(jobOpenings.createdAt));
+  }
+
+  async getPublicJobOpenings(companyId?: number): Promise<any[]> {
+    // Return only active job openings for public viewing
+    if (companyId) {
+      return await db
+        .select()
+        .from(jobOpenings)
+        .where(and(
+          eq(jobOpenings.companyId, companyId),
+          eq(jobOpenings.status, 'active')
+        ))
+        .orderBy(desc(jobOpenings.createdAt));
+    }
+    
+    // Return all active job openings if no company specified
+    return await db
+      .select()
+      .from(jobOpenings)
+      .where(eq(jobOpenings.status, 'active'))
       .orderBy(desc(jobOpenings.createdAt));
   }
 

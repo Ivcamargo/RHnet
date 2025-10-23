@@ -5190,7 +5190,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================================================================
+  // PUBLIC JOB APPLICATION ROUTES (No authentication required)
+  // ========================================================================================
+  
+  // Configure multer for resume uploads
+  const resumesDir = path.join(process.cwd(), 'uploads', 'resumes');
+  if (!fs.existsSync(resumesDir)) {
+    fs.mkdirSync(resumesDir, { recursive: true });
+  }
+
+  const resumeUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, resumesDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, `resume-${uniqueSuffix}-${sanitizedName}`);
+      }
+    }),
+    limits: { 
+      fileSize: 5 * 1024 * 1024 // 5MB limit for resumes
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only PDF and DOC files are allowed for resumes'), false);
+      }
+    }
+  });
+
+  // Get public job openings (active only)
+  app.get('/api/public/jobs', async (req, res) => {
+    try {
+      const { companyId } = req.query;
+      
+      // Get all active job openings
+      const jobOpenings = await storage.getPublicJobOpenings(companyId ? parseInt(companyId as string) : undefined);
+      res.json(jobOpenings);
+    } catch (error) {
+      console.error("Error fetching public job openings:", error);
+      res.status(500).json({ message: "Failed to fetch job openings" });
+    }
+  });
+
+  // Get single job opening details (public)
+  app.get('/api/public/jobs/:id', async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const jobOpening = await storage.getJobOpening(jobId);
+      
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      
+      if (jobOpening.status !== 'active') {
+        return res.status(404).json({ message: "This job opening is no longer active" });
+      }
+      
+      res.json(jobOpening);
+    } catch (error) {
+      console.error("Error fetching job opening:", error);
+      res.status(500).json({ message: "Failed to fetch job opening" });
+    }
+  });
+
+  // Public job application with resume upload
+  app.post('/api/public/apply', resumeUpload.single('resume'), async (req, res) => {
+    try {
+      const { jobOpeningId, name, email, phone, cpf, coverLetter, city, state } = req.body;
+      
+      if (!jobOpeningId || !name || !email) {
+        return res.status(400).json({ message: "Job ID, name and email are required" });
+      }
+
+      // Validate job opening exists and is active
+      const jobOpening = await storage.getJobOpening(parseInt(jobOpeningId));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      
+      if (jobOpening.status !== 'active') {
+        return res.status(400).json({ message: "This job opening is no longer accepting applications" });
+      }
+
+      // Handle resume upload
+      let resumeUrl = null;
+      if (req.file) {
+        resumeUrl = `/uploads/resumes/${req.file.filename}`;
+      }
+
+      // Check if candidate already exists by email and company
+      const existingCandidates = await storage.getCandidates(jobOpening.companyId);
+      let candidate = existingCandidates.find(c => c.email.toLowerCase() === email.toLowerCase());
+      
+      if (!candidate) {
+        // Create new candidate
+        candidate = await storage.createCandidate({
+          companyId: jobOpening.companyId,
+          name,
+          email,
+          phone: phone || null,
+          cpf: cpf || null,
+          city: city || null,
+          state: state || null,
+          resumeUrl,
+          source: 'website'
+        });
+      } else {
+        // Update resume if new one was uploaded
+        if (resumeUrl) {
+          candidate = await storage.updateCandidate(candidate.id, { resumeUrl });
+        }
+      }
+
+      // Check if application already exists
+      const existingApplications = await storage.getApplications(parseInt(jobOpeningId));
+      const existingApplication = existingApplications.find(app => app.candidateId === candidate.id);
+      
+      if (existingApplication) {
+        return res.status(400).json({ message: "You have already applied to this position" });
+      }
+
+      // Create application
+      const application = await storage.createApplication({
+        jobOpeningId: parseInt(jobOpeningId),
+        candidateId: candidate.id,
+        status: 'applied',
+        coverLetter: coverLetter || null,
+        score: 0
+      });
+
+      // Send notification message to HR and admin
+      try {
+        // Get all HR users and admins from the company
+        const companyUsers = await storage.getUsersByCompany(jobOpening.companyId);
+        const hrAndAdmins = companyUsers.filter(u => 
+          u.role === 'admin' || u.role === 'superadmin'
+        );
+
+        const messageContent = `📋 Nova Candidatura Recebida!\n\nVaga: ${jobOpening.title}\nCandidato: ${name}\nEmail: ${email}\n${phone ? `Telefone: ${phone}\n` : ''}${coverLetter ? `\nCarta de Apresentação:\n${coverLetter}` : ''}`;
+
+        // Send message to each HR/admin user
+        for (const hrUser of hrAndAdmins) {
+          await storage.createMessage({
+            senderId: candidate.id, // Use candidate ID as sender
+            recipientId: hrUser.id,
+            subject: `Nova candidatura: ${jobOpening.title}`,
+            content: messageContent,
+            isRead: false
+          });
+        }
+      } catch (messageError) {
+        console.error("Error sending notification messages:", messageError);
+        // Don't fail the application if message sending fails
+      }
+
+      res.status(201).json({ 
+        message: "Application submitted successfully",
+        applicationId: application.id,
+        candidateId: candidate.id
+      });
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // ========================================================================================
   // ADMIN ROUTES (Authentication required)
+  // ========================================================================================
   
   // Job Openings Routes
   app.get('/api/job-openings', isAuthenticatedHybrid, async (req: any, res) => {
