@@ -295,7 +295,11 @@ export const timeEntries = pgTable("time_entries", {
   totalHours: decimal("total_hours", { precision: 6, scale: 2 }),
   regularHours: decimal("regular_hours", { precision: 6, scale: 2 }).default('0'),
   overtimeHours: decimal("overtime_hours", { precision: 6, scale: 2 }).default('0'),
-  status: varchar("status").default("active"), // active, completed, incomplete
+  expectedHours: decimal("expected_hours", { precision: 6, scale: 2 }), // Horas esperadas do turno
+  lateMinutes: integer("late_minutes"), // Minutos de atraso no início
+  shortfallMinutes: integer("shortfall_minutes"), // Minutos a menos trabalhados
+  irregularityReasons: text("irregularity_reasons").array(), // Motivos de irregularidade
+  status: varchar("status").default("active"), // active, completed, incomplete, irregular
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
   
   // Fotos de reconhecimento facial
