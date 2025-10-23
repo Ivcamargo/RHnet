@@ -2003,6 +2003,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Capture IP address (normalize x-forwarded-for to first IP)
+      let ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+      if (typeof ipAddress === 'string' && ipAddress.includes(',')) {
+        ipAddress = ipAddress.split(',')[0].trim();
+      }
+      
+      // Validation results
+      let withinGeofence: boolean | null = null;
+      let shiftCompliant: boolean | null = null;
+      let validationMessages: string[] = [];
+      
       // Skip geolocation validation if this is a fallback registration (camera not available)
       if (!locationFallback) {
         // Get department for geofence validation
@@ -2021,12 +2032,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (sector.latitude !== 0 || sector.longitude !== 0) {
           const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
           const radius = sector.radius || 100; // Default to 100m if null
-          if (distance > radius) {
-            return res.status(400).json({ 
-              message: "Outside allowed location", 
-              distance: Math.round(distance),
-              maxDistance: radius 
-            });
+          withinGeofence = distance <= radius;
+          
+          if (withinGeofence) {
+            validationMessages.push(`✓ Localização OK (${Math.round(distance)}m do setor)`);
+          } else {
+            validationMessages.push(`⚠ Fora da área permitida (${Math.round(distance)}m de distância, máximo: ${radius}m)`);
+          }
+        }
+        
+        // Validate shift schedule
+        const userShifts = await storage.getUserShiftAssignments(userId);
+        if (userShifts && userShifts.length > 0) {
+          // Find active shift for today
+          const todayDate = new Date(today);
+          const activeShift = userShifts.find(assignment => {
+            const startDate = assignment.startDate ? new Date(assignment.startDate) : null;
+            const endDate = assignment.endDate ? new Date(assignment.endDate) : null;
+            
+            if (startDate && todayDate < startDate) return false;
+            if (endDate && todayDate > endDate) return false;
+            return true;
+          });
+          
+          if (activeShift) {
+            // Get shift details
+            const shift = await storage.getShift(activeShift.shiftId);
+            if (shift && shift.isActive) {
+              // Check if today's day of week matches shift schedule
+              const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+              const shiftDays = shift.daysOfWeek || [];
+              
+              if (shiftDays.includes(dayOfWeek)) {
+                // Check time range (handle overnight shifts)
+                const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+                const startTime = shift.startTime;
+                const endTime = shift.endTime;
+                
+                // Convert time to minutes for proper comparison
+                const timeToMinutes = (time: string) => {
+                  const [hours, minutes] = time.split(':').map(Number);
+                  return hours * 60 + minutes;
+                };
+                
+                const currentMinutes = timeToMinutes(currentTime);
+                const startMinutes = timeToMinutes(startTime);
+                const endMinutes = timeToMinutes(endTime);
+                
+                // Handle overnight shifts (e.g., 22:00 - 06:00)
+                if (endMinutes < startMinutes) {
+                  // Overnight shift: compliant if after start OR before end
+                  shiftCompliant = currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+                } else {
+                  // Normal shift: compliant if between start and end
+                  shiftCompliant = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+                }
+                
+                if (shiftCompliant) {
+                  validationMessages.push(`✓ Turno OK (${shift.name}: ${startTime} - ${endTime})`);
+                } else {
+                  validationMessages.push(`⚠ Fora do horário do turno (${shift.name}: ${startTime} - ${endTime}, atual: ${currentTime})`);
+                }
+              } else {
+                shiftCompliant = false;
+                validationMessages.push(`⚠ Hoje não é dia de trabalho neste turno (${shift.name})`);
+              }
+            }
           }
         }
       }
@@ -2041,6 +2112,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clockInTime: now,
         clockInLatitude: latitude,
         clockInLongitude: longitude,
+        clockInIpAddress: ipAddress as string,
+        clockInWithinGeofence: withinGeofence,
+        clockInShiftCompliant: shiftCompliant,
+        clockInValidationMessage: validationMessages.join('\n') || null,
         faceRecognitionVerified,
         clockInPhotoUrl,
         date: today,
@@ -2059,12 +2134,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clockInTime: now,
           latitude,
           longitude,
+          ipAddress,
+          withinGeofence,
+          shiftCompliant,
+          validationMessages: validationMessages.join('\n'),
           faceRecognitionVerified
         },
         userId
       );
 
-      res.json(timeEntry);
+      res.json({
+        ...timeEntry,
+        validationMessages
+      });
     } catch (error) {
       console.error("Error clocking in:", error);
       if (error instanceof z.ZodError) {
@@ -2101,6 +2183,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { latitude, longitude, faceRecognitionData, locationFallback }: ClockOutRequest = clockOutSchema.parse(req.body);
       
+      // Capture IP address (normalize x-forwarded-for to first IP)
+      let ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+      if (typeof ipAddress === 'string' && ipAddress.includes(',')) {
+        ipAddress = ipAddress.split(',')[0].trim();
+      }
+      
+      // Validation results
+      let withinGeofence: boolean | null = null;
+      let shiftCompliant: boolean | null = null;
+      let validationMessages: string[] = [];
+      
       // Skip geolocation validation if this is a fallback registration (camera not available)
       if (!locationFallback) {
         // Get department for geofence validation
@@ -2119,12 +2212,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (sector.latitude !== 0 || sector.longitude !== 0) {
           const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
           const radius = sector.radius || 100; // Default to 100m if null
-          if (distance > radius) {
-            return res.status(400).json({ 
-              message: "Outside allowed location", 
-              distance: Math.round(distance),
-              maxDistance: radius 
-            });
+          withinGeofence = distance <= radius;
+          
+          if (withinGeofence) {
+            validationMessages.push(`✓ Localização OK (${Math.round(distance)}m do setor)`);
+          } else {
+            validationMessages.push(`⚠ Fora da área permitida (${Math.round(distance)}m de distância, máximo: ${radius}m)`);
+          }
+        }
+        
+        // Validate shift schedule
+        const userShifts = await storage.getUserShiftAssignments(userId);
+        if (userShifts && userShifts.length > 0) {
+          // Find active shift for today
+          const todayDate = new Date(today);
+          const activeShift = userShifts.find(assignment => {
+            const startDate = assignment.startDate ? new Date(assignment.startDate) : null;
+            const endDate = assignment.endDate ? new Date(assignment.endDate) : null;
+            
+            if (startDate && todayDate < startDate) return false;
+            if (endDate && todayDate > endDate) return false;
+            return true;
+          });
+          
+          if (activeShift) {
+            // Get shift details
+            const shift = await storage.getShift(activeShift.shiftId);
+            if (shift && shift.isActive) {
+              // Check if today's day of week matches shift schedule
+              const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+              const shiftDays = shift.daysOfWeek || [];
+              
+              if (shiftDays.includes(dayOfWeek)) {
+                const now = getBrazilianTime();
+                // Check time range
+                const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+                const startTime = shift.startTime;
+                const endTime = shift.endTime;
+                
+                // Simple time comparison
+                shiftCompliant = currentTime >= startTime && currentTime <= endTime;
+                
+                if (shiftCompliant) {
+                  validationMessages.push(`✓ Turno OK (${shift.name}: ${startTime} - ${endTime})`);
+                } else {
+                  validationMessages.push(`⚠ Fora do horário do turno (${shift.name}: ${startTime} - ${endTime}, atual: ${currentTime})`);
+                }
+              } else {
+                shiftCompliant = false;
+                validationMessages.push(`⚠ Hoje não é dia de trabalho neste turno (${shift.name})`);
+              }
+            }
           }
         }
       }
@@ -2137,6 +2275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clockOutTime: now,
         clockOutLatitude: latitude,
         clockOutLongitude: longitude,
+        clockOutIpAddress: ipAddress as string,
+        clockOutWithinGeofence: withinGeofence,
+        clockOutShiftCompliant: shiftCompliant,
+        clockOutValidationMessage: validationMessages.join('\n') || null,
         totalHours: grossHours.toString(),
         status: 'completed',
       });
@@ -2170,12 +2312,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clockOutTime: now,
           latitude,
           longitude,
+          ipAddress,
+          withinGeofence,
+          shiftCompliant,
+          validationMessages: validationMessages.join('\n'),
           totalHours: grossHours.toString()
         },
         userId
       );
 
-      res.json(updatedEntry);
+      res.json({
+        ...updatedEntry,
+        validationMessages
+      });
     } catch (error) {
       console.error("Error clocking out:", error);
       if (error instanceof z.ZodError) {

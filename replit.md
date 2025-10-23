@@ -49,7 +49,11 @@ Preferred communication style: Simple, everyday language.
   - Backend filtering: superadmin sees all sectors, admin/employee see only their company's sectors, supervisors see assigned sectors
   - Geofencing configuration integrated into sector creation/editing workflow with landscape dialog layout (max-w-6xl, two-column grid)
   - Real-time cache invalidation and refetch after mutations ensures immediate UI updates
-- **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Timezone**: All timestamps saved in UTC (real server time), frontend converts to Brazil timezone (America/Sao_Paulo) for display. Function `getBrazilianTime()` returns current UTC time, `getBrazilianDateString()` returns current date in Brazil timezone.
+- **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Enhanced Validation**: Records IP address, validates geofence proximity (non-blocking), and verifies shift schedule compliance with overnight shift support. Validation results displayed to user via toast notifications. **Timezone**: All timestamps saved in UTC (real server time), frontend converts to Brazil timezone (America/Sao_Paulo) for display. Function `getBrazilianTime()` returns current UTC time, `getBrazilianDateString()` returns current date in Brazil timezone.
+  - **IP Tracking**: Captures and normalizes client IP address (handles x-forwarded-for) for both clock-in and clock-out
+  - **Geofence Validation**: Compares user location against sector boundaries, records compliance status and distance
+  - **Shift Compliance**: Validates clock time against assigned shift schedule, handles overnight shifts (e.g., 22:00-06:00), checks day of week and time range
+  - **Validation Messages**: Stores and displays user-friendly messages with ✓/⚠ indicators for location and shift compliance
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
 - **Employee-Shift Assignment**: Advanced system for linking employees to shifts with optional start/end dates for flexible rotations, visual indicators, and dedicated assignment management dialogs.

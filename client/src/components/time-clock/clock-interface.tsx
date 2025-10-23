@@ -145,13 +145,21 @@ export default function ClockInterface() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setIsFaceRecognitionActive(false);
+      
+      // Show validation messages if available
+      const validationMessages = data.validationMessages || [];
+      const description = validationMessages.length > 0 
+        ? `Entrada registrada!\n\n${validationMessages.join('\n')}`
+        : "Entrada registrada com sucesso!";
+      
       toast({
-        title: "Sucesso",
-        description: "Entrada registrada com sucesso!",
+        title: "Ponto Registrado",
+        description: description,
+        duration: 5000,
       });
     },
     onError: (error: Error) => {
@@ -202,13 +210,21 @@ export default function ClockInterface() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setIsFaceRecognitionActive(false);
+      
+      // Show validation messages if available
+      const validationMessages = data.validationMessages || [];
+      const description = validationMessages.length > 0 
+        ? `Saída registrada!\n\n${validationMessages.join('\n')}`
+        : "Saída registrada com sucesso!";
+      
       toast({
-        title: "Sucesso",
-        description: "Saída registrada com sucesso!",
+        title: "Ponto Registrado",
+        description: description,
+        duration: 5000,
       });
     },
     onError: (error: Error) => {
