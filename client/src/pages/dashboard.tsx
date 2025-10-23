@@ -144,14 +144,14 @@ export default function Dashboard() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-100';
-      case 'normal': return 'text-orange-600 bg-orange-100';
-      default: return 'text-gray-600 bg-orange-100';
+      case 'high': return 'text-[hsl(0,72%,51%)] bg-[hsl(0,72%,95%)]';
+      case 'normal': return 'text-[hsl(175,65%,35%)] bg-[hsl(175,65%,95%)]';
+      default: return 'text-[hsl(220,15%,40%)] bg-[hsl(220,15%,95%)]';
     }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[hsl(220,20%,98%)] via-[hsl(175,20%,98%)] to-[hsl(220,15%,96%)] dark:from-[hsl(220,20%,10%)] dark:via-[hsl(220,20%,12%)] dark:to-[hsl(220,15%,15%)]">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -161,14 +161,14 @@ export default function Dashboard() {
           {/* Superadmin Claim Alert - Only show if no superadmin exists in the system */}
           {user && superadminCheck && !superadminCheck.hasSuperadmin && (
             <div className="mb-6">
-              <Alert className="border-amber-200 bg-amber-50">
-                <Sparkles className="h-4 w-4 text-amber-600" />
+              <Alert className="border-[hsl(175,65%,75%)] bg-[hsl(175,65%,96%)] dark:border-[hsl(175,40%,30%)] dark:bg-[hsl(175,40%,15%)]">
+                <Sparkles className="h-4 w-4 text-[hsl(175,65%,45%)]" />
                 <AlertDescription className="flex items-center justify-between">
                   <div>
-                    <span className="font-medium text-amber-800">
+                    <span className="font-medium text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,55%)]">
                       Sistema sem Super Administrador
                     </span>
-                    <p className="text-amber-700 mt-1">
+                    <p className="text-[hsl(220,40%,35%)] dark:text-[hsl(175,40%,70%)] mt-1">
                       Seja o primeiro administrador do sistema e tenha controle total sobre empresas e usuários.
                     </p>
                   </div>
@@ -177,12 +177,12 @@ export default function Dashboard() {
                     size="sm"
                     onClick={() => claimSuperadminMutation.mutate()}
                     disabled={claimSuperadminMutation.isPending}
-                    className="ml-4 border-amber-300 text-amber-700 hover:bg-amber-100"
+                    className="ml-4 border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,92%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
                     data-testid="button-claim-superadmin"
                   >
                     {claimSuperadminMutation.isPending ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600 mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[hsl(175,65%,45%)] mr-2"></div>
                         Processando...
                       </>
                     ) : (
@@ -227,7 +227,7 @@ export default function Dashboard() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card 
-              className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)] hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setLocation('/messages')}
               data-testid="card-messages"
             >
@@ -243,7 +243,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="text-2xl font-bold text-orange-800" data-testid="text-unread-count">{hrData.unreadMessages}</div>
+                    <div className="text-2xl font-bold text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]" data-testid="text-unread-count">{hrData.unreadMessages}</div>
                     <p className="text-xs text-muted-foreground">Não lidas</p>
                     {hrData.unreadMessages > 0 && (
                       <Badge variant="destructive" className="mt-2">
@@ -256,7 +256,7 @@ export default function Dashboard() {
             </Card>
 
             <Card 
-              className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)] hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setLocation('/documents')}
               data-testid="card-documents"
             >
@@ -272,7 +272,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="text-2xl font-bold text-orange-800" data-testid="text-pending-documents">{hrData.pendingDocuments}</div>
+                    <div className="text-2xl font-bold text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]" data-testid="text-pending-documents">{hrData.pendingDocuments}</div>
                     <p className="text-xs text-muted-foreground">Pendentes</p>
                     {hrData.pendingDocuments > 0 && (
                       <Badge variant="outline" className="mt-2">
@@ -285,7 +285,7 @@ export default function Dashboard() {
             </Card>
 
             <Card 
-              className="bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)] hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setLocation('/training')}
               data-testid="card-training"
             >
@@ -346,9 +346,9 @@ export default function Dashboard() {
 
           {/* Time Clock Quick Access */}
           <div className="mb-8">
-            <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+            <Card className="bg-gradient-to-r from-[hsl(220,40%,96%)] to-[hsl(175,40%,96%)] dark:from-[hsl(220,20%,15%)] dark:to-[hsl(175,20%,18%)] border-[hsl(220,40%,85%)] dark:border-[hsl(220,15%,25%)]">
               <CardHeader>
-                <CardTitle className="flex items-center text-blue-800">
+                <CardTitle className="flex items-center text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]">
                   <Clock className="h-5 w-5 mr-2" />
                   Controle de Ponto
                 </CardTitle>
@@ -356,7 +356,7 @@ export default function Dashboard() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-[hsl(220,65%,18%)] hover:bg-[hsl(220,65%,25%)] dark:bg-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,65%,50%)] text-white"
                     onClick={() => setLocation('/time-clock')}
                     data-testid="button-time-clock-access"
                   >
@@ -365,16 +365,16 @@ export default function Dashboard() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    className="border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,95%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
                     onClick={() => setLocation('/reports')}
                     data-testid="button-view-entries"
                   >
-                    <Calendar className="h-4 w-4 mr-2" />
+                    <CalendarDays className="h-4 w-4 mr-2" />
                     Ver Registros
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    className="border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,95%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
                     onClick={() => setLocation('/time-clock?tab=manual')}
                     data-testid="button-manual-entry"
                   >
@@ -388,7 +388,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Recent Messages */}
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200">
+            <Card className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)]">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
                   <MailOpen className="h-5 w-5 mr-2 text-[hsl(175,65%,45%)]" />
@@ -408,7 +408,7 @@ export default function Dashboard() {
                 {hrData.recentMessages.map((message) => (
                   <div key={message.id} className="flex items-start space-x-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="flex-shrink-0">
-                      <div className={`w-3 h-3 rounded-full mt-2 ${message.isRead ? 'bg-gray-400' : 'bg-orange-600'}`} />
+                      <div className={`w-3 h-3 rounded-full mt-2 ${message.isRead ? 'bg-gray-400' : 'bg-[hsl(175,65%,45%)]'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -431,7 +431,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Pending Tasks */}
-            <Card className="bg-white/90 backdrop-blur-sm border-orange-200">
+            <Card className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)]">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
                   <BellRing className="h-5 w-5 mr-2 text-[hsl(175,65%,45%)]" />
@@ -442,9 +442,9 @@ export default function Dashboard() {
                 {hrData.pendingTasks.map((task) => (
                   <div key={task.id} className="flex items-center space-x-4 p-3 border rounded-lg">
                     <div className="flex-shrink-0">
-                      {task.type === 'document' && <FileText className="h-5 w-5 text-orange-500" />}
-                      {task.type === 'course' && <GraduationCap className="h-5 w-5 text-green-500" />}
-                      {task.type === 'message' && <MessageSquare className="h-5 w-5 text-blue-500" />}
+                      {task.type === 'document' && <FileText className="h-5 w-5 text-[hsl(175,65%,45%)]" />}
+                      {task.type === 'course' && <GraduationCap className="h-5 w-5 text-[hsl(142,71%,45%)]" />}
+                      {task.type === 'message' && <MessageSquare className="h-5 w-5 text-[hsl(175,65%,45%)]" />}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{task.title}</p>
