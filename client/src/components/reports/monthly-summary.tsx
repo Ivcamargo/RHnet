@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle } from "lucide-react";
 
 interface TimeEntry {
   id: number;
@@ -25,9 +27,17 @@ interface MonthlyTimeTableProps {
 }
 
 export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const sortedEntries = useMemo(() => {
     return [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [entries]);
+
+  const openDetails = (entry: TimeEntry) => {
+    setSelectedEntry(entry);
+    setDetailsOpen(true);
+  };
 
   const formatTime = (timeString: string | null) => {
     if (!timeString) return "-";
@@ -133,8 +143,116 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   };
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
+    <>
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              Detalhes de Validação - {selectedEntry && formatDate(selectedEntry.date)}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedEntry && (
+            <div className="space-y-6 mt-4">
+              {/* Entrada */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Registro de Entrada - {formatTime(selectedEntry.clockInTime)}
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  {selectedEntry.clockInValidationMessage ? (
+                    <div className="text-sm whitespace-pre-line">
+                      {selectedEntry.clockInValidationMessage}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
+                  )}
+                  
+                  <div className="flex gap-4 mt-3 pt-3 border-t">
+                    <div className="flex items-center gap-2">
+                      {selectedEntry.clockInWithinGeofence ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-xs">
+                        {selectedEntry.clockInWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedEntry.clockInShiftCompliant ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-xs">
+                        {selectedEntry.clockInShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Saída */}
+              {selectedEntry.clockOutTime && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Registro de Saída - {formatTime(selectedEntry.clockOutTime)}
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    {selectedEntry.clockOutValidationMessage ? (
+                      <div className="text-sm whitespace-pre-line">
+                        {selectedEntry.clockOutValidationMessage}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
+                    )}
+                    
+                    <div className="flex gap-4 mt-3 pt-3 border-t">
+                      <div className="flex items-center gap-2">
+                        {selectedEntry.clockOutWithinGeofence ? (
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-600" />
+                        )}
+                        <span className="text-xs">
+                          {selectedEntry.clockOutWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedEntry.clockOutShiftCompliant ? (
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-600" />
+                        )}
+                        <span className="text-xs">
+                          {selectedEntry.clockOutShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Total de Horas */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-blue-800">Total de Horas Trabalhadas</span>
+                  <span className="text-lg font-bold text-blue-900">
+                    {formatHours(selectedEntry.totalHours)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="overflow-x-auto">
+        <Table>
         <TableHeader>
           <TableRow className="border-b border-gray-200">
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Data</TableHead>
@@ -152,7 +270,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 <div className="flex items-center gap-1">
                   {formatDate(entry.date)}
                   {hasValidationIssues(entry) && (
-                    <AlertTriangle className="h-4 w-4 text-amber-600" title="Inconsistências detectadas" />
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
                   )}
                 </div>
               </TableCell>
@@ -179,9 +297,13 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     <span className="text-gray-400 text-xs">-</span>
                   )}
                   {(entry.clockInValidationMessage || entry.clockOutValidationMessage) && (
-                    <div className="text-xs text-amber-600 cursor-help" title={`${entry.clockInValidationMessage || ''}\n${entry.clockOutValidationMessage || ''}`.trim()}>
+                    <button
+                      onClick={() => openDetails(entry)}
+                      className="text-xs text-amber-600 hover:text-amber-700 underline cursor-pointer text-left"
+                      data-testid={`button-details-${entry.id}`}
+                    >
                       ⚠ Ver detalhes
-                    </div>
+                    </button>
                   )}
                 </div>
               </TableCell>
@@ -189,7 +311,8 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
           ))}
         </TableBody>
       </Table>
-    </div>
+      </div>
+    </>
   );
 }
 
