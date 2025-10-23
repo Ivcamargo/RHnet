@@ -342,7 +342,7 @@ export default function Landing() {
               onClick={handleJobsPage} 
               size="lg"
               variant="outline"
-              className="border-white text-white hover:bg-white/20 hover:border-white/90 px-8 py-6 text-lg transition-all"
+              className="border-white text-[#2a2c37] hover:bg-white/20 hover:border-white/90 px-8 py-6 text-lg transition-all"
             >
               <Briefcase className="mr-2 h-5 w-5" />
               Ver Oportunidades
