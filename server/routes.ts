@@ -325,67 +325,88 @@ async function computeIrregularities(
   let shortfallMinutes = 0;
   
   try {
-    // Get department shifts to calculate expected hours and times
-    if (timeEntry.departmentId) {
-      const shifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+    // Get user's assigned shift for this entry's date
+    const entryDate = new Date(timeEntry.date);
+    const userShiftAssignment = await storage.getUserActiveShift(timeEntry.userId, entryDate);
+    
+    if (userShiftAssignment && userShiftAssignment.shift) {
+      const shift = userShiftAssignment.shift;
       
-      if (shifts.length > 0) {
-        // Use the first active shift
-        const shift = shifts[0];
+      // Calculate expected hours from the assigned shift
+      if (shift.startTime && shift.endTime) {
+        const [startHour, startMin] = shift.startTime.split(':').map(Number);
+        const [endHour, endMin] = shift.endTime.split(':').map(Number);
         
-        // Calculate expected hours (shift duration - unpaid breaks)
-        expectedHours = await calculateStandardWorkingHours(timeEntry.departmentId, storage);
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
         
-        // Check if employee clocked in
-        if (!timeEntry.clockInTime) {
-          irregularityReasons.push('Falta - Sem registro de entrada');
-        } else if (shift.startTime) {
-          // Calculate lateness
-          const clockInDate = new Date(timeEntry.clockInTime);
-          const clockInHour = clockInDate.getUTCHours();
-          const clockInMinute = clockInDate.getUTCMinutes();
-          const clockInTotalMinutes = clockInHour * 60 + clockInMinute;
-          
-          const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
-          const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
-          
-          // Calculate late minutes (with 5-minute grace period)
-          const GRACE_PERIOD_MINUTES = 5;
-          const rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
-          
-          if (rawLateMinutes > GRACE_PERIOD_MINUTES) {
-            lateMinutes = rawLateMinutes;
-            const hours = Math.floor(lateMinutes / 60);
-            const mins = lateMinutes % 60;
-            irregularityReasons.push(
-              `Atraso - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} depois do horário (${shift.startTime})`
-            );
+        // Handle shifts that cross midnight
+        const totalShiftMinutes = endMinutes >= startMinutes 
+          ? endMinutes - startMinutes 
+          : (24 * 60) - startMinutes + endMinutes;
+        
+        // Subtract unpaid breaks from expected hours
+        const shiftBreaks = await storage.getShiftBreaks(shift.id);
+        let unpaidBreakMinutes = 0;
+        
+        for (const shiftBreak of shiftBreaks) {
+          if (!shiftBreak.isPaid && shiftBreak.isActive) {
+            unpaidBreakMinutes += shiftBreak.durationMinutes;
           }
         }
         
-        // Check if employee clocked out
-        if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
-          irregularityReasons.push('Registro incompleto - Sem registro de saída');
-        }
+        expectedHours = (totalShiftMinutes - unpaidBreakMinutes) / 60;
+      }
+      
+      // Check if employee clocked in
+      if (!timeEntry.clockInTime) {
+        irregularityReasons.push('Falta - Sem registro de entrada');
+      } else if (shift.startTime) {
+        // Calculate lateness
+        const clockInDate = new Date(timeEntry.clockInTime);
+        const clockInHour = clockInDate.getUTCHours();
+        const clockInMinute = clockInDate.getUTCMinutes();
+        const clockInTotalMinutes = clockInHour * 60 + clockInMinute;
         
-        // Check hours worked vs expected (only if both clock in and out exist)
-        if (timeEntry.clockInTime && timeEntry.clockOutTime) {
-          const workedHours = parseFloat(timeEntry.totalHours || '0');
-          
-          // Allow 15-minute deficit tolerance
-          const DEFICIT_TOLERANCE_MINUTES = 15;
-          const expectedMinutes = expectedHours * 60;
-          const workedMinutes = workedHours * 60;
-          const deficit = expectedMinutes - workedMinutes;
-          
-          if (deficit > DEFICIT_TOLERANCE_MINUTES) {
-            shortfallMinutes = Math.floor(deficit);
-            const hours = Math.floor(shortfallMinutes / 60);
-            const mins = shortfallMinutes % 60;
-            irregularityReasons.push(
-              `Horas insuficientes - Trabalhou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} a menos (esperado: ${expectedHours}h)`
-            );
-          }
+        const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
+        const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+        
+        // Calculate late minutes (with 5-minute grace period)
+        const GRACE_PERIOD_MINUTES = 5;
+        const rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
+        
+        if (rawLateMinutes > GRACE_PERIOD_MINUTES) {
+          lateMinutes = rawLateMinutes;
+          const hours = Math.floor(lateMinutes / 60);
+          const mins = lateMinutes % 60;
+          irregularityReasons.push(
+            `Atraso - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} depois do horário (${shift.startTime})`
+          );
+        }
+      }
+      
+      // Check if employee clocked out
+      if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
+        irregularityReasons.push('Registro incompleto - Sem registro de saída');
+      }
+      
+      // Check hours worked vs expected (only if both clock in and out exist)
+      if (timeEntry.clockInTime && timeEntry.clockOutTime && expectedHours > 0) {
+        const workedHours = parseFloat(timeEntry.totalHours || '0');
+        
+        // Allow 15-minute deficit tolerance
+        const DEFICIT_TOLERANCE_MINUTES = 15;
+        const expectedMinutes = expectedHours * 60;
+        const workedMinutes = workedHours * 60;
+        const deficit = expectedMinutes - workedMinutes;
+        
+        if (deficit > DEFICIT_TOLERANCE_MINUTES) {
+          shortfallMinutes = Math.floor(deficit);
+          const hours = Math.floor(shortfallMinutes / 60);
+          const mins = shortfallMinutes % 60;
+          irregularityReasons.push(
+            `Horas insuficientes - Trabalhou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} a menos (esperado: ${expectedHours.toFixed(1)}h)`
+          );
         }
       }
     }
