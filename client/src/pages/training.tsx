@@ -499,7 +499,12 @@ export default function Training() {
                           Iniciado: {item.startedAt ? new Date(item.startedAt).toLocaleDateString('pt-BR') : 'N/A'}
                         </span>
                         <div className="flex gap-1">
-                          <Button variant="outline" size="sm" data-testid={`button-continue-course-${index}`}>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setLocation(`/course/${item.courseId}`)}
+                            data-testid={`button-continue-course-${index}`}
+                          >
                             <Play className="h-4 w-4 mr-1" />
                             Continuar
                           </Button>
