@@ -308,6 +308,128 @@ async function calculateOvertimeHours(
   }
 }
 
+// Helper function to compute irregularities for a time entry
+async function computeIrregularities(
+  timeEntry: any,
+  storage: Storage
+): Promise<{
+  expectedHours: number;
+  lateMinutes: number;
+  shortfallMinutes: number;
+  irregularityReasons: string[];
+  status: string;
+}> {
+  const irregularityReasons: string[] = [];
+  let expectedHours = 0;
+  let lateMinutes = 0;
+  let shortfallMinutes = 0;
+  
+  try {
+    // Get department shifts to calculate expected hours and times
+    if (timeEntry.departmentId) {
+      const shifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+      
+      if (shifts.length > 0) {
+        // Use the first active shift
+        const shift = shifts[0];
+        
+        // Calculate expected hours (shift duration - unpaid breaks)
+        expectedHours = await calculateStandardWorkingHours(timeEntry.departmentId, storage);
+        
+        // Check if employee clocked in
+        if (!timeEntry.clockInTime) {
+          irregularityReasons.push('Falta - Sem registro de entrada');
+        } else if (shift.startTime) {
+          // Calculate lateness
+          const clockInDate = new Date(timeEntry.clockInTime);
+          const clockInHour = clockInDate.getUTCHours();
+          const clockInMinute = clockInDate.getUTCMinutes();
+          const clockInTotalMinutes = clockInHour * 60 + clockInMinute;
+          
+          const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
+          const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+          
+          // Calculate late minutes (with 5-minute grace period)
+          const GRACE_PERIOD_MINUTES = 5;
+          const rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
+          
+          if (rawLateMinutes > GRACE_PERIOD_MINUTES) {
+            lateMinutes = rawLateMinutes;
+            const hours = Math.floor(lateMinutes / 60);
+            const mins = lateMinutes % 60;
+            irregularityReasons.push(
+              `Atraso - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} depois do horário (${shift.startTime})`
+            );
+          }
+        }
+        
+        // Check if employee clocked out
+        if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
+          irregularityReasons.push('Registro incompleto - Sem registro de saída');
+        }
+        
+        // Check hours worked vs expected (only if both clock in and out exist)
+        if (timeEntry.clockInTime && timeEntry.clockOutTime) {
+          const workedHours = parseFloat(timeEntry.totalHours || '0');
+          
+          // Allow 15-minute deficit tolerance
+          const DEFICIT_TOLERANCE_MINUTES = 15;
+          const expectedMinutes = expectedHours * 60;
+          const workedMinutes = workedHours * 60;
+          const deficit = expectedMinutes - workedMinutes;
+          
+          if (deficit > DEFICIT_TOLERANCE_MINUTES) {
+            shortfallMinutes = Math.floor(deficit);
+            const hours = Math.floor(shortfallMinutes / 60);
+            const mins = shortfallMinutes % 60;
+            irregularityReasons.push(
+              `Horas insuficientes - Trabalhou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} a menos (esperado: ${expectedHours}h)`
+            );
+          }
+        }
+      }
+    }
+    
+    // Check shift compliance flags
+    if (timeEntry.clockInShiftCompliant === false) {
+      if (!irregularityReasons.some(r => r.includes('Atraso'))) {
+        irregularityReasons.push('Turno incompatível - Fora do horário do turno na entrada');
+      }
+    }
+    
+    if (timeEntry.clockOutShiftCompliant === false) {
+      irregularityReasons.push('Turno incompatível - Fora do horário do turno na saída');
+    }
+    
+    // Determine status
+    let status = timeEntry.status || 'active';
+    if (irregularityReasons.length > 0) {
+      status = 'irregular';
+    } else if (timeEntry.clockInTime && timeEntry.clockOutTime) {
+      status = 'complete';
+    } else if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
+      status = 'incomplete';
+    }
+    
+    return {
+      expectedHours: Number(expectedHours.toFixed(2)),
+      lateMinutes,
+      shortfallMinutes,
+      irregularityReasons,
+      status
+    };
+  } catch (error) {
+    console.error('Error computing irregularities:', error);
+    return {
+      expectedHours: 0,
+      lateMinutes: 0,
+      shortfallMinutes: 0,
+      irregularityReasons: [],
+      status: timeEntry.status || 'active'
+    };
+  }
+}
+
 // Helper function to get user scope based on role
 async function getUserScope(userId: string) {
   const user = await storage.getUser(userId);
@@ -2876,9 +2998,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
       const entries = await storage.getTimeEntriesByUser(userId, startDate, endDate);
       
+      // Enrich each entry with irregularity data
+      const enrichedEntries = await Promise.all(
+        entries.map(async (entry) => {
+          const irregularityData = await computeIrregularities(entry, storage);
+          return {
+            ...entry,
+            expectedHours: irregularityData.expectedHours.toString(),
+            lateMinutes: irregularityData.lateMinutes,
+            shortfallMinutes: irregularityData.shortfallMinutes,
+            irregularityReasons: irregularityData.irregularityReasons,
+            status: irregularityData.status,
+          };
+        })
+      );
+      
       res.json({
         stats,
-        entries,
+        entries: enrichedEntries,
       });
     } catch (error) {
       console.error("Error generating monthly report:", error);
