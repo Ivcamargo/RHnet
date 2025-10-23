@@ -291,9 +291,9 @@ export const timeEntries = pgTable("time_entries", {
   clockInLongitude: real("clock_in_longitude"),
   clockOutLatitude: real("clock_out_latitude"),
   clockOutLongitude: real("clock_out_longitude"),
-  totalHours: decimal("total_hours", { precision: 4, scale: 2 }),
-  regularHours: decimal("regular_hours", { precision: 4, scale: 2 }).default('0'),
-  overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).default('0'),
+  totalHours: decimal("total_hours", { precision: 6, scale: 2 }),
+  regularHours: decimal("regular_hours", { precision: 6, scale: 2 }).default('0'),
+  overtimeHours: decimal("overtime_hours", { precision: 6, scale: 2 }).default('0'),
   status: varchar("status").default("active"), // active, completed, incomplete
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
   
