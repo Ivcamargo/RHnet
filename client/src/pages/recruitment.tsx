@@ -19,7 +19,11 @@ import {
   CheckCircle,
   XCircle,
   Home,
-  Trash2
+  Trash2,
+  UserPlus,
+  Clock,
+  FileText,
+  Send
 } from 'lucide-react';
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import {
@@ -52,6 +56,11 @@ export default function Recruitment() {
   const [createExperienceLevel, setCreateExperienceLevel] = useState('mid');
   const [editEmploymentType, setEditEmploymentType] = useState('full_time');
   const [editExperienceLevel, setEditExperienceLevel] = useState('mid');
+  const [isCreateApplicationDialogOpen, setIsCreateApplicationDialogOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [isViewApplicationDialogOpen, setIsViewApplicationDialogOpen] = useState(false);
+  const [selectedJobForApplication, setSelectedJobForApplication] = useState<number>(0);
+  const [selectedCandidateForApplication, setSelectedCandidateForApplication] = useState<number>(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -68,6 +77,11 @@ export default function Recruitment() {
 
   const { data: onboardingLinks = [] } = useQuery<any[]>({
     queryKey: ['/api/onboarding-links'],
+  });
+
+  const { data: allApplications = [] } = useQuery<any[]>({
+    queryKey: ['/api/applications/all'],
+    enabled: activeTab === 'applications',
   });
 
   const createJobMutation = useMutation({
@@ -160,6 +174,55 @@ export default function Recruitment() {
     },
   });
 
+  const createApplicationMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest('/api/applications', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/applications/all'] });
+      setIsCreateApplicationDialogOpen(false);
+      setSelectedJobForApplication(0);
+      setSelectedCandidateForApplication(0);
+      toast({
+        title: "Candidatura criada!",
+        description: "O candidato foi vinculado à vaga com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao criar candidatura",
+        description: "Não foi possível vincular o candidato à vaga.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateApplicationMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      return await apiRequest(`/api/applications/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/applications/all'] });
+      toast({
+        title: "Status atualizado!",
+        description: "O status da candidatura foi atualizado com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao atualizar status",
+        description: "Não foi possível atualizar o status. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -214,6 +277,25 @@ export default function Recruitment() {
     }
   };
 
+  const handleCreateApplication = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    createApplicationMutation.mutate({
+      jobOpeningId: parseInt(formData.get('jobOpeningId') as string),
+      candidateId: parseInt(formData.get('candidateId') as string),
+      status: 'pending',
+      notes: formData.get('notes') || '',
+    });
+  };
+
+  const handleUpdateApplicationStatus = (applicationId: number, newStatus: string) => {
+    updateApplicationMutation.mutate({
+      id: applicationId,
+      data: { status: newStatus }
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
       draft: { variant: "outline", label: "Rascunho" },
@@ -222,6 +304,19 @@ export default function Recruitment() {
     };
     const config = variants[status] || variants.draft;
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getApplicationStatusBadge = (status: string) => {
+    const variants: Record<string, any> = {
+      pending: { variant: "outline", label: "Em Análise", className: "border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)]" },
+      reviewing: { variant: "default", label: "Em Revisão", className: "bg-[hsl(220,65%,18%)]" },
+      interview_scheduled: { variant: "default", label: "Entrevista Agendada", className: "bg-[hsl(175,65%,45%)]" },
+      approved: { variant: "default", label: "Aprovado", className: "bg-green-600" },
+      rejected: { variant: "destructive", label: "Reprovado" },
+      hired: { variant: "default", label: "Contratado", className: "bg-green-700" },
+    };
+    const config = variants[status] || variants.pending;
+    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   };
 
   return (
@@ -825,21 +920,364 @@ export default function Recruitment() {
         </TabsContent>
 
         <TabsContent value="applications" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              <ClipboardList className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p>Gestão de candidaturas em desenvolvimento</p>
-            </CardContent>
-          </Card>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Gerenciar Candidaturas</h2>
+            <Dialog open={isCreateApplicationDialogOpen} onOpenChange={setIsCreateApplicationDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-create-application">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Vincular Candidato à Vaga
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Vincular Candidato à Vaga</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreateApplication} className="space-y-4">
+                  <div>
+                    <Label htmlFor="jobOpeningId">Vaga *</Label>
+                    <Select 
+                      value={selectedJobForApplication.toString()} 
+                      onValueChange={(val) => setSelectedJobForApplication(parseInt(val))}
+                    >
+                      <SelectTrigger data-testid="select-job-opening">
+                        <SelectValue placeholder="Selecione uma vaga" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jobOpenings.filter(j => j.status === 'published').map((job: any) => (
+                          <SelectItem key={job.id} value={job.id.toString()}>
+                            {job.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" name="jobOpeningId" value={selectedJobForApplication} />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="candidateId">Candidato *</Label>
+                    <Select 
+                      value={selectedCandidateForApplication.toString()} 
+                      onValueChange={(val) => setSelectedCandidateForApplication(parseInt(val))}
+                    >
+                      <SelectTrigger data-testid="select-candidate">
+                        <SelectValue placeholder="Selecione um candidato" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {candidates.map((candidate: any) => (
+                          <SelectItem key={candidate.id} value={candidate.id.toString()}>
+                            {candidate.name} ({candidate.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" name="candidateId" value={selectedCandidateForApplication} />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="notes">Observações</Label>
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      placeholder="Adicione observações sobre esta candidatura..."
+                      rows={3}
+                      data-testid="input-application-notes"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreateApplicationDialogOpen(false)}
+                      data-testid="button-cancel-application"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createApplicationMutation.isPending || !selectedJobForApplication || !selectedCandidateForApplication}
+                      data-testid="button-submit-application"
+                    >
+                      {createApplicationMutation.isPending ? "Criando..." : "Criar Candidatura"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {allApplications.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                <ClipboardList className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                <p>Nenhuma candidatura registrada</p>
+                <p className="text-sm mt-2">Vincule candidatos às vagas para iniciar</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {allApplications.map((application: any) => (
+                <Card key={application.id} data-testid={`card-application-${application.id}`}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg" data-testid={`text-application-title-${application.id}`}>
+                          {application.candidateName}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {application.candidateEmail}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                          {getApplicationStatusBadge(application.status)}
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Briefcase className="h-3 w-3" />
+                            {application.jobTitle}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {application.candidatePhone && (
+                        <div className="text-sm">
+                          <span className="font-medium">Telefone:</span> {application.candidatePhone}
+                        </div>
+                      )}
+                      {application.jobLocation && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span>{application.jobLocation}</span>
+                        </div>
+                      )}
+                      {application.notes && (
+                        <div className="text-sm">
+                          <span className="font-medium">Observações:</span>
+                          <p className="text-muted-foreground mt-1">{application.notes}</p>
+                        </div>
+                      )}
+                      {application.appliedAt && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            Candidatura: {new Date(application.appliedAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="pt-3 border-t">
+                        <Label className="text-sm font-medium mb-2 block">Alterar Status:</Label>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'pending')}
+                            disabled={application.status === 'pending'}
+                            className="text-xs"
+                            data-testid={`button-status-pending-${application.id}`}
+                          >
+                            Em Análise
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'reviewing')}
+                            disabled={application.status === 'reviewing'}
+                            className="text-xs"
+                            data-testid={`button-status-reviewing-${application.id}`}
+                          >
+                            Em Revisão
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'interview_scheduled')}
+                            disabled={application.status === 'interview_scheduled'}
+                            className="text-xs"
+                            data-testid={`button-status-interview-${application.id}`}
+                          >
+                            Entrevista Agendada
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'approved')}
+                            disabled={application.status === 'approved' || application.status === 'hired'}
+                            className="text-xs bg-green-600 hover:bg-green-700"
+                            data-testid={`button-status-approved-${application.id}`}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'rejected')}
+                            disabled={application.status === 'rejected'}
+                            className="text-xs"
+                            data-testid={`button-status-rejected-${application.id}`}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reprovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'hired')}
+                            disabled={application.status === 'hired' || application.status !== 'approved'}
+                            className="text-xs bg-green-700 hover:bg-green-800"
+                            data-testid={`button-status-hired-${application.id}`}
+                          >
+                            <UserPlus className="h-3 w-3 mr-1" />
+                            Contratar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="onboarding" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              <LinkIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p>Admissão digital em desenvolvimento</p>
-            </CardContent>
-          </Card>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Admissão Digital</h2>
+            <p className="text-sm text-muted-foreground">
+              Links de onboarding para candidatos aprovados
+            </p>
+          </div>
+
+          {onboardingLinks.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                <LinkIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                <p>Nenhum link de admissão criado</p>
+                <p className="text-sm mt-2">
+                  Aprove candidatos e crie links de admissão para iniciar o processo de onboarding
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {onboardingLinks.map((link: any) => {
+                const isExpired = new Date(link.expiresAt) < new Date();
+                const statusColors: Record<string, string> = {
+                  pending: "border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] bg-[hsl(175,65%,96%)]",
+                  in_progress: "border-[hsl(220,65%,18%)] text-[hsl(220,65%,18%)] bg-[hsl(220,65%,96%)]",
+                  completed: "border-green-600 text-green-700 bg-green-50",
+                  expired: "border-gray-400 text-gray-600 bg-gray-50"
+                };
+                
+                return (
+                  <Card key={link.id} data-testid={`card-onboarding-${link.id}`}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg" data-testid={`text-onboarding-name-${link.id}`}>
+                            {link.candidateName}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {link.candidateEmail}
+                          </p>
+                          <div className="flex gap-2 mt-2">
+                            <Badge 
+                              variant="outline" 
+                              className={statusColors[isExpired ? 'expired' : link.status]}
+                            >
+                              {isExpired ? 'Expirado' : link.status === 'pending' ? 'Pendente' : 
+                               link.status === 'in_progress' ? 'Em andamento' : 
+                               link.status === 'completed' ? 'Concluído' : link.status}
+                            </Badge>
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <Briefcase className="h-3 w-3" />
+                              {link.position}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {link.candidatePhone && (
+                          <div className="text-sm">
+                            <span className="font-medium">Telefone:</span> {link.candidatePhone}
+                          </div>
+                        )}
+                        {link.department && (
+                          <div className="text-sm">
+                            <span className="font-medium">Departamento:</span> {link.department}
+                          </div>
+                        )}
+                        {link.startDate && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              Início previsto: {new Date(link.startDate).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>
+                            Expira em: {new Date(link.expiresAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        {link.completedAt && (
+                          <div className="flex items-center gap-2 text-sm text-green-600">
+                            <CheckCircle className="h-4 w-4" />
+                            <span>
+                              Concluído em: {new Date(link.completedAt).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="pt-3 border-t">
+                          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-md">
+                            <Label className="text-xs font-medium mb-1 block">Link de Admissão:</Label>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs bg-white dark:bg-gray-800 p-2 rounded flex-1 break-all border">
+                                {window.location.origin}/onboarding/{link.token}
+                              </code>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/onboarding/${link.token}`);
+                                  toast({
+                                    title: "Link copiado!",
+                                    description: "O link de admissão foi copiado para a área de transferência.",
+                                  });
+                                }}
+                                data-testid={`button-copy-link-${link.id}`}
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  window.open(`/onboarding/${link.token}`, '_blank');
+                                }}
+                                data-testid={`button-open-link-${link.id}`}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Abrir
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Envie este link para o candidato preencher os dados de admissão
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
       </div>

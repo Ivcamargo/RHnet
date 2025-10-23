@@ -5983,6 +5983,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Applications Routes
+  app.get('/api/applications/all', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user?.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
+      }
+
+      // Get all applications for the company with job and candidate details
+      const jobOpenings = await storage.getJobOpenings(user.companyId);
+      const allApplications = [];
+
+      for (const job of jobOpenings) {
+        const applications = await storage.getApplications(job.id);
+        for (const app of applications) {
+          const candidate = await storage.getCandidate(app.candidateId);
+          allApplications.push({
+            ...app,
+            jobTitle: job.title,
+            jobLocation: job.location,
+            candidateName: candidate?.name,
+            candidateEmail: candidate?.email,
+            candidatePhone: candidate?.phone
+          });
+        }
+      }
+
+      res.json(allApplications);
+    } catch (error) {
+      console.error("Error fetching all applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
   app.get('/api/job-openings/:jobId/applications', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const applications = await storage.getApplications(parseInt(req.params.jobId));
