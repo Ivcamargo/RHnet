@@ -4348,12 +4348,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Server determines correctness, not client
-        const isCorrect = answer.selectedAnswer === question.correctAnswer;
+        const isCorrect = answer.answer === question.correctAnswer;
 
         await storage.createCourseAnswer({
           employeeCourseId,
           questionId: answer.questionId,
-          answer: answer.selectedAnswer,
+          answer: answer.answer,
           isCorrect
         });
 
