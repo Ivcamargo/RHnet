@@ -284,8 +284,8 @@ export default function Recruitment() {
     createApplicationMutation.mutate({
       jobOpeningId: parseInt(formData.get('jobOpeningId') as string),
       candidateId: parseInt(formData.get('candidateId') as string),
-      status: 'pending',
-      notes: formData.get('notes') || '',
+      status: 'applied',
+      screeningNotes: formData.get('notes') || '',
     });
   };
 
@@ -308,14 +308,15 @@ export default function Recruitment() {
 
   const getApplicationStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
-      pending: { variant: "outline", label: "Em Análise", className: "border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)]" },
-      reviewing: { variant: "default", label: "Em Revisão", className: "bg-[hsl(220,65%,18%)]" },
-      interview_scheduled: { variant: "default", label: "Entrevista Agendada", className: "bg-[hsl(175,65%,45%)]" },
+      applied: { variant: "outline", label: "Candidatura Enviada", className: "border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)]" },
+      screening: { variant: "default", label: "Em Triagem", className: "bg-[hsl(220,65%,18%)]" },
+      interview: { variant: "default", label: "Entrevista", className: "bg-[hsl(175,65%,45%)]" },
+      test: { variant: "default", label: "Teste/Avaliação", className: "bg-[hsl(220,50%,35%)]" },
       approved: { variant: "default", label: "Aprovado", className: "bg-green-600" },
       rejected: { variant: "destructive", label: "Reprovado" },
       hired: { variant: "default", label: "Contratado", className: "bg-green-700" },
     };
-    const config = variants[status] || variants.pending;
+    const config = variants[status] || variants.applied;
     return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   };
 
@@ -1072,32 +1073,32 @@ export default function Recruitment() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleUpdateApplicationStatus(application.id, 'pending')}
-                            disabled={application.status === 'pending'}
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'screening')}
+                            disabled={application.status === 'screening'}
                             className="text-xs"
-                            data-testid={`button-status-pending-${application.id}`}
+                            data-testid={`button-status-screening-${application.id}`}
                           >
-                            Em Análise
+                            Triagem
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleUpdateApplicationStatus(application.id, 'reviewing')}
-                            disabled={application.status === 'reviewing'}
-                            className="text-xs"
-                            data-testid={`button-status-reviewing-${application.id}`}
-                          >
-                            Em Revisão
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUpdateApplicationStatus(application.id, 'interview_scheduled')}
-                            disabled={application.status === 'interview_scheduled'}
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'interview')}
+                            disabled={application.status === 'interview'}
                             className="text-xs"
                             data-testid={`button-status-interview-${application.id}`}
                           >
-                            Entrevista Agendada
+                            Entrevista
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateApplicationStatus(application.id, 'test')}
+                            disabled={application.status === 'test'}
+                            className="text-xs"
+                            data-testid={`button-status-test-${application.id}`}
+                          >
+                            Teste
                           </Button>
                           <Button
                             size="sm"
