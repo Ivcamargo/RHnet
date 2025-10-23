@@ -371,7 +371,7 @@ export default function Landing() {
               <Button 
                 onClick={handleLogin}
                 variant="ghost"
-                className="text-[hsl(215,80%,25%)] hover:bg-blue-50"
+                className="text-gray-700 hover:bg-gray-100"
                 data-testid="button-login-footer"
               >
                 Login
