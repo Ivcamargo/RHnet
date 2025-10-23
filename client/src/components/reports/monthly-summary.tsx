@@ -31,6 +31,11 @@ interface TimeEntry {
   clockOutLongitude?: number | null;
   regularHours?: string | null;
   overtimeHours?: string | null;
+  // Irregularity tracking
+  expectedHours?: string | null;
+  lateMinutes?: number | null;
+  shortfallMinutes?: number | null;
+  irregularityReasons?: string[] | null;
 }
 
 interface MonthlyTimeTableProps {
@@ -163,11 +168,12 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   };
 
   const isIrregular = (entry: TimeEntry) => {
-    // Irregular se: falta de registro, atraso, horário não cumprido, falta de saída
-    if (entry.status === "incomplete") return true;
-    if (!entry.clockInTime) return true; // Falta
-    if (!entry.clockOutTime && entry.status !== "active") return true; // Não bateu saída
-    if (entry.clockInShiftCompliant === false || entry.clockOutShiftCompliant === false) return true; // Fora do horário
+    // Usa irregularityReasons do backend se disponível
+    if (entry.irregularityReasons && entry.irregularityReasons.length > 0) {
+      return true;
+    }
+    // Status irregular
+    if (entry.status === "irregular") return true;
     return false;
   };
 
@@ -189,6 +195,28 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 <span className="text-sm font-medium">Status do Registro:</span>
                 {getStatusBadge(selectedEntry)}
               </div>
+
+              {/* Irregularidades */}
+              {selectedEntry.irregularityReasons && selectedEntry.irregularityReasons.length > 0 && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg space-y-2">
+                  <h3 className="font-semibold text-red-800 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Irregularidades Detectadas
+                  </h3>
+                  <ul className="space-y-1 ml-7">
+                    {selectedEntry.irregularityReasons.map((reason, idx) => (
+                      <li key={idx} className="text-sm text-red-700">
+                        • {reason}
+                      </li>
+                    ))}
+                  </ul>
+                  {selectedEntry.expectedHours && (
+                    <div className="mt-3 pt-3 border-t border-red-200 text-xs text-red-600">
+                      <span className="font-medium">Horas esperadas:</span> {selectedEntry.expectedHours}h
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Entrada */}
               <div className="space-y-3">
