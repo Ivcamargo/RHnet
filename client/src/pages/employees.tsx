@@ -128,6 +128,7 @@ export default function Employees() {
       emergencyContactRelationship: "",
       
       // Dados profissionais
+      internalId: "",
       role: "employee",
       departmentId: null,
       position: "",
@@ -194,6 +195,7 @@ export default function Employees() {
       emergencyContactRelationship: "",
       
       // Dados profissionais
+      internalId: "",
       role: "employee",
       departmentId: null,
       position: "",
@@ -493,6 +495,7 @@ export default function Employees() {
       emergencyContactRelationship: employee.emergencyContactRelationship || "",
       
       // Dados profissionais
+      internalId: employee.internalId || "",
       role: employee.role || "employee",
       departmentId: employee.departmentId ?? null,
       position: employee.position || "",
@@ -1270,19 +1273,35 @@ export default function Employees() {
 
                       {/* Dados Profissionais */}
                       <TabsContent value="profissionais" className="space-y-4">
-                        <FormField
-                          control={addForm.control}
-                          name="position"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Cargo *</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Analista de Sistemas" {...field} data-testid="input-position" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={addForm.control}
+                            name="position"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Cargo *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Analista de Sistemas" {...field} data-testid="input-position" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={addForm.control}
+                            name="internalId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Registro Interno</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="EMP001" {...field} value={field.value || ""} data-testid="input-internal-id" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
                         <FormField
                           control={addForm.control}
@@ -2113,6 +2132,23 @@ export default function Employees() {
                               </FormItem>
                             )}
                           />
+
+                          <FormField
+                            control={editForm.control}
+                            name="internalId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Registro Interno</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="EMP001" {...field} value={field.value || ""} data-testid="input-internal-id-edit" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={editForm.control}
                             name="departmentId"

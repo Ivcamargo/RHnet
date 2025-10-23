@@ -232,6 +232,7 @@ export const users = pgTable("users", {
   emergencyContactRelationship: varchar("emergency_contact_relationship"),
   
   // Dados profissionais
+  internalId: varchar("internal_id", { length: 50 }), // Registro interno para integração com outros sistemas
   role: varchar("role").default("employee"), // employee, admin, supervisor, superadmin
   companyId: integer("company_id"), // Nullable for superadmins
   departmentId: integer("department_id"),

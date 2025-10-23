@@ -1677,6 +1677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: 'funcionario@exemplo.com',
           cpf: '123.456.789-00',
           nome: 'João da Silva',
+          registro_interno: 'EMP001',
           telefone: '(11) 98765-4321',
           cargo: 'Analista',
           departamento_id: '1',
@@ -1801,6 +1802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: 'employee',
             companyId: companyId!,
             departmentId: departmentId || null,
+            internalId: record.registro_interno || null,
             personalInfo: {
               fullName: record.nome,
               phone: record.telefone || null,
@@ -1907,6 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email || '',
         cpf: user.cpf || '',
         nome: user.personalInfo?.fullName || '',
+        registro_interno: user.internalId || '',
         telefone: user.personalInfo?.phone || '',
         cargo: user.personalInfo?.position || '',
         departamento_id: user.departmentId || '',
