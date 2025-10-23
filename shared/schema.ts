@@ -301,6 +301,16 @@ export const timeEntries = pgTable("time_entries", {
   clockInPhotoUrl: varchar("clock_in_photo_url"), // URL da foto na entrada
   clockOutPhotoUrl: varchar("clock_out_photo_url"), // URL da foto na saída
   
+  // Validação de IP e geolocalização
+  clockInIpAddress: varchar("clock_in_ip_address"), // IP da entrada
+  clockOutIpAddress: varchar("clock_out_ip_address"), // IP da saída
+  clockInWithinGeofence: boolean("clock_in_within_geofence"), // Se estava dentro da cerca na entrada
+  clockOutWithinGeofence: boolean("clock_out_within_geofence"), // Se estava dentro da cerca na saída
+  clockInShiftCompliant: boolean("clock_in_shift_compliant"), // Se estava no turno correto na entrada
+  clockOutShiftCompliant: boolean("clock_out_shift_compliant"), // Se estava no turno correto na saída
+  clockInValidationMessage: text("clock_in_validation_message"), // Mensagem de validação na entrada
+  clockOutValidationMessage: text("clock_out_validation_message"), // Mensagem de validação na saída
+  
   // Sistema de inclusão manual e aprovação
   entryType: varchar("entry_type").default("automatic"), // automatic, manual_insertion, manual_edit
   insertedBy: varchar("inserted_by"), // ID do usuário que incluiu/editou manualmente
