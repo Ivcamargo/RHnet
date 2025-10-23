@@ -5265,12 +5265,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public job application with resume upload
-  app.post('/api/public/apply', resumeUpload.single('resume'), async (req, res) => {
+  app.post('/api/public/apply', resumeUpload.fields([{ name: 'resume', maxCount: 1 }]), async (req, res) => {
     try {
+      console.log("=== PUBLIC APPLY DEBUG ===");
+      console.log("req.body:", req.body);
+      console.log("req.files:", req.files);
+      console.log("req.body.jobOpeningId:", req.body.jobOpeningId);
+      console.log("=========================");
+      
       const { jobOpeningId, name, email, phone, cpf, coverLetter, city, state } = req.body;
       
       if (!jobOpeningId || !name || !email) {
-        return res.status(400).json({ message: "Job ID, name and email are required" });
+        console.error("Missing required fields. jobOpeningId:", jobOpeningId, "name:", name, "email:", email);
+        return res.status(400).json({ message: "Missing required fields", details: { jobOpeningId: !!jobOpeningId, name: !!name, email: !!email } });
       }
 
       // Validate job opening exists and is active
@@ -5285,8 +5292,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle resume upload
       let resumeUrl = null;
-      if (req.file) {
-        resumeUrl = `/uploads/resumes/${req.file.filename}`;
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      if (files && files.resume && files.resume.length > 0) {
+        resumeUrl = `/uploads/resumes/${files.resume[0].filename}`;
       }
 
       // Check if candidate already exists by email and company

@@ -68,8 +68,13 @@ export default function JobApply() {
   // Submit application mutation
   const submitApplicationMutation = useMutation({
     mutationFn: async (data: ApplicationForm) => {
+      if (!jobId) {
+        throw new Error("Job ID is missing");
+      }
+
       const formData = new FormData();
-      formData.append("jobOpeningId", jobId!);
+      formData.append("jobOpeningId", jobId);
+      console.log("Job ID being sent:", jobId);
       formData.append("name", data.name);
       formData.append("email", data.email);
       if (data.phone) formData.append("phone", data.phone);
