@@ -32,6 +32,7 @@ import RotationManagement from "@/pages/rotation-management";
 import Recruitment from "@/pages/recruitment";
 import PublicJobs from "@/pages/public-jobs";
 import JobApply from "@/pages/job-apply";
+import Manual from "@/pages/manual";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -102,6 +103,7 @@ function Router() {
       <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
+      <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
       
       <Route component={NotFound} />
     </Switch>

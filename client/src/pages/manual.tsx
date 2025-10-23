@@ -1,0 +1,791 @@
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export default function Manual() {
+  return (
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Book className="h-8 w-8 text-primary" />
+          <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
+        </div>
+        <p className="text-muted-foreground text-lg">
+          Guia completo para utilização de todas as funcionalidades do sistema
+        </p>
+      </div>
+
+      <Tabs defaultValue="introducao" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
+          <TabsTrigger value="introducao">Introdução</TabsTrigger>
+          <TabsTrigger value="ponto">Ponto</TabsTrigger>
+          <TabsTrigger value="gestao">Gestão</TabsTrigger>
+          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+          <TabsTrigger value="recrutamento">Recrutamento</TabsTrigger>
+          <TabsTrigger value="outros">Outros</TabsTrigger>
+        </TabsList>
+
+        {/* Introdução */}
+        <TabsContent value="introducao">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Book className="h-5 w-5" />
+                Bem-vindo ao RHNet
+              </CardTitle>
+              <CardDescription>
+                Sistema integrado de gestão de recursos humanos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <section>
+                <h3 className="text-xl font-semibold mb-3">O que é o RHNet?</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  O RHNet é um sistema completo de gestão de recursos humanos que integra controle de ponto eletrônico,
+                  mensagens corporativas, gestão de documentos, treinamentos e processos de recrutamento e seleção.
+                  Tudo em uma única plataforma moderna e fácil de usar.
+                </p>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h3 className="text-xl font-semibold mb-3">Níveis de Acesso</h3>
+                <div className="space-y-3">
+                  <Card className="border-l-4 border-l-primary">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Superadministrador
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Acesso completo ao sistema, incluindo gestão de múltiplas empresas, configurações globais
+                        e todas as funcionalidades administrativas.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-4 border-l-secondary">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Administrador
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Gerencia sua empresa, incluindo cadastro de funcionários, departamentos, turnos,
+                        visualização de relatórios e gestão de processos seletivos.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-l-4 border-l-muted">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Funcionário
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Registra ponto, visualiza seus relatórios mensais, acessa documentos, mensagens e cursos de treinamento.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h3 className="text-xl font-semibold mb-3">Navegação no Sistema</h3>
+                <p className="text-muted-foreground mb-3">
+                  Use o menu lateral à esquerda para navegar entre as diferentes seções do sistema.
+                  As opções disponíveis variam de acordo com seu nível de acesso.
+                </p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                    <span><strong>Dashboard:</strong> Visão geral com estatísticas e informações importantes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                    <span><strong>Registrar Ponto:</strong> Marque entrada, saída e intervalos</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                    <span><strong>Relatórios:</strong> Consulte seus registros de ponto mensais</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                    <span><strong>Áreas Administrativas:</strong> Gestão de funcionários, setores, recrutamento (apenas admin)</span>
+                  </li>
+                </ul>
+              </section>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Registro de Ponto */}
+        <TabsContent value="ponto">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Registro de Ponto Eletrônico
+                </CardTitle>
+                <CardDescription>
+                  Como registrar entrada, saída e intervalos
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Como Registrar Ponto</h3>
+                  <ol className="space-y-3 list-decimal list-inside">
+                    <li className="text-muted-foreground">
+                      Acesse o menu <strong>"Registrar Ponto"</strong>
+                    </li>
+                    <li className="text-muted-foreground">
+                      Clique no botão correspondente:
+                      <ul className="ml-6 mt-2 space-y-1 list-disc">
+                        <li><strong>Registrar Entrada:</strong> Ao chegar no trabalho</li>
+                        <li><strong>Iniciar Intervalo:</strong> Ao sair para almoço/pausa</li>
+                        <li><strong>Finalizar Intervalo:</strong> Ao retornar do intervalo</li>
+                        <li><strong>Registrar Saída:</strong> Ao terminar o expediente</li>
+                      </ul>
+                    </li>
+                    <li className="text-muted-foreground">
+                      O sistema pode solicitar permissão para:
+                      <ul className="ml-6 mt-2 space-y-1 list-disc">
+                        <li><strong>Localização:</strong> Para verificar se você está no local permitido (geofencing)</li>
+                        <li><strong>Câmera:</strong> Para captura de foto facial (verificação de identidade)</li>
+                      </ul>
+                    </li>
+                    <li className="text-muted-foreground">
+                      Após a confirmação, o registro será salvo com data, hora, localização e foto
+                    </li>
+                  </ol>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Geofencing (Validação de Localização)
+                  </h3>
+                  <p className="text-muted-foreground mb-3">
+                    O sistema verifica se você está dentro da área permitida para registro de ponto.
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                    <p className="text-sm flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-green-600 flex-shrink-0" />
+                      <span><strong>✓ Dentro da área:</strong> Registro permitido normalmente</span>
+                    </p>
+                    <p className="text-sm flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600 flex-shrink-0" />
+                      <span><strong>⚠ Fora da área:</strong> Registro é permitido, mas fica marcado como "fora da geofence" para revisão posterior</span>
+                    </p>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Validações do Sistema</h3>
+                  <div className="space-y-3">
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Validação de Turno</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        O sistema compara o horário do seu registro com o turno configurado.
+                        Se houver diferença significativa, será marcado para revisão.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Detecção de Irregularidades</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        O sistema identifica automaticamente: atrasos (mais de 5 minutos), horas insuficientes (tolerância de 15 minutos),
+                        faltas e registros incompletos. Essas informações aparecem nos relatórios mensais.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Registro de IP</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        O endereço IP é registrado para fins de auditoria e segurança.
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Gestão */}
+        <TabsContent value="gestao">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Gestão Administrativa
+                </CardTitle>
+                <CardDescription>
+                  Funcionalidades disponíveis para administradores
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    Gestão de Funcionários
+                  </h3>
+                  <p className="text-muted-foreground mb-3">
+                    Cadastre, edite e gerencie todos os funcionários da sua empresa.
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Cadastro Completo:</strong> Nome, CPF, email, cargo, departamento, turno, salário</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Importação CSV:</strong> Importe múltiplos funcionários de uma vez usando planilha</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Exportação CSV:</strong> Exporte dados dos funcionários para análise externa</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Registro Interno:</strong> Campo para integração com sistemas externos</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Atribuição de Turnos:</strong> Configure turnos específicos por período para cada funcionário</span>
+                    </li>
+                  </ul>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Gestão de Setores e Turnos
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Setores/Departamentos</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Organize sua empresa em setores e configure geofencing para cada um.
+                      </p>
+                      <ul className="space-y-1 text-sm text-muted-foreground ml-4">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Defina nome, descrição e supervisor</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Configure área geográfica permitida (mapa interativo)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Busque endereço por CEP ou clique no mapa</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Ajuste o raio de tolerância (10-1000 metros)</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Turnos de Trabalho</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Configure horários de trabalho, intervalos e dias da semana.
+                      </p>
+                      <ul className="space-y-1 text-sm text-muted-foreground ml-4">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Horário de início e fim (suporta turnos noturnos)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Configure intervalos pagos e não pagos</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Selecione dias da semana ativos</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                          <span>Atribua turnos específicos a funcionários com datas de vigência</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Gestão de Escalas e Rotações
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Crie escalas de trabalho automáticas com rotações personalizadas.
+                  </p>
+                  <ul className="space-y-1 text-sm text-muted-foreground ml-4">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span>Configure rotações diárias, semanais, mensais ou customizadas</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span>Defina segmentos de trabalho e folga</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span>Geração automática de escala para qualquer período</span>
+                    </li>
+                  </ul>
+                </section>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Relatórios */}
+        <TabsContent value="relatorios">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Relatórios e Análises
+                </CardTitle>
+                <CardDescription>
+                  Visualize e analise dados de ponto e desempenho
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Relatório Mensal de Ponto</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Consulte todos os registros de ponto do mês selecionado.
+                  </p>
+                  <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+                    <li>Acesse o menu <strong>"Relatórios Mensais"</strong></li>
+                    <li>Selecione o mês e ano desejado</li>
+                    <li>Clique em <strong>"Gerar Relatório"</strong></li>
+                    <li>Visualize a lista com todos os registros do período</li>
+                  </ol>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Informações do Relatório</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Cada registro exibe as seguintes informações:
+                  </p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Horários</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Entrada, saída, início e fim de intervalos
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Horas Trabalhadas</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Total de horas do dia (descontando intervalos)
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Localização</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Coordenadas GPS e validação de geofence
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Irregularidades</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Atrasos, faltas, horas insuficientes
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-amber-600" />
+                    Sistema de Detecção de Irregularidades
+                  </h3>
+                  <p className="text-muted-foreground mb-3">
+                    O sistema analisa automaticamente cada registro e identifica:
+                  </p>
+                  <div className="space-y-2">
+                    <Card className="border-l-4 border-l-red-500">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Falta</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Quando não há registro de entrada no dia
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-amber-500">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Registro Incompleto</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Quando falta registro de saída
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-orange-500">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Atraso</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Entrada mais de 5 minutos após o horário do turno
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-yellow-500">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Horas Insuficientes</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Trabalhou menos que o esperado (tolerância de 15 minutos)
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="mt-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      <strong>💡 Dica:</strong> Clique em "Ver detalhes" em qualquer registro marcado como "Irregular"
+                      para ver a lista completa de motivos e informações sobre horas esperadas vs. trabalhadas.
+                    </p>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Relatórios Administrativos</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Administradores têm acesso a visualizações adicionais:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Registros de Todos os Funcionários:</strong> Visualize ponto de qualquer colaborador</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Dashboard com Estatísticas:</strong> Visão geral de presença, ausências e irregularidades</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Filtros Avançados:</strong> Por departamento, período, funcionário</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Exportação de Dados:</strong> Exporte relatórios em CSV para análise externa</span>
+                    </li>
+                  </ul>
+                </section>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Recrutamento */}
+        <TabsContent value="recrutamento">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Recrutamento e Seleção
+                </CardTitle>
+                <CardDescription>
+                  Gestão completa do processo de contratação
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Módulo de Recrutamento</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Sistema completo para gerenciar vagas, candidatos e processo seletivo.
+                  </p>
+
+                  <div className="space-y-4">
+                    <Card className="bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Briefcase className="h-4 w-4" />
+                          1. Vagas
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p><strong>Crie e publique vagas de emprego:</strong></p>
+                        <ul className="ml-4 space-y-1">
+                          <li>• Título, descrição completa e requisitos</li>
+                          <li>• Localização e tipo de contrato</li>
+                          <li>• Faixa salarial e nível de experiência</li>
+                          <li>• Status: Rascunho → Publicada → Fechada</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-secondary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          2. Candidatos
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p><strong>Banco de talentos centralizado:</strong></p>
+                        <ul className="ml-4 space-y-1">
+                          <li>• Cadastro com informações de contato</li>
+                          <li>• Upload de currículo (PDF, DOC, DOCX)</li>
+                          <li>• Histórico de candidaturas</li>
+                          <li>• Busca e filtros avançados</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          3. Candidaturas
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p><strong>Acompanhe o processo seletivo:</strong></p>
+                        <ul className="ml-4 space-y-1">
+                          <li>• Vincule candidatos às vagas</li>
+                          <li>• Fluxo: Candidatado → Triagem → Entrevista → Teste → Aprovado → Contratado</li>
+                          <li>• Notas e observações em cada etapa</li>
+                          <li>• Botões de ação rápida para mudança de status</li>
+                          <li>• Badges coloridos para identificação visual</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-secondary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          4. Admissão Digital
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p><strong>Onboarding digital de novos funcionários:</strong></p>
+                        <ul className="ml-4 space-y-1">
+                          <li>• Gere links seguros para candidatos aprovados</li>
+                          <li>• Controle de expiração (7 dias)</li>
+                          <li>• Status: Pendente → Em Andamento → Concluído</li>
+                          <li>• Copie e envie o link com um clique</li>
+                          <li>• Coleta de documentos e informações</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Fluxo Completo</h3>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <ol className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">1.</span>
+                        <span>Crie uma vaga e publique</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">2.</span>
+                        <span>Cadastre candidatos ou receba candidaturas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">3.</span>
+                        <span>Vincule candidatos às vagas na seção Candidaturas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">4.</span>
+                        <span>Acompanhe o processo mudando status e adicionando notas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">5.</span>
+                        <span>Aprove o candidato e gere link de admissão digital</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">6.</span>
+                        <span>Envie o link para o candidato preencher documentação</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold text-primary">7.</span>
+                        <span>Após conclusão, cadastre como funcionário no sistema</span>
+                      </li>
+                    </ol>
+                  </div>
+                </section>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Outros Recursos */}
+        <TabsContent value="outros">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Mensagens Corporativas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Sistema interno de mensagens para comunicação entre funcionários.</p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Envie e receba mensagens privadas</li>
+                  <li>• Notificações de novas mensagens</li>
+                  <li>• Arquive ou exclua conversas</li>
+                  <li>• Busca por remetente ou conteúdo</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Documentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Central de documentos da empresa.</p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Acesse políticas, manuais e comunicados</li>
+                  <li>• Download de formulários e modelos</li>
+                  <li>• Documentos organizados por categoria</li>
+                  <li>• Upload de documentos (administradores)</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  Cursos e Treinamentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Plataforma de capacitação e desenvolvimento.</p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Acesse cursos disponíveis para você</li>
+                  <li>• Assista vídeos e leia materiais</li>
+                  <li>• Responda questionários de avaliação</li>
+                  <li>• Acompanhe seu progresso e certificados</li>
+                  <li>• Gestão de cursos e questões (administradores)</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Configurações de Conta
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Gerencie sua conta e preferências.</p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Altere sua senha a qualquer momento</li>
+                  <li>• Atualize foto de perfil</li>
+                  <li>• Configure notificações</li>
+                  <li>• Revise suas informações pessoais</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  <Download className="h-5 w-5" />
+                  Importação e Exportação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p><strong>Importação de Funcionários (CSV):</strong></p>
+                <ol className="ml-4 space-y-1 list-decimal">
+                  <li>Baixe o modelo CSV na página de funcionários</li>
+                  <li>Preencha com os dados (use ponto e vírgula como separador)</li>
+                  <li>Salve como UTF-8 para evitar problemas de acentuação</li>
+                  <li>Faça upload do arquivo - erros serão reportados linha por linha</li>
+                </ol>
+                <p className="mt-3"><strong>Exportação de Dados:</strong></p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Exporte lista de funcionários</li>
+                  <li>• Exporte relatórios de ponto</li>
+                  <li>• Formato CSV compatível com Excel</li>
+                  <li>• Dados filtrados por sua empresa</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Rodapé */}
+      <Card className="mt-8 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-2">
+            <h3 className="font-semibold">Precisa de Ajuda?</h3>
+            <p className="text-sm text-muted-foreground">
+              Entre em contato com o departamento de RH ou TI da sua empresa para suporte técnico e dúvidas sobre o sistema.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

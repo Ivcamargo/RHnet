@@ -17,7 +17,8 @@ import {
   Upload,
   Timer,
   KeyRound,
-  BriefcaseBusiness
+  BriefcaseBusiness,
+  Book
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,6 +45,7 @@ export default function Sidebar() {
     { name: "Capacitação", href: "/training", icon: GraduationCap },
     { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
     { name: "Relatórios", href: "/reports", icon: TrendingUp },
+    { name: "Manual do Sistema", href: "/manual", icon: Book },
   ];
 
   // Admin-only navigation items
