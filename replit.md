@@ -70,6 +70,16 @@ Preferred communication style: Simple, everyday language.
   - **Internal ID Support**: Registro Interno field can be imported and exported for integration with external systems
   - **Audit Trail**: All CSV imports logged with source tracking and user attribution
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages.
+- **Recruitment & Selection Module**: Complete hiring workflow management with four integrated sections accessible via `/recruitment`:
+  - **Job Openings (Vagas)**: Create, edit, publish, and close job postings with detailed descriptions, requirements, location, employment type, salary ranges, and experience levels. Draft/published/closed status workflow.
+  - **Candidates (Candidatos)**: Centralized candidate database with contact information, location, resume storage, and company-scoped access control.
+  - **Applications (Candidaturas)**: Link candidates to specific job openings with comprehensive status tracking through the hiring pipeline:
+    - **Status Flow**: applied → screening → interview → test → approved → rejected → hired
+    - **Visual Status Management**: Color-coded badges using brand palette (navy/turquoise) for instant status recognition
+    - **Action Buttons**: One-click status transitions with validation (e.g., 'hired' only available after 'approved')
+    - **Screening Notes**: Track observations and feedback throughout the evaluation process
+  - **Digital Onboarding (Admissão Digital)**: Generate secure onboarding links for approved candidates with expiration tracking, status monitoring (pending/in_progress/completed/expired), and one-click link copying for easy candidate distribution. Integrated document collection and form submission workflow.
+  - **Company Scoping**: All recruitment data automatically filtered by company, with superadmin having cross-company visibility for system-wide oversight.
 
 ## External Dependencies
 
