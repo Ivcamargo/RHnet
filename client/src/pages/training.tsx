@@ -213,6 +213,34 @@ export default function Training() {
     },
   });
 
+  // Restart/Retry course mutation
+  const restartCourseMutation = useMutation({
+    mutationFn: async (employeeCourseId: number) => {
+      await apiRequest(`/api/employee-courses/${employeeCourseId}/restart`, { method: "POST" });
+    },
+    onSuccess: (_, employeeCourseId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employee-courses"] });
+      
+      // Get course ID to navigate
+      const employeeCourse = employeeCourses.find(ec => ec.id === employeeCourseId);
+      if (employeeCourse) {
+        setLocation(`/course/${employeeCourse.courseId}`);
+      }
+      
+      toast({
+        title: "Curso reiniciado",
+        description: "Você pode refazer o curso agora!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Calculate stats
   const activeCourses = employeeCourses.filter(ec => ec.status === 'in_progress').length;
   const completedCourses = employeeCourses.filter(ec => ec.status === 'completed').length;
@@ -226,6 +254,15 @@ export default function Training() {
   // Get courses in progress
   const coursesInProgress = employeeCourses
     .filter(ec => ec.status === 'in_progress')
+    .map(ec => ({
+      ...ec,
+      course: courses.find(c => c.id === ec.courseId)
+    }))
+    .filter(item => item.course);
+
+  // Get completed courses
+  const coursesCompleted = employeeCourses
+    .filter(ec => ec.status === 'completed')
     .map(ec => ({
       ...ec,
       course: courses.find(c => c.id === ec.courseId)
@@ -944,6 +981,50 @@ export default function Training() {
             </DialogContent>
           </Dialog>
 
+          {/* Completed Courses */}
+          {coursesCompleted.length > 0 && (
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
+                  Cursos Concluídos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {coursesCompleted.map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg" data-testid={`completed-course-${index}`}>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className="font-medium">{item.course?.title}</span>
+                          {item.score && (
+                            <Badge variant="secondary" className="text-xs font-bold">
+                              {Math.round(item.score)}%
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground ml-6">
+                          Concluído em: {item.completedAt ? new Date(item.completedAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => restartCourseMutation.mutate(item.id)}
+                        disabled={restartCourseMutation.isPending}
+                        data-testid={`button-restart-course-${index}`}
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Refazer Curso
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Certificates */}
           <Card className="mt-8">
             <CardHeader>
@@ -973,23 +1054,41 @@ export default function Training() {
                     <p className="text-sm text-muted-foreground mt-1">Complete cursos para ganhar certificados</p>
                   </div>
                 ) : (
-                  certificates.map((cert, index) => (
-                    <div key={cert.id} className="border rounded-lg p-4 space-y-2" data-testid={`certificate-${index}`}>
-                      <div className="flex items-center space-x-2">
-                        <Award className="h-4 w-4 text-orange-400" />
-                        <span className="font-medium text-sm">{cert.title}</span>
+                  certificates.map((cert, index) => {
+                    // Extract score from metadata
+                    const metadata = cert.metadata as any;
+                    const score = metadata?.score || null;
+                    
+                    return (
+                      <div key={cert.id} className="border rounded-lg p-4 space-y-2" data-testid={`certificate-${index}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Award className="h-4 w-4 text-orange-400" />
+                            <span className="font-medium text-sm">{cert.title}</span>
+                          </div>
+                          {score && (
+                            <Badge variant="secondary" className="text-xs font-bold">
+                              {Math.round(score)}%
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Emitido: {new Date(cert.issuedDate).toLocaleDateString('pt-BR')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Válido até: {cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString('pt-BR') : 'Permanente'}
+                        </p>
+                        {score && (
+                          <p className="text-xs text-muted-foreground">
+                            Aproveitamento: {metadata.correctAnswers || 0}/{metadata.totalQuestions || 0} questões corretas
+                          </p>
+                        )}
+                        <Button variant="outline" size="sm" className="w-full">
+                          Ver Certificado
+                        </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Emitido: {new Date(cert.issuedDate).toLocaleDateString('pt-BR')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Válido até: {cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString('pt-BR') : 'Permanente'}
-                      </p>
-                      <Button variant="outline" size="sm" className="w-full">
-                        Ver Certificado
-                      </Button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </CardContent>

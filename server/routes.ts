@@ -4184,6 +4184,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Restart/Retry a completed course
+  app.post('/api/employee-courses/:id/restart', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const employeeCourseId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+
+      // Reset course progress
+      const employeeCourse = await storage.updateEmployeeCourse(employeeCourseId, {
+        status: 'not_started',
+        progress: 0,
+        score: null,
+        startedAt: null,
+        completedAt: null
+      });
+      
+      res.json(employeeCourse);
+    } catch (error) {
+      console.error("Error restarting employee course:", error);
+      res.status(500).json({ message: "Failed to restart employee course" });
+    }
+  });
+
   // Get course questions
   app.get('/api/courses/:id/questions', isAuthenticatedHybrid, async (req: any, res) => {
     try {
@@ -4351,6 +4373,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           score,
           completedAt: new Date()
         });
+
+        // Generate certificate automatically when user passes
+        const user = await storage.getUser(userId);
+        if (user) {
+          const certificateNumber = `CERT-${Date.now()}-${userId.slice(0, 8)}`;
+          await storage.createCertificate({
+            userId,
+            courseId,
+            companyId: user.companyId,
+            certificateNumber,
+            title: course.title,
+            issuedDate: new Date().toISOString().split('T')[0],
+            expiryDate: course.validityPeriod 
+              ? new Date(Date.now() + course.validityPeriod * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+              : null,
+            metadata: {
+              score,
+              correctAnswers,
+              totalQuestions,
+              passingScore: course.passingScore || 70,
+              completedAt: new Date().toISOString()
+            }
+          });
+        }
       } else {
         await storage.updateEmployeeCourse(employeeCourseId, {
           status: 'failed',
