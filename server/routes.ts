@@ -64,6 +64,8 @@ import {
 import { z } from "zod";
 import multer from "multer";
 import { getBrazilianTime, getBrazilianDateString } from "../shared/timezone";
+import { parse } from "csv-parse/sync";
+import { stringify } from "csv-stringify/sync";
 
 // Helper function to create audit logs
 async function createAuditLog(
@@ -1637,6 +1639,304 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Supervisor has no assigned sectors" });
       }
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // CSV Template Download
+  app.get('/api/admin/users/csv/template', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!['admin', 'superadmin'].includes(scope.user.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const template = [
+        {
+          email: 'funcionario@exemplo.com',
+          cpf: '123.456.789-00',
+          nome: 'João da Silva',
+          telefone: '(11) 98765-4321',
+          cargo: 'Analista',
+          departamento_id: '1',
+          salario: '3500.00',
+          data_admissao: '2024-01-15',
+          tipo_contrato: 'CLT',
+          carga_horaria: '44',
+          pis: '123.45678.90-1',
+          rg: '12.345.678-9',
+          orgao_emissor: 'SSP',
+          uf_rg: 'SP',
+          data_nascimento: '1990-05-20',
+          sexo: 'M',
+          estado_civil: 'Solteiro',
+          naturalidade: 'São Paulo',
+          uf_naturalidade: 'SP',
+          nacionalidade: 'Brasileiro',
+          grau_instrucao: 'Superior Completo',
+          nome_mae: 'Maria da Silva',
+          nome_pai: 'José da Silva',
+          endereco_rua: 'Rua das Flores',
+          endereco_numero: '123',
+          endereco_complemento: 'Apto 45',
+          endereco_bairro: 'Centro',
+          endereco_cidade: 'São Paulo',
+          endereco_estado: 'SP',
+          endereco_cep: '01234-567',
+          banco: '001',
+          agencia: '1234',
+          conta: '12345-6',
+          tipo_conta: 'Corrente'
+        }
+      ];
+
+      const csv = stringify(template, {
+        header: true,
+        columns: Object.keys(template[0]),
+        delimiter: ';',
+        bom: true
+      });
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=modelo_funcionarios.csv');
+      res.send(csv);
+    } catch (error) {
+      console.error("Error generating CSV template:", error);
+      res.status(500).json({ message: "Failed to generate CSV template" });
+    }
+  });
+
+  // CSV Import
+  app.post('/api/admin/users/csv/import', isAuthenticatedHybrid, upload.single('file'), async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!['admin', 'superadmin'].includes(scope.user.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileContent = req.file.buffer.toString('utf-8');
+      const records = parse(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
+        delimiter: ';',
+        bom: true,
+        trim: true
+      });
+
+      const results = {
+        success: 0,
+        errors: [] as Array<{ row: number; email: string; error: string }>
+      };
+
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        const rowNumber = i + 2; // +2 because row 1 is header and array is 0-indexed
+
+        try {
+          // Validate required fields
+          if (!record.email || !record.nome) {
+            results.errors.push({
+              row: rowNumber,
+              email: record.email || 'N/A',
+              error: 'Email e nome são obrigatórios'
+            });
+            continue;
+          }
+
+          // Check if user already exists
+          const existingUser = await storage.getUserByEmail(record.email);
+          if (existingUser) {
+            results.errors.push({
+              row: rowNumber,
+              email: record.email,
+              error: 'Usuário já existe'
+            });
+            continue;
+          }
+
+          // Get company ID
+          let companyId = scope.companyId;
+          if (scope.type === 'superadmin' && !companyId) {
+            results.errors.push({
+              row: rowNumber,
+              email: record.email,
+              error: 'Superadmin deve especificar empresa'
+            });
+            continue;
+          }
+
+          // Parse department ID
+          const departmentId = record.departamento_id ? parseInt(record.departamento_id) : undefined;
+
+          // Create user
+          const newUser = await storage.createCompleteEmployee({
+            email: record.email,
+            cpf: record.cpf || null,
+            role: 'employee',
+            companyId: companyId!,
+            departmentId: departmentId || null,
+            personalInfo: {
+              fullName: record.nome,
+              phone: record.telefone || null,
+              position: record.cargo || null,
+              salary: record.salario ? parseFloat(record.salario) : null,
+              admissionDate: record.data_admissao || null,
+              contractType: record.tipo_contrato || null,
+              workload: record.carga_horaria ? parseInt(record.carga_horaria) : null,
+              pis: record.pis || null,
+              rg: record.rg || null,
+              issuingAgency: record.orgao_emissor || null,
+              rgUf: record.uf_rg || null,
+              birthDate: record.data_nascimento || null,
+              gender: record.sexo || null,
+              maritalStatus: record.estado_civil || null,
+              placeOfBirth: record.naturalidade || null,
+              birthUf: record.uf_naturalidade || null,
+              nationality: record.nacionalidade || null,
+              educationLevel: record.grau_instrucao || null,
+              motherName: record.nome_mae || null,
+              fatherName: record.nome_pai || null,
+            },
+            addressInfo: {
+              street: record.endereco_rua || null,
+              number: record.endereco_numero || null,
+              complement: record.endereco_complemento || null,
+              neighborhood: record.endereco_bairro || null,
+              city: record.endereco_cidade || null,
+              state: record.endereco_estado || null,
+              zipCode: record.endereco_cep || null,
+            },
+            bankInfo: {
+              bank: record.banco || null,
+              agency: record.agencia || null,
+              account: record.conta || null,
+              accountType: record.tipo_conta || null,
+            }
+          });
+
+          results.success++;
+
+          // Create audit log
+          await createAuditLog(
+            req.user.claims.sub,
+            companyId!,
+            'CREATE',
+            'user',
+            newUser.id,
+            { source: 'csv_import', email: record.email }
+          );
+
+        } catch (error) {
+          console.error(`Error importing row ${rowNumber}:`, error);
+          results.errors.push({
+            row: rowNumber,
+            email: record.email,
+            error: error instanceof Error ? error.message : 'Erro desconhecido'
+          });
+        }
+      }
+
+      res.json({
+        message: `Importação concluída: ${results.success} funcionários criados`,
+        success: results.success,
+        errors: results.errors
+      });
+
+    } catch (error) {
+      console.error("Error importing CSV:", error);
+      res.status(500).json({ message: "Failed to import CSV" });
+    }
+  });
+
+  // CSV Export
+  app.get('/api/admin/users/csv/export', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!['admin', 'superadmin'].includes(scope.user.role)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      let users;
+      if (scope.type === 'superadmin') {
+        users = await storage.getAllUsers();
+      } else if (scope.type === 'admin') {
+        users = await storage.getUsersByCompany(scope.companyId!);
+      } else {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get departments for each user
+      const usersWithDetails = await Promise.all(
+        users.map(async (user) => {
+          let department = null;
+          if (user.departmentId) {
+            department = await storage.getDepartment(user.departmentId);
+          }
+          return { ...user, department };
+        })
+      );
+
+      const csvData = usersWithDetails.map(user => ({
+        email: user.email || '',
+        cpf: user.cpf || '',
+        nome: user.personalInfo?.fullName || '',
+        telefone: user.personalInfo?.phone || '',
+        cargo: user.personalInfo?.position || '',
+        departamento_id: user.departmentId || '',
+        departamento_nome: user.department?.name || '',
+        salario: user.personalInfo?.salary || '',
+        data_admissao: user.personalInfo?.admissionDate || '',
+        tipo_contrato: user.personalInfo?.contractType || '',
+        carga_horaria: user.personalInfo?.workload || '',
+        pis: user.personalInfo?.pis || '',
+        rg: user.personalInfo?.rg || '',
+        orgao_emissor: user.personalInfo?.issuingAgency || '',
+        uf_rg: user.personalInfo?.rgUf || '',
+        data_nascimento: user.personalInfo?.birthDate || '',
+        sexo: user.personalInfo?.gender || '',
+        estado_civil: user.personalInfo?.maritalStatus || '',
+        naturalidade: user.personalInfo?.placeOfBirth || '',
+        uf_naturalidade: user.personalInfo?.birthUf || '',
+        nacionalidade: user.personalInfo?.nationality || '',
+        grau_instrucao: user.personalInfo?.educationLevel || '',
+        nome_mae: user.personalInfo?.motherName || '',
+        nome_pai: user.personalInfo?.fatherName || '',
+        endereco_rua: user.addressInfo?.street || '',
+        endereco_numero: user.addressInfo?.number || '',
+        endereco_complemento: user.addressInfo?.complement || '',
+        endereco_bairro: user.addressInfo?.neighborhood || '',
+        endereco_cidade: user.addressInfo?.city || '',
+        endereco_estado: user.addressInfo?.state || '',
+        endereco_cep: user.addressInfo?.zipCode || '',
+        banco: user.bankInfo?.bank || '',
+        agencia: user.bankInfo?.agency || '',
+        conta: user.bankInfo?.account || '',
+        tipo_conta: user.bankInfo?.accountType || '',
+        status: user.isActive ? 'Ativo' : 'Inativo',
+        funcao: user.role === 'admin' ? 'Administrador' : 'Funcionário'
+      }));
+
+      const csv = stringify(csvData, {
+        header: true,
+        columns: Object.keys(csvData[0] || {}),
+        delimiter: ';',
+        bom: true
+      });
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=funcionarios_${timestamp}.csv`);
+      res.send(csv);
+
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      res.status(500).json({ message: "Failed to export CSV" });
     }
   });
 
