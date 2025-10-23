@@ -63,7 +63,7 @@ Preferred communication style: Simple, everyday language.
 - **Password Management**: Self-service password change functionality for users, including backend API, frontend page, and sidebar integration.
 - **Course Management**: Admin interface for managing course quiz questions (CRUD operations), smart validation, radio button selection for correct answers, and security controls.
 - **Messaging System**: Enhanced with `senderDeleted` and `senderDeletedAt` fields for isolated sender-side archiving/deletion, preserving recipient view.
-- **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail.
+- **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages.
 
 ## External Dependencies
 

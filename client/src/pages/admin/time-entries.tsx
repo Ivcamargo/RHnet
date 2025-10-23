@@ -43,6 +43,15 @@ interface TimeEntry {
   clockOutPhotoUrl?: string;
   justification?: string;
   approvalStatus?: string;
+  // Validation fields
+  clockInIpAddress?: string;
+  clockOutIpAddress?: string;
+  clockInWithinGeofence?: boolean;
+  clockOutWithinGeofence?: boolean;
+  clockInShiftCompliant?: boolean;
+  clockOutShiftCompliant?: boolean;
+  clockInValidationMessage?: string;
+  clockOutValidationMessage?: string;
   user?: {
     firstName: string;
     lastName: string;
@@ -390,6 +399,40 @@ export default function AdminTimeEntries() {
                             </div>
                           )}
 
+                          {/* Validation Messages - Show Inconsistencies */}
+                          {(entry.clockInValidationMessage || entry.clockOutValidationMessage) && (
+                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded">
+                              <div className="flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">
+                                    Validações do Registro
+                                  </p>
+                                  {entry.clockInValidationMessage && (
+                                    <div className="mb-2">
+                                      <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">
+                                        Entrada:
+                                      </p>
+                                      <pre className="text-xs text-amber-700 dark:text-amber-400 whitespace-pre-wrap">
+                                        {entry.clockInValidationMessage}
+                                      </pre>
+                                    </div>
+                                  )}
+                                  {entry.clockOutValidationMessage && (
+                                    <div>
+                                      <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">
+                                        Saída:
+                                      </p>
+                                      <pre className="text-xs text-amber-700 dark:text-amber-400 whitespace-pre-wrap">
+                                        {entry.clockOutValidationMessage}
+                                      </pre>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
@@ -397,6 +440,9 @@ export default function AdminTimeEntries() {
                                 {entry.clockInLatitude?.toFixed(4)}, {entry.clockInLongitude?.toFixed(4)}
                               </span>
                             </div>
+                            {entry.clockInIpAddress && (
+                              <span title="IP da Entrada">IP: {entry.clockInIpAddress}</span>
+                            )}
                             <span>Departamento: {entry.department?.name || 'N/A'}</span>
                           </div>
                         </div>

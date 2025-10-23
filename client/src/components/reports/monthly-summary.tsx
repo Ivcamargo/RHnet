@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar } from "lucide-react";
+import { Clock, Calendar, AlertTriangle } from "lucide-react";
 
 interface TimeEntry {
   id: number;
@@ -11,6 +11,13 @@ interface TimeEntry {
   status: string;
   date: string;
   faceRecognitionVerified: boolean;
+  // Validation fields
+  clockInWithinGeofence?: boolean;
+  clockOutWithinGeofence?: boolean;
+  clockInShiftCompliant?: boolean;
+  clockOutShiftCompliant?: boolean;
+  clockInValidationMessage?: string;
+  clockOutValidationMessage?: string;
 }
 
 interface MonthlyTimeTableProps {
@@ -119,6 +126,12 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
     );
   }
 
+  const hasValidationIssues = (entry: TimeEntry) => {
+    const hasGeofenceIssue = entry.clockInWithinGeofence === false || entry.clockOutWithinGeofence === false;
+    const hasShiftIssue = entry.clockInShiftCompliant === false || entry.clockOutShiftCompliant === false;
+    return hasGeofenceIssue || hasShiftIssue;
+  };
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -134,9 +147,14 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
         </TableHeader>
         <TableBody>
           {sortedEntries.map((entry) => (
-            <TableRow key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+            <TableRow key={entry.id} className={`border-b border-gray-100 hover:bg-gray-50 ${hasValidationIssues(entry) ? 'bg-amber-50/50' : ''}`}>
               <TableCell className="py-3 px-4 text-sm text-gray-900">
-                {formatDate(entry.date)}
+                <div className="flex items-center gap-1">
+                  {formatDate(entry.date)}
+                  {hasValidationIssues(entry) && (
+                    <AlertTriangle className="h-4 w-4 text-amber-600" title="Inconsistências detectadas" />
+                  )}
+                </div>
               </TableCell>
               <TableCell className="py-3 px-4 text-sm text-gray-900">
                 {formatTime(entry.clockInTime)}
@@ -154,11 +172,18 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 {getStatusBadge(entry)}
               </TableCell>
               <TableCell className="py-3 px-4">
-                {entry.faceRecognitionVerified ? (
-                  <span className="text-green-600 text-sm">✓ Verificado</span>
-                ) : (
-                  <span className="text-gray-400 text-sm">-</span>
-                )}
+                <div className="flex flex-col gap-1">
+                  {entry.faceRecognitionVerified ? (
+                    <span className="text-green-600 text-xs">✓ Facial</span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                  {(entry.clockInValidationMessage || entry.clockOutValidationMessage) && (
+                    <div className="text-xs text-amber-600 cursor-help" title={`${entry.clockInValidationMessage || ''}\n${entry.clockOutValidationMessage || ''}`.trim()}>
+                      ⚠ Ver detalhes
+                    </div>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
