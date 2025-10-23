@@ -2057,7 +2057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (activeShift) {
             // Get shift details
-            const shift = await storage.getShift(activeShift.shiftId);
+            const shift = await storage.getDepartmentShift(activeShift.shiftId);
             if (shift && shift.isActive) {
               // Check if today's day of week matches shift schedule
               const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -2237,7 +2237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (activeShift) {
             // Get shift details
-            const shift = await storage.getShift(activeShift.shiftId);
+            const shift = await storage.getDepartmentShift(activeShift.shiftId);
             if (shift && shift.isActive) {
               // Check if today's day of week matches shift schedule
               const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
