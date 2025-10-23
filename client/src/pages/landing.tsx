@@ -18,7 +18,8 @@ import {
   Smartphone,
   CheckCircle,
   ArrowRight,
-  Briefcase
+  Briefcase,
+  Book
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
@@ -30,6 +31,10 @@ export default function Landing() {
 
   const handleJobsPage = () => {
     window.location.href = "/vagas";
+  };
+
+  const handleManual = () => {
+    window.location.href = "/manual";
   };
 
   return (
@@ -68,6 +73,15 @@ export default function Landing() {
               <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</h1>
             </div>
             <div className="flex gap-3">
+              <Button 
+                onClick={handleManual} 
+                variant="ghost"
+                className="text-gray-700 hover:bg-gray-100 px-6 py-2"
+                data-testid="button-manual"
+              >
+                <Book className="mr-2 h-4 w-4" />
+                Manual
+              </Button>
               <Button 
                 onClick={handleJobsPage} 
                 variant="outline"

@@ -17,8 +17,7 @@ import {
   Upload,
   Timer,
   KeyRound,
-  BriefcaseBusiness,
-  Book
+  BriefcaseBusiness
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -140,17 +139,6 @@ export default function Sidebar() {
             <p className="uppercase text-[10px]">{(user as any).role}</p>
           </div>
         )}
-        <Link href="/manual">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-[hsl(220,15%,40%)] hover:text-[hsl(220,65%,18%)] hover:bg-[hsl(175,40%,92%)] dark:text-[hsl(220,15%,75%)] dark:hover:bg-[hsl(220,15%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
-            onClick={() => setIsMobileMenuOpen(false)}
-            data-testid="button-manual"
-          >
-            <Book className="mr-3 h-5 w-5" />
-            Manual do Sistema
-          </Button>
-        </Link>
         <Link href="/change-password">
           <Button
             variant="ghost"

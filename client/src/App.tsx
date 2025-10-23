@@ -78,6 +78,9 @@ function Router() {
       <Route path="/vagas" component={PublicJobs} />
       <Route path="/apply/:jobId" component={JobApply} />
       
+      {/* Manual do Sistema - acessível para todos */}
+      <Route path="/manual" component={Manual} />
+      
       {/* Landing page - acessível para todos */}
       <Route path="/landing" component={Landing} />
       
@@ -103,7 +106,6 @@ function Router() {
       <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
-      <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
       
       <Route component={NotFound} />
     </Switch>

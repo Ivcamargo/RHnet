@@ -1,30 +1,55 @@
-import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Sidebar from "@/components/layout/sidebar";
-import TopBar from "@/components/layout/top-bar";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 export default function Manual() {
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-      <Sidebar />
-      
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar title="Manual do Sistema" />
-        
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          <div className="container mx-auto max-w-7xl">
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-2">
-                <Book className="h-8 w-8 text-primary" />
-                <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+      {/* Header Público */}
+      <header className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-lg">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/landing">
+              <div className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity">
+                <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 rounded-lg" />
+                <h1 className="text-2xl font-bold text-white">RHNet</h1>
               </div>
-              <p className="text-muted-foreground text-lg">
-                Guia completo para utilização de todas as funcionalidades do sistema
-              </p>
+            </Link>
+            
+            <div className="flex items-center gap-3">
+              <Link href="/landing">
+                <Button variant="ghost" className="text-white hover:bg-white/10">
+                  <Home className="h-4 w-4 mr-2" />
+                  Início
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="secondary">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Entrar
+                </Button>
+              </Link>
             </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Conteúdo Principal */}
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <Book className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Guia completo para utilização de todas as funcionalidades do sistema
+          </p>
+        </div>
 
       <Tabs defaultValue="introducao" className="w-full">
         <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
@@ -784,20 +809,18 @@ export default function Manual() {
         </TabsContent>
       </Tabs>
 
-            {/* Rodapé */}
-            <Card className="mt-8 bg-primary/5">
-              <CardContent className="pt-6">
-                <div className="text-center space-y-2">
-                  <h3 className="font-semibold">Precisa de Ajuda?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Entre em contato com o departamento de RH ou TI da sua empresa para suporte técnico e dúvidas sobre o sistema.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
+        {/* Rodapé */}
+        <Card className="mt-8 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-2">
+              <h3 className="font-semibold">Precisa de Ajuda?</h3>
+              <p className="text-sm text-muted-foreground">
+                Entre em contato com o departamento de RH ou TI da sua empresa para suporte técnico e dúvidas sobre o sistema.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }
