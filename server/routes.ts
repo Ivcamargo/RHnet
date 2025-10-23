@@ -63,7 +63,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { getBrazilianTime, getBrazilianDateString } from "../shared/timezone";
+import { getBrazilianTime, getBrazilianDateString, convertToLocal } from "../shared/timezone";
 import { parse } from "csv-parse/sync";
 import { stringify } from "csv-stringify/sync";
 
@@ -329,8 +329,17 @@ async function computeIrregularities(
     const entryDate = new Date(timeEntry.date);
     const userShiftAssignment = await storage.getUserActiveShift(timeEntry.userId, entryDate);
     
-    if (userShiftAssignment && userShiftAssignment.shift) {
-      const shift = userShiftAssignment.shift;
+    let shift = userShiftAssignment?.shift;
+    
+    // Fallback: if no user-specific shift, use first department shift
+    if (!shift && timeEntry.departmentId) {
+      const departmentShifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+      if (departmentShifts.length > 0) {
+        shift = departmentShifts[0];
+      }
+    }
+    
+    if (shift) {
       
       // Calculate expected hours from the assigned shift
       if (shift.startTime && shift.endTime) {
@@ -362,10 +371,13 @@ async function computeIrregularities(
       if (!timeEntry.clockInTime) {
         irregularityReasons.push('Falta - Sem registro de entrada');
       } else if (shift.startTime) {
-        // Calculate lateness
-        const clockInDate = new Date(timeEntry.clockInTime);
-        const clockInHour = clockInDate.getUTCHours();
-        const clockInMinute = clockInDate.getUTCMinutes();
+        // Convert UTC timestamp to Brazil timezone before comparing
+        const clockInUTC = new Date(timeEntry.clockInTime);
+        const clockInLocal = convertToLocal(clockInUTC);
+        
+        // Get local hours and minutes
+        const clockInHour = clockInLocal.getHours();
+        const clockInMinute = clockInLocal.getMinutes();
         const clockInTotalMinutes = clockInHour * 60 + clockInMinute;
         
         const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
@@ -373,7 +385,13 @@ async function computeIrregularities(
         
         // Calculate late minutes (with 5-minute grace period)
         const GRACE_PERIOD_MINUTES = 5;
-        const rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
+        let rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
+        
+        // Handle overnight shifts (e.g., 22:00-06:00)
+        if (rawLateMinutes < -12 * 60) {
+          // Clock-in is early morning, shift starts late night
+          rawLateMinutes += 24 * 60;
+        }
         
         if (rawLateMinutes > GRACE_PERIOD_MINUTES) {
           lateMinutes = rawLateMinutes;
