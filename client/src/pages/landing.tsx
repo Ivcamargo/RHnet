@@ -51,7 +51,6 @@ export default function Landing() {
           filter: 'brightness(1.6) contrast(1.1) saturate(0.8)'
         }}
       ></div>
-      
       {/* People Using App Background */}
       <div 
         className="fixed inset-0 pointer-events-none z-1"
@@ -103,7 +102,6 @@ export default function Landing() {
           </div>
         </div>
       </header>
-
       {/* Hero Section */}
       <section className="relative z-10 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -135,7 +133,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* Features Grid */}
       <section className="relative z-10 py-16 bg-white/70 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -253,7 +250,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* Security & Analytics */}
       <section className="relative z-10 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -306,7 +302,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* Mobile Access */}
       <section className="relative z-10 py-16 bg-gradient-to-r from-[hsl(220,65%,18%)]/5 to-[hsl(175,65%,45%)]/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -325,11 +320,10 @@ export default function Landing() {
           </Badge>
         </div>
       </section>
-
       {/* Call to Action */}
       <section className="relative z-10 py-20 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h3 className="text-4xl font-bold text-white mb-6">
+          <h3 className="text-4xl font-bold mb-6 text-[#2a2c37]">
             Pronto para Transformar sua Gestão de RH?
           </h3>
           <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
@@ -356,7 +350,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="bg-white/90 backdrop-blur-sm border-t border-[hsl(175,65%,45%)]/30 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
