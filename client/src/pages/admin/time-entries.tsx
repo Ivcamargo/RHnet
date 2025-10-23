@@ -128,7 +128,9 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
             <p className="font-medium">{entry.user?.firstName} {entry.user?.lastName}</p>
             <p className="text-gray-600 dark:text-gray-400">{entry.user?.email}</p>
             <p className="text-gray-600 dark:text-gray-400">{entry.department?.name}</p>
-            <p className="text-xs text-gray-500 mt-1">Data: {format(parseISO(entry.date), 'dd/MM/yyyy')}</p>
+            {entry.date && (
+              <p className="text-xs text-gray-500 mt-1">Data: {format(parseISO(entry.date), 'dd/MM/yyyy')}</p>
+            )}
           </div>
         </div>
 
