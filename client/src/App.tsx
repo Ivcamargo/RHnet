@@ -30,6 +30,7 @@ import AdminTimeEntries from "@/pages/admin/time-entries";
 import RotationManagement from "@/pages/rotation-management";
 import Recruitment from "@/pages/recruitment";
 import PublicJobs from "@/pages/public-jobs";
+import JobApply from "@/pages/job-apply";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -73,6 +74,7 @@ function Router() {
       {/* Rotas públicas de vagas - acessíveis para todos */}
       <Route path="/vagas/:id" component={PublicJobs} />
       <Route path="/vagas" component={PublicJobs} />
+      <Route path="/apply/:jobId" component={JobApply} />
       
       {/* Landing page - acessível para todos */}
       <Route path="/landing" component={Landing} />
