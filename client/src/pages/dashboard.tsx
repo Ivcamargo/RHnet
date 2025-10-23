@@ -8,16 +8,16 @@ import {
   MessageSquare, 
   FileText, 
   GraduationCap, 
-  Users, 
+  UsersRound, 
   Clock, 
   TrendingUp, 
-  Bell,
-  Shield, 
-  Crown,
-  Mail,
-  Upload,
+  BellRing,
+  ShieldCheck, 
+  Sparkles,
+  MailOpen,
+  UploadCloud,
   Award,
-  Calendar,
+  CalendarDays,
   ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -162,7 +162,7 @@ export default function Dashboard() {
           {user && superadminCheck && !superadminCheck.hasSuperadmin && (
             <div className="mb-6">
               <Alert className="border-amber-200 bg-amber-50">
-                <Crown className="h-4 w-4 text-amber-600" />
+                <Sparkles className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="flex items-center justify-between">
                   <div>
                     <span className="font-medium text-amber-800">
@@ -187,7 +187,7 @@ export default function Dashboard() {
                       </>
                     ) : (
                       <>
-                        <Shield className="h-4 w-4 mr-2" />
+                        <ShieldCheck className="h-4 w-4 mr-2" />
                         Tornar-se Super Admin
                       </>
                     )}
@@ -233,7 +233,7 @@ export default function Dashboard() {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Mensagens</CardTitle>
-                <MessageSquare className="h-4 w-4 text-orange-600" />
+                <MessageSquare className="h-4 w-4 text-[hsl(175,65%,45%)]" />
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -262,7 +262,7 @@ export default function Dashboard() {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Documentos</CardTitle>
-                <FileText className="h-4 w-4 text-orange-500" />
+                <FileText className="h-4 w-4 text-[hsl(175,65%,45%)]" />
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -291,7 +291,7 @@ export default function Dashboard() {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Cursos Ativos</CardTitle>
-                <GraduationCap className="h-4 w-4 text-orange-600" />
+                <GraduationCap className="h-4 w-4 text-[hsl(175,65%,45%)]" />
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -315,7 +315,7 @@ export default function Dashboard() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Ações Rápidas</CardTitle>
-                <TrendingUp className="h-4 w-4 text-blue-500" />
+                <TrendingUp className="h-4 w-4 text-[hsl(220,65%,18%)]" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -336,7 +336,7 @@ export default function Dashboard() {
                     onClick={() => setLocation('/documents')}
                     data-testid="button-upload-document"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <UploadCloud className="h-4 w-4 mr-2" />
                     Enviar Documento
                   </Button>
                 </div>
@@ -391,7 +391,7 @@ export default function Dashboard() {
             <Card className="bg-white/90 backdrop-blur-sm border-orange-200">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
-                  <Mail className="h-5 w-5 mr-2 text-orange-600" />
+                  <MailOpen className="h-5 w-5 mr-2 text-[hsl(175,65%,45%)]" />
                   Mensagens Recentes
                 </CardTitle>
                 <Button 
@@ -434,7 +434,7 @@ export default function Dashboard() {
             <Card className="bg-white/90 backdrop-blur-sm border-orange-200">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
-                  <Bell className="h-5 w-5 mr-2 text-orange-600" />
+                  <BellRing className="h-5 w-5 mr-2 text-[hsl(175,65%,45%)]" />
                   Tarefas Pendentes
                 </CardTitle>
               </CardHeader>
