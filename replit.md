@@ -33,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 - **Key Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments
-- **User Fields**: Includes passwordHash, mustChangePassword, passwordResetToken, passwordResetExpires
+- **User Fields**: Includes passwordHash, mustChangePassword, passwordResetToken, passwordResetExpires, internalId (Registro Interno) for integration with external systems
 - **Shift Assignments**: userShiftAssignments table with userId, shiftId, startDate, endDate for flexible temporal assignments.
 
 ### Features
@@ -64,9 +64,10 @@ Preferred communication style: Simple, everyday language.
 - **Course Management**: Admin interface for managing course quiz questions (CRUD operations), smart validation, radio button selection for correct answers, and security controls.
 - **Messaging System**: Enhanced with `senderDeleted` and `senderDeletedAt` fields for isolated sender-side archiving/deletion, preserving recipient view.
 - **CSV Import/Export**: Bulk employee management via CSV with template download, validation, error reporting, and company-filtered export. Uses semicolon delimiter and UTF-8 BOM for Excel compatibility.
-  - **Template Download**: Pre-formatted CSV template with all employee fields and example data
+  - **Template Download**: Pre-formatted CSV template with all employee fields including Registro Interno (internalId) and example data
   - **Import Validation**: Row-by-row validation with detailed error messages (duplicates, missing fields, company checks)
   - **Export Filtering**: Exports only employees from logged-in user's company (admin) or all companies (superadmin)
+  - **Internal ID Support**: Registro Interno field can be imported and exported for integration with external systems
   - **Audit Trail**: All CSV imports logged with source tracking and user attribution
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages.
 
