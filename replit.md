@@ -88,6 +88,14 @@ Preferred communication style: Simple, everyday language.
     - **Screening Notes**: Track observations and feedback throughout the evaluation process
   - **Digital Onboarding (Admissão Digital)**: Generate secure onboarding links for approved candidates with expiration tracking, status monitoring (pending/in_progress/completed/expired), and one-click link copying for easy candidate distribution. Integrated document collection and form submission workflow.
   - **Company Scoping**: All recruitment data automatically filtered by company, with superadmin having cross-company visibility for system-wide oversight.
+- **System User Manual**: Comprehensive in-app documentation accessible to all users via `/manual` with tabbed sections covering:
+  - **Introduction**: System overview, access levels (superadmin/admin/employee), and navigation guide
+  - **Time Clock**: Step-by-step instructions for clock in/out, geofencing, facial verification, and validation system
+  - **Management**: Administrative features including employee management, CSV import/export, sector configuration, shift management, and rotation scheduling
+  - **Reports**: Monthly time summaries, irregularity detection system, validation warnings, and administrative reporting
+  - **Recruitment**: Complete hiring workflow documentation from job posting to digital onboarding
+  - **Other Features**: Messaging, documents, training courses, account settings, and data import/export guides
+  - Accessible from sidebar menu for all authenticated users, written in simple everyday language for non-technical users
 
 ## External Dependencies
 
