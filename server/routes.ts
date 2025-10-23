@@ -2594,8 +2594,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process facial recognition data
+      console.log("🔍 DEBUG - faceRecognitionData received:", JSON.stringify(faceRecognitionData, null, 2));
       const faceRecognitionVerified = !!faceRecognitionData;
       const clockInPhotoUrl = faceRecognitionData?.photoUrl || null;
+      console.log("🔍 DEBUG - clockInPhotoUrl extracted:", clockInPhotoUrl);
 
       const timeEntry = await storage.createTimeEntry({
         userId,
