@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { GraduationCap, Play, Award, Clock, CheckCircle, Plus, Edit, Trash2, X, HelpCircle } from "lucide-react";
+import { GraduationCap, Play, Award, Clock, CheckCircle, Plus, Edit, Trash2, X, HelpCircle, AlertCircle } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -254,6 +254,15 @@ export default function Training() {
   // Get courses in progress
   const coursesInProgress = employeeCourses
     .filter(ec => ec.status === 'in_progress')
+    .map(ec => ({
+      ...ec,
+      course: courses.find(c => c.id === ec.courseId)
+    }))
+    .filter(item => item.course);
+
+  // Get failed courses
+  const coursesFailed = employeeCourses
+    .filter(ec => ec.status === 'failed')
     .map(ec => ({
       ...ec,
       course: courses.find(c => c.id === ec.courseId)
@@ -985,6 +994,50 @@ export default function Training() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Failed Courses */}
+          {coursesFailed.length > 0 && (
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
+                  Cursos Reprovados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {coursesFailed.map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50/50" data-testid={`failed-course-${index}`}>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <span className="font-medium">{item.course?.title}</span>
+                          {item.score !== null && item.score !== undefined && (
+                            <Badge variant="destructive" className="text-xs font-bold">
+                              {Math.round(item.score)}%
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground ml-6">
+                          Reprovado em: {item.completedAt ? new Date(item.completedAt).toLocaleDateString('pt-BR') : 'N/A'}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => restartCourseMutation.mutate(item.id)}
+                        disabled={restartCourseMutation.isPending}
+                        data-testid={`button-retry-course-${index}`}
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Refazer Curso
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Completed Courses */}
           {coursesCompleted.length > 0 && (
