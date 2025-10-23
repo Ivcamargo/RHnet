@@ -69,7 +69,15 @@ Preferred communication style: Simple, everyday language.
   - **Export Filtering**: Exports only employees from logged-in user's company (admin) or all companies (superadmin)
   - **Internal ID Support**: Registro Interno field can be imported and exported for integration with external systems
   - **Audit Trail**: All CSV imports logged with source tracking and user attribution
-- **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages.
+- **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages. **Advanced Irregularity Detection System**:
+  - **Automatic Analysis**: Backend calculates irregularities for each time entry using the employee's assigned shift
+  - **Shift-Aware**: Uses `getUserActiveShift()` to get the correct shift for the entry date, with fallback to department default
+  - **Timezone-Correct**: Converts UTC timestamps to Brazil timezone (America/Sao_Paulo) before comparing with shift schedules
+  - **Detections**: Late arrivals (>5min grace), insufficient hours worked (>15min tolerance), missing punches, incomplete records
+  - **Smart Calculation**: Compares actual worked hours against expected hours (shift duration minus unpaid breaks)
+  - **Night Shift Support**: Handles overnight shifts (e.g., 22:00-06:00) correctly
+  - **Database Fields**: expectedHours, lateMinutes, shortfallMinutes, irregularityReasons[] stored in timeEntries
+  - **Frontend Display**: "Irregular" badge in reports, detailed irregularity section in "Ver detalhes" dialog with specific reasons in Portuguese
 - **Recruitment & Selection Module**: Complete hiring workflow management with four integrated sections accessible via `/recruitment`:
   - **Job Openings (Vagas)**: Create, edit, publish, and close job postings with detailed descriptions, requirements, location, employment type, salary ranges, and experience levels. Draft/published/closed status workflow.
   - **Candidates (Candidatos)**: Centralized candidate database with contact information, location, resume storage, and company-scoped access control.

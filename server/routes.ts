@@ -371,13 +371,19 @@ async function computeIrregularities(
       if (!timeEntry.clockInTime) {
         irregularityReasons.push('Falta - Sem registro de entrada');
       } else if (shift.startTime) {
-        // Convert UTC timestamp to Brazil timezone before comparing
+        // Convert UTC timestamp to Brazil timezone using toLocaleString
         const clockInUTC = new Date(timeEntry.clockInTime);
-        const clockInLocal = convertToLocal(clockInUTC);
         
-        // Get local hours and minutes
-        const clockInHour = clockInLocal.getHours();
-        const clockInMinute = clockInLocal.getMinutes();
+        // Get time components in Brazil timezone
+        const brasilTime = clockInUTC.toLocaleString('en-US', { 
+          timeZone: 'America/Sao_Paulo',
+          hour12: false
+        });
+        
+        // Parse the time string to get hours and minutes
+        const timeParts = brasilTime.split(' ')[1].split(':');
+        const clockInHour = parseInt(timeParts[0]);
+        const clockInMinute = parseInt(timeParts[1]);
         const clockInTotalMinutes = clockInHour * 60 + clockInMinute;
         
         const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
