@@ -1141,7 +1141,13 @@ export default function Training() {
                             Aproveitamento: {metadata.correctAnswers || 0}/{metadata.totalQuestions || 0} questões corretas
                           </p>
                         )}
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => window.open(`/certificate/${cert.id}`, '_blank')}
+                          data-testid={`button-view-cert-${index}`}
+                        >
                           Ver Certificado
                         </Button>
                       </div>

@@ -4437,6 +4437,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get specific certificate
+  app.get('/api/certificates/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const certificateId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get all user certificates to check ownership
+      const certificates = await storage.getCertificates(userId, user.companyId);
+      const certificate = certificates.find(c => c.id === certificateId);
+      
+      if (!certificate) {
+        return res.status(404).json({ message: "Certificate not found" });
+      }
+
+      res.json(certificate);
+    } catch (error) {
+      console.error("Error fetching certificate:", error);
+      res.status(500).json({ message: "Failed to fetch certificate" });
+    }
+  });
+
   // Create certificate (admin only)
   app.post('/api/certificates', isAuthenticatedHybrid, async (req: any, res) => {
     try {

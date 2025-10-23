@@ -24,6 +24,7 @@ import Messages from "@/pages/messages";
 import Documents from "@/pages/documents";
 import Training from "@/pages/training";
 import CourseView from "@/pages/course-view";
+import CertificateView from "@/pages/certificate-view";
 import Sectors from "@/pages/sectors";
 import TimePeriods from "@/pages/admin/time-periods";
 import AdminTimeEntries from "@/pages/admin/time-entries";
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/documents" component={() => <ProtectedRoute component={Documents} />} />
       <Route path="/training" component={() => <ProtectedRoute component={Training} />} />
       <Route path="/course/:id" component={() => <ProtectedRoute component={CourseView} />} />
+      <Route path="/certificate/:id" component={() => <ProtectedRoute component={CertificateView} />} />
       <Route path="/time-clock" component={() => <ProtectedRoute component={TimeClock} />} />
       <Route path="/departments" component={() => <ProtectedRoute component={Departments} />} />
       <Route path="/holidays" component={() => <ProtectedRoute component={Holidays} />} />
