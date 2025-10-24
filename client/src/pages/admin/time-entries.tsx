@@ -223,7 +223,7 @@ export default function AdminTimeEntries() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false); // Controls calendar popover state
 
   // Queries
   const selectedDateString = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
