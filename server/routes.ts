@@ -3372,6 +3372,266 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================================================================
+  // TERMINAL/KIOSK ROUTES
+  // ========================================================================================
+
+  // Validate device code (public endpoint)
+  app.get('/api/terminals/:deviceCode/validate', async (req, res) => {
+    try {
+      const { deviceCode } = req.params;
+      const device = await storage.getAuthorizedDeviceByCode(deviceCode);
+      
+      if (!device) {
+        return res.status(404).json({ 
+          valid: false,
+          message: "Dispositivo não autorizado" 
+        });
+      }
+
+      if (!device.isActive) {
+        return res.status(403).json({ 
+          valid: false,
+          message: "Dispositivo desativado" 
+        });
+      }
+
+      res.json({ 
+        valid: true,
+        device: {
+          id: device.id,
+          deviceName: device.deviceName,
+          location: device.location,
+          companyId: device.companyId
+        }
+      });
+    } catch (error) {
+      console.error("Error validating device:", error);
+      res.status(500).json({ message: "Falha ao validar dispositivo" });
+    }
+  });
+
+  // Login employee on terminal (public endpoint)
+  app.post('/api/terminals/:deviceCode/login', async (req, res) => {
+    try {
+      const { deviceCode } = req.params;
+      const { identifier, password } = req.body;
+
+      // Validate device
+      const device = await storage.getAuthorizedDeviceByCode(deviceCode);
+      if (!device || !device.isActive) {
+        return res.status(403).json({ message: "Dispositivo não autorizado" });
+      }
+
+      // Find user by CPF, email, or internal ID
+      const allUsers = await storage.getUsersByCompany(device.companyId);
+      const user = allUsers.find(u => 
+        u.cpf === identifier || 
+        u.email === identifier || 
+        u.internalId === identifier
+      );
+
+      if (!user) {
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Usuário inativo" });
+      }
+
+      // Verify password
+      if (!user.passwordHash) {
+        return res.status(401).json({ message: "Usuário sem senha configurada" });
+      }
+
+      const argon2 = await import('argon2');
+      const isValid = await argon2.verify(user.passwordHash, password);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+
+      // Update device last used
+      await storage.updateDeviceLastUsed(device.id);
+
+      // Return user info (masked sensitive data)
+      res.json({
+        userId: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        cpf: user.cpf ? `***.***.***-${user.cpf.slice(-2)}` : null,
+        email: user.email ? `${user.email.slice(0, 3)}***@***` : null,
+        departmentId: user.departmentId,
+        deviceId: device.id
+      });
+    } catch (error) {
+      console.error("Error logging in on terminal:", error);
+      res.status(500).json({ message: "Falha no login" });
+    }
+  });
+
+  // Clock in/out via terminal (public endpoint)
+  app.post('/api/terminals/:deviceCode/clock', async (req, res) => {
+    try {
+      const { deviceCode } = req.params;
+      const { userId, location, photoUrl } = req.body;
+
+      // Validate device
+      const device = await storage.getAuthorizedDeviceByCode(deviceCode);
+      if (!device || !device.isActive) {
+        return res.status(403).json({ message: "Dispositivo não autorizado" });
+      }
+
+      // Get user
+      const user = await storage.getUser(userId);
+      if (!user || !user.isActive || user.companyId !== device.companyId) {
+        return res.status(403).json({ message: "Usuário não autorizado" });
+      }
+
+      // Get client IP
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+                       req.socket.remoteAddress || 
+                       'unknown';
+
+      // Get entry date (current Brazil time)
+      const now = new Date();
+      const entryDate = now.toISOString().split('T')[0];
+
+      // Check existing entry for today
+      const existingEntry = await storage.getTimeEntry(userId, entryDate);
+
+      if (!existingEntry) {
+        // Clock in
+        const timeEntry = await storage.createTimeEntry({
+          userId,
+          date: entryDate,
+          clockIn: now.toISOString(),
+          clockInPhotoUrl: photoUrl || null,
+          clockInIp: clientIp,
+          clockInLocation: location,
+          departmentId: user.departmentId || null,
+          deviceId: device.id,
+        });
+
+        res.json({
+          action: 'clock_in',
+          time: now.toISOString(),
+          message: 'Entrada registrada com sucesso'
+        });
+      } else if (!existingEntry.clockOut) {
+        // Clock out
+        const updated = await storage.updateTimeEntry(existingEntry.id, {
+          clockOut: now.toISOString(),
+          clockOutPhotoUrl: photoUrl || null,
+          clockOutIp: clientIp,
+          clockOutLocation: location,
+        });
+
+        res.json({
+          action: 'clock_out',
+          time: now.toISOString(),
+          message: 'Saída registrada com sucesso'
+        });
+      } else {
+        return res.status(400).json({ 
+          message: "Você já registrou entrada e saída hoje" 
+        });
+      }
+    } catch (error) {
+      console.error("Error clocking on terminal:", error);
+      res.status(500).json({ message: "Falha ao registrar ponto" });
+    }
+  });
+
+  // Admin terminal management routes
+  app.get('/api/terminals', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+
+      const devices = await storage.getAuthorizedDevices(companyId);
+      res.json(devices);
+    } catch (error) {
+      console.error("Error fetching terminals:", error);
+      res.status(500).json({ message: "Failed to fetch terminals" });
+    }
+  });
+
+  app.post('/api/terminals', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+
+      const { deviceCode, deviceName, location } = req.body;
+
+      // Check if device code already exists
+      const existing = await storage.getAuthorizedDeviceByCode(deviceCode);
+      if (existing) {
+        return res.status(400).json({ message: "Código de dispositivo já existe" });
+      }
+
+      const device = await storage.createAuthorizedDevice({
+        companyId,
+        deviceCode,
+        deviceName,
+        location,
+        isActive: true,
+      });
+
+      res.status(201).json(device);
+    } catch (error) {
+      console.error("Error creating terminal:", error);
+      res.status(500).json({ message: "Failed to create terminal" });
+    }
+  });
+
+  app.patch('/api/terminals/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const companyId = req.user.claims.companyId;
+      
+      const device = await storage.getAuthorizedDevice(parseInt(id));
+      if (!device) {
+        return res.status(404).json({ message: "Terminal não encontrado" });
+      }
+
+      if (device.companyId !== companyId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const updated = await storage.updateAuthorizedDevice(parseInt(id), req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating terminal:", error);
+      res.status(500).json({ message: "Failed to update terminal" });
+    }
+  });
+
+  app.delete('/api/terminals/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const companyId = req.user.claims.companyId;
+      
+      const device = await storage.getAuthorizedDevice(parseInt(id));
+      if (!device) {
+        return res.status(404).json({ message: "Terminal não encontrado" });
+      }
+
+      if (device.companyId !== companyId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      await storage.deleteAuthorizedDevice(parseInt(id));
+      res.json({ message: "Terminal removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting terminal:", error);
+      res.status(500).json({ message: "Failed to delete terminal" });
+    }
+  });
+
   // Admin Time Entries Management Routes
   
   // Get time entries for a specific date (admin only)
