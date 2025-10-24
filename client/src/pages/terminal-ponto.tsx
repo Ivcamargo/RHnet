@@ -15,6 +15,7 @@ type Device = {
 };
 
 type Employee = {
+  token: string;
   userId: string;
   name: string;
   cpf: string | null;
@@ -130,7 +131,7 @@ export default function TerminalPonto() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: employee.userId,
+          token: employee.token,
           location: device?.location || 'Terminal',
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,

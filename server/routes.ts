@@ -3411,6 +3411,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary token store for terminal sessions (in-memory, valid for 10 minutes)
+  const terminalTokens = new Map<string, { userId: string, deviceId: number, expiresAt: number }>();
+
+  // Cleanup expired tokens every minute
+  setInterval(() => {
+    const now = Date.now();
+    for (const [token, data] of terminalTokens.entries()) {
+      if (data.expiresAt < now) {
+        terminalTokens.delete(token);
+      }
+    }
+  }, 60000);
+
   // Login employee on terminal (public endpoint)
   app.post('/api/terminals/:deviceCode/login', async (req, res) => {
     try {
@@ -3454,8 +3467,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update device last used
       await storage.updateDeviceLastUsed(device.id);
 
-      // Return user info (masked sensitive data)
+      // Generate temporary token (valid for 10 minutes)
+      const crypto = await import('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      
+      terminalTokens.set(token, {
+        userId: user.id,
+        deviceId: device.id,
+        expiresAt
+      });
+
+      // Return user info with temporary token
       res.json({
+        token,
         userId: user.id,
         name: `${user.firstName} ${user.lastName}`,
         cpf: user.cpf ? `***.***.***-${user.cpf.slice(-2)}` : null,
@@ -3473,7 +3498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/terminals/:deviceCode/clock', async (req, res) => {
     try {
       const { deviceCode } = req.params;
-      const { userId, location, photoUrl, latitude, longitude } = req.body;
+      const { token, location, photoUrl, latitude, longitude } = req.body;
 
       // Validate device
       const device = await storage.getAuthorizedDeviceByCode(deviceCode);
@@ -3481,8 +3506,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Dispositivo não autorizado" });
       }
 
+      // Validate token
+      const tokenData = terminalTokens.get(token);
+      if (!tokenData) {
+        return res.status(401).json({ message: "Token inválido ou expirado" });
+      }
+
+      // Check if token expired
+      if (tokenData.expiresAt < Date.now()) {
+        terminalTokens.delete(token);
+        return res.status(401).json({ message: "Token expirado. Faça login novamente." });
+      }
+
+      // Verify token device matches request device
+      if (tokenData.deviceId !== device.id) {
+        return res.status(403).json({ message: "Token não corresponde ao dispositivo" });
+      }
+
       // Get user
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(tokenData.userId);
       if (!user || !user.isActive || user.companyId !== device.companyId) {
         return res.status(403).json({ message: "Usuário não autorizado" });
       }
