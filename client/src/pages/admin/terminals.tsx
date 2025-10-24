@@ -21,6 +21,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Table,
@@ -32,12 +33,27 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Tablet, Plus, Edit, Trash2, Copy, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Tablet, Plus, Edit, Trash2, Copy, CheckCircle, XCircle, AlertCircle, MapPin } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { format } from "date-fns";
+import { MapContainer, TileLayer, Marker, Circle } from "react-leaflet";
+import { icon } from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default markers in react-leaflet
+const defaultIcon = icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 type Terminal = {
   id: number;
@@ -45,6 +61,9 @@ type Terminal = {
   deviceCode: string;
   deviceName: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
+  radius: number;
   isActive: boolean;
   lastUsedAt: string | null;
   createdAt: string;
@@ -55,6 +74,9 @@ const terminalSchema = z.object({
   deviceCode: z.string().min(1, "Código obrigatório").max(50),
   deviceName: z.string().min(1, "Nome obrigatório").max(100),
   location: z.string().min(1, "Local obrigatório").max(100),
+  latitude: z.number().min(-90).max(90).nullable(),
+  longitude: z.number().min(-180).max(180).nullable(),
+  radius: z.number().min(10).max(1000).default(100),
   isActive: z.boolean().default(true),
 });
 
@@ -77,6 +99,9 @@ export default function Terminals() {
       deviceCode: '',
       deviceName: '',
       location: '',
+      latitude: -23.5505,
+      longitude: -46.6333,
+      radius: 100,
       isActive: true,
     },
   });
@@ -168,6 +193,9 @@ export default function Terminals() {
       deviceCode: terminal.deviceCode,
       deviceName: terminal.deviceName,
       location: terminal.location,
+      latitude: terminal.latitude ?? -23.5505,
+      longitude: terminal.longitude ?? -46.6333,
+      radius: terminal.radius ?? 100,
       isActive: terminal.isActive,
     });
   };
@@ -226,7 +254,7 @@ export default function Terminals() {
                 Novo Terminal
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Criar Terminal</DialogTitle>
                 <DialogDescription>
@@ -235,69 +263,145 @@ export default function Terminals() {
               </DialogHeader>
               <Form {...createForm}>
                 <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
-                  <FormField
-                    control={createForm.control}
-                    name="deviceCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Código do Dispositivo</FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              placeholder="TERM-0001" 
-                              data-testid="input-create-device-code"
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={generateCode}
-                            data-testid="button-generate-code"
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <FormField
+                        control={createForm.control}
+                        name="deviceCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Código do Dispositivo</FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="TERM-0001" 
+                                  data-testid="input-create-device-code"
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={generateCode}
+                                data-testid="button-generate-code"
+                              >
+                                Gerar
+                              </Button>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={createForm.control}
+                        name="deviceName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome do Terminal</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder="Tablet Recepção" 
+                                data-testid="input-create-device-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={createForm.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Local</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder="Recepção - 1º Andar" 
+                                data-testid="input-create-location"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={createForm.control}
+                        name="radius"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Raio de Validação (metros): {field.value}m</FormLabel>
+                            <FormControl>
+                              <Slider
+                                min={10}
+                                max={1000}
+                                step={10}
+                                value={[field.value ?? 100]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                data-testid="slider-create-radius"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Distância máxima permitida do ponto central (10-1000 metros)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          <MapPin className="inline h-4 w-4 mr-1" />
+                          Localização do Terminal
+                        </label>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Clique no mapa para definir a localização do terminal
+                        </p>
+                        <div className="h-[400px] rounded-md overflow-hidden border">
+                          <MapContainer
+                            center={[createForm.watch('latitude') ?? -23.5505, createForm.watch('longitude') ?? -46.6333]}
+                            zoom={15}
+                            style={{ height: '100%', width: '100%' }}
+                            key={`create-${createForm.watch('latitude')}-${createForm.watch('longitude')}`}
                           >
-                            Gerar
-                          </Button>
+                            <TileLayer
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            {createForm.watch('latitude') && createForm.watch('longitude') && (
+                              <>
+                                <Marker
+                                  position={[createForm.watch('latitude')!, createForm.watch('longitude')!]}
+                                  icon={defaultIcon}
+                                  eventHandlers={{
+                                    click: () => {
+                                      if (navigator.geolocation) {
+                                        navigator.geolocation.getCurrentPosition((position) => {
+                                          createForm.setValue('latitude', position.coords.latitude);
+                                          createForm.setValue('longitude', position.coords.longitude);
+                                        });
+                                      }
+                                    }
+                                  }}
+                                />
+                                <Circle
+                                  center={[createForm.watch('latitude')!, createForm.watch('longitude')!]}
+                                  radius={createForm.watch('radius') ?? 100}
+                                  pathOptions={{ color: 'hsl(175, 65%, 45%)', fillColor: 'hsl(175, 65%, 45%)', fillOpacity: 0.2 }}
+                                />
+                              </>
+                            )}
+                          </MapContainer>
                         </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={createForm.control}
-                    name="deviceName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Terminal</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            placeholder="Tablet Recepção" 
-                            data-testid="input-create-device-name"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={createForm.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Local</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            placeholder="Recepção - 1º Andar" 
-                            data-testid="input-create-location"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </div>
+                    </div>
+                  </div>
                   
                   <DialogFooter>
                     <Button 
@@ -425,7 +529,7 @@ export default function Terminals() {
 
         {/* Edit Dialog */}
         <Dialog open={!!editingTerminal} onOpenChange={(open) => !open && setEditingTerminal(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Terminal</DialogTitle>
               <DialogDescription>
@@ -434,47 +538,113 @@ export default function Terminals() {
             </DialogHeader>
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(handleUpdate)} className="space-y-4">
-                <FormField
-                  control={editForm.control}
-                  name="deviceCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Código do Dispositivo</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled data-testid="input-edit-device-code" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={editForm.control}
-                  name="deviceName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Terminal</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-edit-device-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={editForm.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Local</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-edit-location" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <FormField
+                      control={editForm.control}
+                      name="deviceCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Código do Dispositivo</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled data-testid="input-edit-device-code" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="deviceName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome do Terminal</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-edit-device-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editForm.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-edit-location" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={editForm.control}
+                      name="radius"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Raio de Validação (metros): {field.value}m</FormLabel>
+                          <FormControl>
+                            <Slider
+                              min={10}
+                              max={1000}
+                              step={10}
+                              value={[field.value ?? 100]}
+                              onValueChange={(value) => field.onChange(value[0])}
+                              data-testid="slider-edit-radius"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Distância máxima permitida do ponto central (10-1000 metros)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        <MapPin className="inline h-4 w-4 mr-1" />
+                        Localização do Terminal
+                      </label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Clique no mapa para atualizar a localização do terminal
+                      </p>
+                      <div className="h-[400px] rounded-md overflow-hidden border">
+                        <MapContainer
+                          center={[editForm.watch('latitude') ?? -23.5505, editForm.watch('longitude') ?? -46.6333]}
+                          zoom={15}
+                          style={{ height: '100%', width: '100%' }}
+                          key={`edit-${editForm.watch('latitude')}-${editForm.watch('longitude')}`}
+                        >
+                          <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          />
+                          {editForm.watch('latitude') && editForm.watch('longitude') && (
+                            <>
+                              <Marker
+                                position={[editForm.watch('latitude')!, editForm.watch('longitude')!]}
+                                icon={defaultIcon}
+                              />
+                              <Circle
+                                center={[editForm.watch('latitude')!, editForm.watch('longitude')!]}
+                                radius={editForm.watch('radius') ?? 100}
+                                pathOptions={{ color: 'hsl(175, 65%, 45%)', fillColor: 'hsl(175, 65%, 45%)', fillOpacity: 0.2 }}
+                              />
+                            </>
+                          )}
+                        </MapContainer>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <DialogFooter>
                   <Button 

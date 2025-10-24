@@ -112,27 +112,68 @@ export default function TerminalPonto() {
     mutationFn: async () => {
       if (!employee) throw new Error('Employee not found');
 
+      // Get current location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocalização não suportada'));
+          return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(pos),
+          (err) => reject(new Error(`Erro ao obter localização: ${err.message}`)),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+
       const response = await fetch(`/api/terminals/${deviceCode}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: employee.userId,
           location: device?.location || 'Terminal',
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
           photoUrl: null
         })
       });
 
       if (!response.ok) {
         const error = await response.json();
+        
+        // Display validation messages if present
+        if (error.validationMessages && error.validationMessages.length > 0) {
+          error.validationMessages.forEach((msg: string) => {
+            toast({
+              variant: "destructive",
+              title: "Validação de Localização",
+              description: msg,
+              duration: 5000,
+            });
+          });
+        }
+        
         throw new Error(error.message || 'Falha ao registrar ponto');
       }
 
       return response.json();
     },
     onSuccess: (data) => {
+      // Display validation messages (success)
+      if (data.validationMessages && data.validationMessages.length > 0) {
+        data.validationMessages.forEach((msg: string) => {
+          toast({
+            title: "Validação",
+            description: msg,
+            duration: 3000,
+          });
+        });
+      }
+
       toast({
-        title: data.action === 'clock_in' ? 'Entrada registrada' : 'Saída registrada',
+        title: data.action === 'clock_in' ? '✓ Entrada registrada' : '✓ Saída registrada',
         description: data.message,
+        duration: 3000,
       });
       
       // Auto logout after success
@@ -145,6 +186,7 @@ export default function TerminalPonto() {
         variant: "destructive",
         title: "Erro",
         description: error.message,
+        duration: 5000,
       });
     }
   });

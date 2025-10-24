@@ -3473,7 +3473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/terminals/:deviceCode/clock', async (req, res) => {
     try {
       const { deviceCode } = req.params;
-      const { userId, location, photoUrl } = req.body;
+      const { userId, location, photoUrl, latitude, longitude } = req.body;
 
       // Validate device
       const device = await storage.getAuthorizedDeviceByCode(deviceCode);
@@ -3485,6 +3485,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!user || !user.isActive || user.companyId !== device.companyId) {
         return res.status(403).json({ message: "Usuário não autorizado" });
+      }
+
+      // DUAL GEOFENCE VALIDATION
+      const validationMessages: string[] = [];
+      let isTerminalLocationValid = true;
+      let isEmployeeLocationValid = true;
+
+      // 1. Validate TERMINAL location (if configured)
+      if (device.latitude && device.longitude && latitude && longitude) {
+        const terminalDistance = calculateDistance(
+          device.latitude,
+          device.longitude,
+          latitude,
+          longitude
+        );
+        const terminalRadius = device.radius || 100;
+        
+        if (terminalDistance > terminalRadius) {
+          isTerminalLocationValid = false;
+          validationMessages.push(
+            `⚠ Terminal fora da área autorizada (${Math.round(terminalDistance)}m de distância, máximo ${terminalRadius}m)`
+          );
+        } else {
+          validationMessages.push(
+            `✓ Terminal dentro da área autorizada (${Math.round(terminalDistance)}m)`
+          );
+        }
+      }
+
+      // 2. Validate EMPLOYEE sector location (if configured)
+      if (user.departmentId && latitude && longitude) {
+        const department = await storage.getDepartment(user.departmentId);
+        if (department && department.latitude && department.longitude) {
+          const sectorDistance = calculateDistance(
+            department.latitude,
+            department.longitude,
+            latitude,
+            longitude
+          );
+          const sectorRadius = department.geofenceRadius || 100;
+          
+          if (sectorDistance > sectorRadius) {
+            isEmployeeLocationValid = false;
+            validationMessages.push(
+              `⚠ Funcionário fora do setor autorizado (${Math.round(sectorDistance)}m de distância, máximo ${sectorRadius}m)`
+            );
+          } else {
+            validationMessages.push(
+              `✓ Funcionário dentro do setor autorizado (${Math.round(sectorDistance)}m)`
+            );
+          }
+        }
+      }
+
+      // BLOCK registration if ANY validation fails
+      if (!isTerminalLocationValid || !isEmployeeLocationValid) {
+        return res.status(403).json({ 
+          message: "Registro bloqueado por validação de localização",
+          validationMessages 
+        });
       }
 
       // Get client IP
@@ -3515,7 +3575,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({
           action: 'clock_in',
           time: now.toISOString(),
-          message: 'Entrada registrada com sucesso'
+          message: 'Entrada registrada com sucesso',
+          validationMessages
         });
       } else if (!existingEntry.clockOut) {
         // Clock out
@@ -3529,7 +3590,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({
           action: 'clock_out',
           time: now.toISOString(),
-          message: 'Saída registrada com sucesso'
+          message: 'Saída registrada com sucesso',
+          validationMessages
         });
       } else {
         return res.status(400).json({ 
