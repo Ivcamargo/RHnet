@@ -719,6 +719,7 @@ export const timeEntryAudit = pgTable("time_entry_audit", {
   oldValue: text("old_value"), // Valor anterior
   newValue: text("new_value"), // Valor novo
   justification: text("justification").notNull(), // Justificativa obrigatória
+  attachmentUrl: text("attachment_url"), // URL do arquivo de comprovante (atestado, recibo, etc)
   editedBy: varchar("edited_by").notNull(), // User ID que fez a alteração
   ipAddress: varchar("ip_address"), // IP do editor
   createdAt: timestamp("created_at").defaultNow(),
