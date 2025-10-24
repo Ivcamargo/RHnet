@@ -33,6 +33,7 @@ export default function TerminalPonto() {
   const [password, setPassword] = useState('');
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [autoLogoutTimer, setAutoLogoutTimer] = useState<number | null>(null);
+  const [isCaptureReady, setIsCaptureReady] = useState(false);
 
   // Validate device
   const validateDevice = async () => {
@@ -90,7 +91,8 @@ export default function TerminalPonto() {
     },
     onSuccess: (data: Employee) => {
       setEmployee(data);
-      setPassword('');
+      setIdentifier(''); // Limpa identifier
+      setPassword(''); // Limpa password
       setStep('clock');
       toast({
         title: "Login realizado",
@@ -108,10 +110,47 @@ export default function TerminalPonto() {
     }
   });
 
+  // Capture photo from camera
+  const capturePhoto = async (): Promise<string | null> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user' } 
+      });
+      
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+      
+      // Wait for video to be ready
+      await new Promise(resolve => {
+        video.onloadedmetadata = resolve;
+      });
+      
+      // Capture frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(video, 0, 0);
+      
+      // Stop camera
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Convert to base64
+      return canvas.toDataURL('image/jpeg', 0.8);
+    } catch (error) {
+      console.error('Error capturing photo:', error);
+      return null;
+    }
+  };
+
   // Clock in/out mutation
   const clockMutation = useMutation({
     mutationFn: async () => {
       if (!employee) throw new Error('Employee not found');
+
+      // Capture photo
+      const photoUrl = await capturePhoto();
 
       // Get current location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -135,7 +174,7 @@ export default function TerminalPonto() {
           location: device?.location || 'Terminal',
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          photoUrl: null
+          photoUrl
         })
       });
 
