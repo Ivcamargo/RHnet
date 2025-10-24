@@ -2,8 +2,8 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Printer } from "lucide-react";
-import { Certificate, User } from "@shared/schema";
+import { Award, Download, Printer, Building2 } from "lucide-react";
+import { Certificate, User, Company } from "@shared/schema";
 
 export default function CertificateView() {
   const params = useParams();
@@ -16,6 +16,11 @@ export default function CertificateView() {
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/auth/user"],
+  });
+
+  const { data: company } = useQuery<Company>({
+    queryKey: [`/api/companies/${certificate?.companyId}`],
+    enabled: !!certificate?.companyId,
   });
 
   if (isLoading) {
@@ -76,6 +81,15 @@ export default function CertificateView() {
                 <p className="text-3xl font-bold text-foreground">
                   {user ? `${user.firstName} ${user.lastName}` : "Aluno"}
                 </p>
+
+                {company && (
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Building2 className="h-4 w-4" />
+                    <p className="text-base">
+                      {company.name}
+                    </p>
+                  </div>
+                )}
 
                 <p className="text-lg text-muted-foreground">
                   concluiu com êxito o curso
