@@ -62,8 +62,13 @@ export default function CertificateView() {
           <CardContent className="p-12">
             <div className="text-center space-y-8">
               {/* Header */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Award className="h-16 w-16 text-primary mx-auto" />
+                {company && (
+                  <h2 className="text-3xl font-bold text-foreground">
+                    {company.name}
+                  </h2>
+                )}
                 <h1 className="text-4xl font-serif font-bold text-primary">
                   Certificado de Conclusão
                 </h1>
@@ -81,15 +86,6 @@ export default function CertificateView() {
                 <p className="text-3xl font-bold text-foreground">
                   {user ? `${user.firstName} ${user.lastName}` : "Aluno"}
                 </p>
-
-                {company && (
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Building2 className="h-4 w-4" />
-                    <p className="text-base">
-                      {company.name}
-                    </p>
-                  </div>
-                )}
 
                 <p className="text-lg text-muted-foreground">
                   concluiu com êxito o curso
