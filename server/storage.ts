@@ -90,7 +90,7 @@ import {
   type RotationAudit,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, isNull, desc, gte, lte, sql, ne } from "drizzle-orm";
+import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
 
 // Local type aliases for tables that don't have exported types
 type InsertTimeEntry = typeof timeEntries.$inferInsert;
