@@ -3612,7 +3612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const timeEntry = await storage.createTimeEntry({
           userId: tokenData.userId,
           date: today,
-          clockInTime: now.toISOString(),
+          clockInTime: now,
           clockInPhotoUrl: photoUrl || null,
           clockInIp: clientIp,
           clockInLocation: location,
@@ -3633,7 +3633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Clock out - update existing entry
         const updated = await storage.updateTimeEntry(activeEntry.id, {
-          clockOutTime: now.toISOString(),
+          clockOutTime: now,
           clockOutPhotoUrl: photoUrl || null,
           clockOutIp: clientIp,
           clockOutLocation: location,
