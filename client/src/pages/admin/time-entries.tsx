@@ -18,7 +18,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatBrazilianDateTime } from "@shared/timezone";
+import { formatBrazilianDateTime, formatToDateTimeLocal, convertLocalToUTC } from "@shared/timezone";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 
@@ -82,8 +82,8 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
   const form = useForm<EditTimeEntryForm>({
     resolver: zodResolver(editTimeEntrySchema),
     defaultValues: {
-      clockInTime: entry.clockInTime ? new Date(entry.clockInTime).toISOString().slice(0, 16) : '',
-      clockOutTime: entry.clockOutTime ? new Date(entry.clockOutTime).toISOString().slice(0, 16) : '',
+      clockInTime: entry.clockInTime ? formatToDateTimeLocal(entry.clockInTime) : '',
+      clockOutTime: entry.clockOutTime ? formatToDateTimeLocal(entry.clockOutTime) : '',
       justification: '',
     },
   });

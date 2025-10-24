@@ -103,3 +103,71 @@ export function getBrazilianDateString(): string {
   // Retorna no formato YYYY-MM-DD
   return `${partObj.year}-${partObj.month}-${partObj.day}`;
 }
+
+/**
+ * Converte uma string datetime-local (YYYY-MM-DDTHH:MM) para um Date UTC
+ * assumindo que a string está no timezone brasileiro
+ */
+export function convertLocalToUTC(localDateTimeString: string): Date {
+  if (!localDateTimeString) return new Date();
+  
+  // Parse da string local (formato: "2025-10-24T08:00")
+  const [datePart, timePart] = localDateTimeString.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = timePart.split(':').map(Number);
+  
+  // Criar string no formato que o Date reconhece como timezone brasileiro
+  // Usamos Intl para obter o offset correto
+  const localDate = new Date(year, month - 1, day, hour, minute, 0);
+  
+  // Obter o offset do Brasil em relação ao UTC (geralmente -3 horas, -180 minutos)
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  // Criar a data no timezone do Brasil
+  const brazilDate = new Date(year, month - 1, day, hour, minute, 0);
+  
+  // Obter offset em minutos
+  const utcDate = new Date(brazilDate.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const brDate = new Date(brazilDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const offset = (utcDate.getTime() - brDate.getTime());
+  
+  // Aplicar offset para converter para UTC
+  return new Date(brazilDate.getTime() - offset);
+}
+
+/**
+ * Converte uma data UTC para o formato datetime-local (YYYY-MM-DDTHH:MM)
+ * no timezone brasileiro para usar em inputs HTML
+ */
+export function formatToDateTimeLocal(utcDate: Date | string): string {
+  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+  
+  // Converter para hora do Brasil
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const partObj = parts.reduce((obj, part) => {
+    obj[part.type] = part.value;
+    return obj;
+  }, {} as any);
+  
+  // Retornar no formato YYYY-MM-DDTHH:MM
+  return `${partObj.year}-${partObj.month}-${partObj.day}T${partObj.hour}:${partObj.minute}`;
+}

@@ -63,7 +63,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { getBrazilianTime, getBrazilianDateString, convertToLocal } from "../shared/timezone";
+import { getBrazilianTime, getBrazilianDateString, convertToLocal, convertLocalToUTC } from "../shared/timezone";
 import { parse } from "csv-parse/sync";
 import { stringify } from "csv-stringify/sync";
 
@@ -3426,16 +3426,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Prepare update data
+      // Get client IP address
+      const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+      const clientIp = typeof ipAddress === 'string' ? ipAddress.split(',')[0].trim() : 'unknown';
+
+      // Prepare update data - converter de hora local (Brasil) para UTC
       const updateData: any = {
-        clockInTime: new Date(clockInTime),
+        clockInTime: convertLocalToUTC(clockInTime),
         justification: `${existingEntry.justification || ''}\n[EDITADO ADMIN]: ${justification}`.trim(),
         lastModifiedBy: currentUser.id,
         lastModifiedAt: getBrazilianTime(),
       };
 
       if (clockOutTime && clockOutTime.trim() !== '') {
-        updateData.clockOutTime = new Date(clockOutTime);
+        updateData.clockOutTime = convertLocalToUTC(clockOutTime);
         updateData.status = 'completed';
         
         // Recalculate total hours
@@ -3464,6 +3468,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update the time entry
       const updatedEntry = await storage.updateTimeEntry(entryId, updateData);
+
+      // Save detailed change history in timeEntryAudit table
+      // Track clockInTime changes
+      if (existingEntry.clockInTime && updateData.clockInTime) {
+        const oldTime = existingEntry.clockInTime.toISOString();
+        const newTime = updateData.clockInTime.toISOString();
+        if (oldTime !== newTime) {
+          await storage.createTimeEntryAudit({
+            timeEntryId: entryId,
+            fieldName: 'clockInTime',
+            oldValue: oldTime,
+            newValue: newTime,
+            justification,
+            editedBy: currentUser.id,
+            ipAddress: clientIp,
+          });
+        }
+      }
+
+      // Track clockOutTime changes
+      if (existingEntry.clockOutTime || updateData.clockOutTime) {
+        const oldTime = existingEntry.clockOutTime ? existingEntry.clockOutTime.toISOString() : null;
+        const newTime = updateData.clockOutTime ? updateData.clockOutTime.toISOString() : null;
+        if (oldTime !== newTime) {
+          await storage.createTimeEntryAudit({
+            timeEntryId: entryId,
+            fieldName: 'clockOutTime',
+            oldValue: oldTime,
+            newValue: newTime,
+            justification,
+            editedBy: currentUser.id,
+            ipAddress: clientIp,
+          });
+        }
+      }
 
       // Create detailed audit log
       await createAuditLog(

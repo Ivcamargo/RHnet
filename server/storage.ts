@@ -21,6 +21,7 @@ import {
   employeeCourses,
   certificates,
   auditLog,
+  timeEntryAudit,
   timePeriods,
   rotationTemplates,
   rotationSegments,
@@ -1092,6 +1093,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(timeEntries.id, id))
       .returning();
     return updatedEntry;
+  }
+
+  async createTimeEntryAudit(audit: {
+    timeEntryId: number;
+    fieldName: string;
+    oldValue: string | null;
+    newValue: string | null;
+    justification: string;
+    editedBy: string;
+    ipAddress?: string;
+  }) {
+    const [newAudit] = await db.insert(timeEntryAudit).values(audit).returning();
+    return newAudit;
+  }
+
+  async getTimeEntryAuditHistory(timeEntryId: number) {
+    return await db
+      .select()
+      .from(timeEntryAudit)
+      .where(eq(timeEntryAudit.timeEntryId, timeEntryId))
+      .orderBy(desc(timeEntryAudit.createdAt));
   }
 
   async getTimeEntriesByUser(userId: string, startDate?: string, endDate?: string): Promise<TimeEntry[]> {
