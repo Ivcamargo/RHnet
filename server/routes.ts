@@ -566,6 +566,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for audit attachment uploads (comprovantes)
+  const auditUploadsDir = path.join(process.cwd(), 'uploads', 'audit-attachments');
+  if (!fs.existsSync(auditUploadsDir)) {
+    fs.mkdirSync(auditUploadsDir, { recursive: true });
+  }
+
+  const auditUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, auditUploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'comprovante-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit for attachments
+    },
+    fileFilter: (req, file, cb) => {
+      // Accept images and PDFs only
+      const allowedTypes = /jpeg|jpg|png|pdf/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Apenas imagens (JPEG, PNG) e PDFs são permitidos'));
+      }
+    }
+  });
+
   // Configure multer for CSV uploads
   const csvUpload = multer({
     storage: multer.memoryStorage(), // Store in memory for parsing
@@ -3387,6 +3420,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload attachment for time entry audit
+  app.post('/api/admin/time-entry-attachment', isAuthenticatedHybrid, auditUpload.single('attachment'), async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Return the file path relative to uploads directory
+      const fileUrl = `/uploads/audit-attachments/${req.file.filename}`;
+      
+      res.json({ 
+        success: true, 
+        url: fileUrl,
+        filename: req.file.originalname
+      });
+    } catch (error) {
+      console.error("Error uploading attachment:", error);
+      res.status(500).json({ message: "Failed to upload attachment" });
+    }
+  });
+
   // Edit time entry (admin only)
   app.put('/api/admin/time-entries/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
@@ -3399,7 +3458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const entryId = parseInt(req.params.id);
-      const { clockInTime, clockOutTime, justification } = req.body;
+      const { clockInTime, clockOutTime, justification, attachmentUrl } = req.body;
 
       if (!justification || justification.length < 5) {
         return res.status(400).json({ message: "Justification is required and must be at least 5 characters long" });
@@ -3481,6 +3540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             oldValue: oldTime,
             newValue: newTime,
             justification,
+            attachmentUrl: attachmentUrl || null,
             editedBy: currentUser.id,
             ipAddress: clientIp,
           });
@@ -3498,6 +3558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             oldValue: oldTime,
             newValue: newTime,
             justification,
+            attachmentUrl: attachmentUrl || null,
             editedBy: currentUser.id,
             ipAddress: clientIp,
           });

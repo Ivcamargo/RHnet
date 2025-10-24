@@ -1101,6 +1101,7 @@ export class DatabaseStorage implements IStorage {
     oldValue: string | null;
     newValue: string | null;
     justification: string;
+    attachmentUrl?: string | null;
     editedBy: string;
     ipAddress?: string;
   }) {
