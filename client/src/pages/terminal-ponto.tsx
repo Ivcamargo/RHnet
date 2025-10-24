@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Clock, User, LogOut, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import FacialRecognition from "@/components/time-clock/facial-recognition";
 
 type Device = {
   id: number;
@@ -34,7 +35,8 @@ export default function TerminalPonto() {
   const [password, setPassword] = useState('');
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [autoLogoutTimer, setAutoLogoutTimer] = useState<number | null>(null);
-  const [isCaptureReady, setIsCaptureReady] = useState(false);
+  const [showFacialRecognition, setShowFacialRecognition] = useState(false);
+  const [capturedPhotoUrl, setCapturedPhotoUrl] = useState<string | null>(null);
 
   // Validate device
   const validateDevice = async () => {
@@ -111,47 +113,24 @@ export default function TerminalPonto() {
     }
   });
 
-  // Capture photo from camera
-  const capturePhoto = async (): Promise<string | null> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' } 
-      });
-      
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.play();
-      
-      // Wait for video to be ready
-      await new Promise(resolve => {
-        video.onloadedmetadata = resolve;
-      });
-      
-      // Capture frame
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(video, 0, 0);
-      
-      // Stop camera
-      stream.getTracks().forEach(track => track.stop());
-      
-      // Convert to base64
-      return canvas.toDataURL('image/jpeg', 0.8);
-    } catch (error) {
-      console.error('Error capturing photo:', error);
-      return null;
-    }
+  // Handle facial recognition complete
+  const handleFacialRecognitionComplete = (faceData: any) => {
+    setShowFacialRecognition(false);
+    setCapturedPhotoUrl(faceData?.photoUrl || null);
+    
+    // After photo capture, proceed with clock
+    clockMutation.mutate();
+  };
+
+  // Handle facial recognition cancel
+  const handleFacialRecognitionCancel = () => {
+    setShowFacialRecognition(false);
   };
 
   // Clock in/out mutation
   const clockMutation = useMutation({
     mutationFn: async () => {
       if (!employee) throw new Error('Employee not found');
-
-      // Capture photo
-      const photoUrl = await capturePhoto();
 
       // Get current location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -175,7 +154,7 @@ export default function TerminalPonto() {
           location: device?.location || 'Terminal',
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          photoUrl
+          photoUrl: capturedPhotoUrl
         })
       });
 
@@ -269,7 +248,8 @@ export default function TerminalPonto() {
 
   const handleClock = () => {
     resetAutoLogout();
-    clockMutation.mutate();
+    // Show facial recognition modal
+    setShowFacialRecognition(true);
   };
 
   // Cleanup on unmount
@@ -444,6 +424,13 @@ export default function TerminalPonto() {
           <p>Sistema de Registro de Ponto - RHNet</p>
         </div>
       </div>
+
+      {/* Facial Recognition Modal */}
+      <FacialRecognition
+        isActive={showFacialRecognition}
+        onComplete={handleFacialRecognitionComplete}
+        onCancel={handleFacialRecognitionCancel}
+      />
     </div>
   );
 }
