@@ -3517,24 +3517,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 2. Validate EMPLOYEE sector location (if configured)
       if (user.departmentId && latitude && longitude) {
         const department = await storage.getDepartment(user.departmentId);
-        if (department && department.latitude && department.longitude) {
-          const sectorDistance = calculateDistance(
-            department.latitude,
-            department.longitude,
-            latitude,
-            longitude
-          );
-          const sectorRadius = department.geofenceRadius || 100;
-          
-          if (sectorDistance > sectorRadius) {
-            isEmployeeLocationValid = false;
-            validationMessages.push(
-              `⚠ Funcionário fora do setor autorizado (${Math.round(sectorDistance)}m de distância, máximo ${sectorRadius}m)`
+        if (department && department.sectorId) {
+          const sector = await storage.getSector(department.sectorId);
+          if (sector && sector.latitude && sector.longitude) {
+            const sectorDistance = calculateDistance(
+              sector.latitude,
+              sector.longitude,
+              latitude,
+              longitude
             );
-          } else {
-            validationMessages.push(
-              `✓ Funcionário dentro do setor autorizado (${Math.round(sectorDistance)}m)`
-            );
+            const sectorRadius = sector.radius || 100;
+            
+            if (sectorDistance > sectorRadius) {
+              isEmployeeLocationValid = false;
+              validationMessages.push(
+                `⚠ Funcionário fora do setor autorizado (${Math.round(sectorDistance)}m de distância, máximo ${sectorRadius}m)`
+              );
+            } else {
+              validationMessages.push(
+                `✓ Funcionário dentro do setor autorizado (${Math.round(sectorDistance)}m)`
+              );
+            }
           }
         }
       }
@@ -3627,7 +3630,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Company ID required" });
       }
 
-      const { deviceCode, deviceName, location } = req.body;
+      const { deviceCode, deviceName, location, latitude, longitude, radius } = req.body;
 
       // Check if device code already exists
       const existing = await storage.getAuthorizedDeviceByCode(deviceCode);
@@ -3640,6 +3643,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         deviceCode,
         deviceName,
         location,
+        latitude,
+        longitude,
+        radius,
         isActive: true,
       });
 

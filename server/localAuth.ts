@@ -137,6 +137,8 @@ export function isAuthenticatedHybrid(req: any, res: any, next: any) {
               email: user.email,
               first_name: user.firstName,
               last_name: user.lastName,
+              role: user.role,
+              companyId: user.companyId,
             }
           };
           return next();
