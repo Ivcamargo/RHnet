@@ -3598,24 +3598,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                        req.socket.remoteAddress || 
                        'unknown';
 
-      // Get entry date (current Brazil time)
+      // Check if user is already clocked in
+      const activeEntry = await storage.getActiveTimeEntry(tokenData.userId);
       const now = new Date();
-      const entryDate = now.toISOString().split('T')[0];
 
-      // Check existing entry for today
-      const existingEntry = await storage.getTimeEntry(tokenData.userId, entryDate);
-
-      if (!existingEntry) {
-        // Clock in
+      if (!activeEntry) {
+        // Clock in - create new entry
+        const today = now.toISOString().split('T')[0];
         const timeEntry = await storage.createTimeEntry({
           userId: tokenData.userId,
-          date: entryDate,
-          clockIn: now.toISOString(),
+          date: today,
+          clockInTime: now.toISOString(),
           clockInPhotoUrl: photoUrl || null,
           clockInIp: clientIp,
           clockInLocation: location,
           departmentId: user.departmentId || null,
           deviceId: device.id,
+          status: 'active',
+          clockInLatitude: latitude,
+          clockInLongitude: longitude,
+          clockInValidationMessages: validationMessages.join('\n'),
         });
 
         res.json({
@@ -3624,13 +3626,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Entrada registrada com sucesso',
           validationMessages
         });
-      } else if (!existingEntry.clockOut) {
-        // Clock out
-        const updated = await storage.updateTimeEntry(existingEntry.id, {
-          clockOut: now.toISOString(),
+      } else {
+        // Clock out - update existing entry
+        const updated = await storage.updateTimeEntry(activeEntry.id, {
+          clockOutTime: now.toISOString(),
           clockOutPhotoUrl: photoUrl || null,
           clockOutIp: clientIp,
           clockOutLocation: location,
+          status: 'completed',
+          clockOutLatitude: latitude,
+          clockOutLongitude: longitude,
+          clockOutValidationMessages: validationMessages.join('\n'),
         });
 
         res.json({
@@ -3638,10 +3644,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           time: now.toISOString(),
           message: 'Saída registrada com sucesso',
           validationMessages
-        });
-      } else {
-        return res.status(400).json({ 
-          message: "Você já registrou entrada e saída hoje" 
         });
       }
     } catch (error) {
