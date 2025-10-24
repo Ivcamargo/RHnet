@@ -28,6 +28,7 @@ import CertificateView from "@/pages/certificate-view";
 import Sectors from "@/pages/sectors";
 import TimePeriods from "@/pages/admin/time-periods";
 import AdminTimeEntries from "@/pages/admin/time-entries";
+import Terminals from "@/pages/admin/terminals";
 import RotationManagement from "@/pages/rotation-management";
 import Recruitment from "@/pages/recruitment";
 import PublicJobs from "@/pages/public-jobs";
@@ -108,6 +109,7 @@ function Router() {
       <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} />} />
       <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} />} />
       <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
+      <Route path="/admin/terminals" component={() => <ProtectedRoute component={Terminals} />} />
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
       
