@@ -40,20 +40,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { format } from "date-fns";
-import { MapContainer, TileLayer, Marker, Circle } from "react-leaflet";
-import { icon } from "leaflet";
+import { LocationMap } from "@/components/ui/location-map";
 import "leaflet/dist/leaflet.css";
-
-// Fix for default markers in react-leaflet
-const defaultIcon = icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
 
 type Terminal = {
   id: number;
@@ -238,7 +226,7 @@ export default function Terminals() {
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
+        <TopBar title="Terminais de Ponto" />
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto py-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -355,51 +343,15 @@ export default function Terminals() {
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          <MapPin className="inline h-4 w-4 mr-1" />
-                          Localização do Terminal
-                        </label>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Clique no mapa para definir a localização do terminal
-                        </p>
-                        <div className="h-[400px] rounded-md overflow-hidden border">
-                          <MapContainer
-                            center={[createForm.watch('latitude') ?? -23.5505, createForm.watch('longitude') ?? -46.6333]}
-                            zoom={15}
-                            style={{ height: '100%', width: '100%' }}
-                            key={`create-${createForm.watch('latitude')}-${createForm.watch('longitude')}`}
-                          >
-                            <TileLayer
-                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                            {createForm.watch('latitude') && createForm.watch('longitude') && (
-                              <>
-                                <Marker
-                                  position={[createForm.watch('latitude')!, createForm.watch('longitude')!]}
-                                  icon={defaultIcon}
-                                  eventHandlers={{
-                                    click: () => {
-                                      if (navigator.geolocation) {
-                                        navigator.geolocation.getCurrentPosition((position) => {
-                                          createForm.setValue('latitude', position.coords.latitude);
-                                          createForm.setValue('longitude', position.coords.longitude);
-                                        });
-                                      }
-                                    }
-                                  }}
-                                />
-                                <Circle
-                                  center={[createForm.watch('latitude')!, createForm.watch('longitude')!]}
-                                  radius={createForm.watch('radius') ?? 100}
-                                  pathOptions={{ color: 'hsl(175, 65%, 45%)', fillColor: 'hsl(175, 65%, 45%)', fillOpacity: 0.2 }}
-                                />
-                              </>
-                            )}
-                          </MapContainer>
-                        </div>
-                      </div>
+                      <LocationMap
+                        latitude={createForm.watch('latitude') ?? -23.5505}
+                        longitude={createForm.watch('longitude') ?? -46.6333}
+                        radius={createForm.watch('radius') ?? 100}
+                        onLocationChange={(lat, lng) => {
+                          createForm.setValue('latitude', lat);
+                          createForm.setValue('longitude', lng);
+                        }}
+                      />
                     </div>
                   </div>
                   
@@ -608,41 +560,15 @@ export default function Terminals() {
                   </div>
 
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        <MapPin className="inline h-4 w-4 mr-1" />
-                        Localização do Terminal
-                      </label>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Clique no mapa para atualizar a localização do terminal
-                      </p>
-                      <div className="h-[400px] rounded-md overflow-hidden border">
-                        <MapContainer
-                          center={[editForm.watch('latitude') ?? -23.5505, editForm.watch('longitude') ?? -46.6333]}
-                          zoom={15}
-                          style={{ height: '100%', width: '100%' }}
-                          key={`edit-${editForm.watch('latitude')}-${editForm.watch('longitude')}`}
-                        >
-                          <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          />
-                          {editForm.watch('latitude') && editForm.watch('longitude') && (
-                            <>
-                              <Marker
-                                position={[editForm.watch('latitude')!, editForm.watch('longitude')!]}
-                                icon={defaultIcon}
-                              />
-                              <Circle
-                                center={[editForm.watch('latitude')!, editForm.watch('longitude')!]}
-                                radius={editForm.watch('radius') ?? 100}
-                                pathOptions={{ color: 'hsl(175, 65%, 45%)', fillColor: 'hsl(175, 65%, 45%)', fillOpacity: 0.2 }}
-                              />
-                            </>
-                          )}
-                        </MapContainer>
-                      </div>
-                    </div>
+                    <LocationMap
+                      latitude={editForm.watch('latitude') ?? -23.5505}
+                      longitude={editForm.watch('longitude') ?? -46.6333}
+                      radius={editForm.watch('radius') ?? 100}
+                      onLocationChange={(lat, lng) => {
+                        editForm.setValue('latitude', lat);
+                        editForm.setValue('longitude', lng);
+                      }}
+                    />
                   </div>
                 </div>
                 
