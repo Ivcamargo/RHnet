@@ -107,41 +107,27 @@ export function getBrazilianDateString(): string {
 /**
  * Converte uma string datetime-local (YYYY-MM-DDTHH:MM) para um Date UTC
  * assumindo que a string está no timezone brasileiro
+ * 
+ * Exemplo: "2025-10-23T08:00" no Brasil (UTC-3) = 2025-10-23T11:00:00.000Z
+ * 
+ * ABORDAGEM SIMPLES: O Brasil está em UTC-3, então adicionamos 3 horas
  */
 export function convertLocalToUTC(localDateTimeString: string): Date {
   if (!localDateTimeString) return new Date();
   
-  // Parse da string local (formato: "2025-10-24T08:00")
+  // Parse da string (formato: "2025-10-24T08:00")
   const [datePart, timePart] = localDateTimeString.split('T');
+  if (!datePart || !timePart) return new Date();
+  
   const [year, month, day] = datePart.split('-').map(Number);
   const [hour, minute] = timePart.split(':').map(Number);
   
-  // Criar string no formato que o Date reconhece como timezone brasileiro
-  // Usamos Intl para obter o offset correto
-  const localDate = new Date(year, month - 1, day, hour, minute, 0);
+  // Criar Date usando UTC diretamente (Date.UTC retorna timestamp UTC)
+  // O usuário digitou 08:00 no Brasil (UTC-3)
+  // Para salvar em UTC, precisamos ADICIONAR 3 horas: 08:00 + 3 = 11:00 UTC
+  const utcTimestamp = Date.UTC(year, month - 1, day, hour + 3, minute, 0, 0);
   
-  // Obter o offset do Brasil em relação ao UTC (geralmente -3 horas, -180 minutos)
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  // Criar a data no timezone do Brasil
-  const brazilDate = new Date(year, month - 1, day, hour, minute, 0);
-  
-  // Obter offset em minutos
-  const utcDate = new Date(brazilDate.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const brDate = new Date(brazilDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  const offset = (utcDate.getTime() - brDate.getTime());
-  
-  // Aplicar offset para converter para UTC
-  return new Date(brazilDate.getTime() - offset);
+  return new Date(utcTimestamp);
 }
 
 /**
