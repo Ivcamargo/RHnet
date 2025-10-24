@@ -286,6 +286,7 @@ export const timeEntries = pgTable("time_entries", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),
   departmentId: integer("department_id").notNull(),
+  deviceId: integer("device_id"), // ID do terminal autorizado (se registrado via terminal fixo)
   clockInTime: timestamp("clock_in_time"),
   clockOutTime: timestamp("clock_out_time"),
   clockInLatitude: real("clock_in_latitude"),
@@ -362,6 +363,32 @@ export const faceProfiles = pgTable("face_profiles", {
     columns: [table.userId],
     foreignColumns: [users.id],
   }).onDelete('cascade'),
+}));
+
+// Authorized devices for fixed time clock terminals
+export const authorizedDevices = pgTable("authorized_devices", {
+  id: serial("id").primaryKey(),
+  deviceCode: varchar("device_code").notNull().unique(), // TERMINAL-001, etc
+  deviceName: varchar("device_name").notNull(),
+  companyId: integer("company_id").notNull(),
+  sectorId: integer("sector_id"), // Optional: device location
+  description: text("description"),
+  latitude: real("latitude"), // Device geofence center
+  longitude: real("longitude"), // Device geofence center
+  geofenceRadius: integer("geofence_radius").default(100), // Meters
+  isActive: boolean("is_active").default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }).onDelete('cascade'),
+  sectorReference: foreignKey({
+    columns: [table.sectorId],
+    foreignColumns: [sectors.id],
+  }).onDelete('set null'),
 }));
 
 // Message categories for organizing communications
@@ -759,6 +786,7 @@ export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type TimeEntryAudit = typeof timeEntryAudit.$inferSelect;
 export type TimePeriod = typeof timePeriods.$inferSelect;
+export type AuthorizedDevice = typeof authorizedDevices.$inferSelect;
 
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -1038,6 +1066,14 @@ export const insertTimePeriodSchema = createInsertSchema(timePeriods).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+export const insertAuthorizedDeviceSchema = createInsertSchema(authorizedDevices).omit({
+  id: true,
+  lastUsedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertAuthorizedDevice = z.infer<typeof insertAuthorizedDeviceSchema>;
 
 export const insertBreakEntrySchema = createInsertSchema(breakEntries).omit({
   id: true,
