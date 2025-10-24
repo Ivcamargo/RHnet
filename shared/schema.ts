@@ -711,6 +711,28 @@ export const auditLog = pgTable("audit_log", {
   }).onDelete('set null'),
 }));
 
+// Time Entry Audit table - tracks all changes to time entries
+export const timeEntryAudit = pgTable("time_entry_audit", {
+  id: serial("id").primaryKey(),
+  timeEntryId: integer("time_entry_id").notNull(),
+  fieldName: varchar("field_name").notNull(), // clockInTime, clockOutTime, etc.
+  oldValue: text("old_value"), // Valor anterior
+  newValue: text("new_value"), // Valor novo
+  justification: text("justification").notNull(), // Justificativa obrigatória
+  editedBy: varchar("edited_by").notNull(), // User ID que fez a alteração
+  ipAddress: varchar("ip_address"), // IP do editor
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  timeEntryReference: foreignKey({
+    columns: [table.timeEntryId],
+    foreignColumns: [timeEntries.id],
+  }).onDelete('cascade'),
+  editedByReference: foreignKey({
+    columns: [table.editedBy],
+    foreignColumns: [users.id],
+  }).onDelete('set null'),
+}));
+
 // Schema types and validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -734,6 +756,7 @@ export type CourseAnswer = typeof courseAnswers.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
+export type TimeEntryAudit = typeof timeEntryAudit.$inferSelect;
 export type TimePeriod = typeof timePeriods.$inferSelect;
 
 // Insert schemas using drizzle-zod
