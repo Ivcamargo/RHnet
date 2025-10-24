@@ -3584,10 +3584,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // BLOCK registration if ANY validation fails
-      if (!isTerminalLocationValid || !isEmployeeLocationValid) {
+      // BLOCK registration only if TERMINAL validation fails
+      // Employee sector validation is informative only when using terminal
+      if (!isTerminalLocationValid) {
         return res.status(403).json({ 
-          message: "Registro bloqueado por validação de localização",
+          message: "Registro bloqueado: terminal fora da área autorizada",
           validationMessages 
         });
       }

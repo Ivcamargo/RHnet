@@ -204,7 +204,7 @@ export default function TerminalPonto() {
         title: "Sessão encerrada",
         description: "Logout automático por inatividade",
       });
-    }, 5000); // 5 seconds
+    }, 60000); // 60 seconds
 
     setAutoLogoutTimer(timer);
   };
