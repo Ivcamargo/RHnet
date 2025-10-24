@@ -1118,8 +1118,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeEntriesByDate(date: string, companyId: number): Promise<TimeEntry[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        id: timeEntries.id,
+        userId: timeEntries.userId,
+        departmentId: timeEntries.departmentId,
+        clockInTime: timeEntries.clockInTime,
+        clockOutTime: timeEntries.clockOutTime,
+        clockInLatitude: timeEntries.clockInLatitude,
+        clockInLongitude: timeEntries.clockInLongitude,
+        clockOutLatitude: timeEntries.clockOutLatitude,
+        clockOutLongitude: timeEntries.clockOutLongitude,
+        totalHours: timeEntries.totalHours,
+        regularHours: timeEntries.regularHours,
+        overtimeHours: timeEntries.overtimeHours,
+        date: timeEntries.date,
+        status: timeEntries.status,
+        entryType: timeEntries.entryType,
+        faceRecognitionVerified: timeEntries.faceRecognitionVerified,
+        clockInPhotoUrl: timeEntries.clockInPhotoUrl,
+        clockOutPhotoUrl: timeEntries.clockOutPhotoUrl,
+        justification: timeEntries.justification,
+        approvalStatus: timeEntries.approvalStatus,
+        approvedBy: timeEntries.approvedBy,
+        approvedAt: timeEntries.approvedAt,
+        clockInIpAddress: timeEntries.clockInIpAddress,
+        clockOutIpAddress: timeEntries.clockOutIpAddress,
+        clockInWithinGeofence: timeEntries.clockInWithinGeofence,
+        clockOutWithinGeofence: timeEntries.clockOutWithinGeofence,
+        clockInShiftCompliant: timeEntries.clockInShiftCompliant,
+        clockOutShiftCompliant: timeEntries.clockOutShiftCompliant,
+        clockInValidationMessage: timeEntries.clockInValidationMessage,
+        clockOutValidationMessage: timeEntries.clockOutValidationMessage,
+        clockInDistanceMeters: timeEntries.clockInDistanceMeters,
+        clockOutDistanceMeters: timeEntries.clockOutDistanceMeters,
+        expectedHours: timeEntries.expectedHours,
+        lateMinutes: timeEntries.lateMinutes,
+        shortfallMinutes: timeEntries.shortfallMinutes,
+        irregularityReasons: timeEntries.irregularityReasons,
+        createdAt: timeEntries.createdAt,
+        updatedAt: timeEntries.updatedAt,
+      })
       .from(timeEntries)
       .leftJoin(users, eq(timeEntries.userId, users.id))
       .where(and(
@@ -1127,6 +1166,8 @@ export class DatabaseStorage implements IStorage {
         eq(users.companyId, companyId)
       ))
       .orderBy(desc(timeEntries.clockInTime));
+    
+    return results as TimeEntry[];
   }
 
   async getTimeEntry(id: number): Promise<TimeEntry | null> {
