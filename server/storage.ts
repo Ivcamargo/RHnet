@@ -9,6 +9,7 @@ import {
   timeEntries,
   breakEntries,
   faceProfiles,
+  authorizedDevices,
   companies,
   holidays,
   messages,
@@ -79,6 +80,8 @@ import {
   type InsertAuditLog,
   type TimePeriod,
   type InsertTimePeriod,
+  type AuthorizedDevice,
+  type InsertAuthorizedDevice,
   type RotationTemplate,
   type InsertRotationTemplate,
   type RotationSegment,
@@ -291,6 +294,15 @@ export interface IStorage {
   closeTimePeriod(id: number, closedBy: string, reason: string): Promise<TimePeriod>;
   reopenTimePeriod(id: number, reopenedBy: string, reason: string): Promise<TimePeriod>;
   canModifyTimeEntries(companyId: number, date: string): Promise<boolean>;
+  
+  // Authorized device operations
+  getAuthorizedDevices(companyId: number): Promise<AuthorizedDevice[]>;
+  getAuthorizedDevice(id: number): Promise<AuthorizedDevice | undefined>;
+  getAuthorizedDeviceByCode(deviceCode: string): Promise<AuthorizedDevice | undefined>;
+  createAuthorizedDevice(device: InsertAuthorizedDevice): Promise<AuthorizedDevice>;
+  updateAuthorizedDevice(id: number, device: Partial<InsertAuthorizedDevice>): Promise<AuthorizedDevice>;
+  deleteAuthorizedDevice(id: number): Promise<void>;
+  updateDeviceLastUsed(id: number): Promise<void>;
   
   // Enhanced user shift assignment operations with sequential validation
   validateSequentialAssignment(userId: string, shiftId: number, startDate?: string, endDate?: string, excludeAssignmentId?: number): Promise<{ valid: boolean; conflictingAssignments?: SelectUserShiftAssignment[] }>;
@@ -2158,6 +2170,61 @@ export class DatabaseStorage implements IStorage {
       );
     
     return closedPeriods.length === 0;
+  }
+
+  // Authorized device operations
+  async getAuthorizedDevices(companyId: number): Promise<AuthorizedDevice[]> {
+    return await db
+      .select()
+      .from(authorizedDevices)
+      .where(eq(authorizedDevices.companyId, companyId))
+      .orderBy(desc(authorizedDevices.createdAt));
+  }
+
+  async getAuthorizedDevice(id: number): Promise<AuthorizedDevice | undefined> {
+    const [device] = await db
+      .select()
+      .from(authorizedDevices)
+      .where(eq(authorizedDevices.id, id));
+    return device;
+  }
+
+  async getAuthorizedDeviceByCode(deviceCode: string): Promise<AuthorizedDevice | undefined> {
+    const [device] = await db
+      .select()
+      .from(authorizedDevices)
+      .where(eq(authorizedDevices.deviceCode, deviceCode));
+    return device;
+  }
+
+  async createAuthorizedDevice(device: InsertAuthorizedDevice): Promise<AuthorizedDevice> {
+    const [newDevice] = await db
+      .insert(authorizedDevices)
+      .values(device)
+      .returning();
+    return newDevice;
+  }
+
+  async updateAuthorizedDevice(id: number, device: Partial<InsertAuthorizedDevice>): Promise<AuthorizedDevice> {
+    const [updatedDevice] = await db
+      .update(authorizedDevices)
+      .set({ ...device, updatedAt: new Date() })
+      .where(eq(authorizedDevices.id, id))
+      .returning();
+    return updatedDevice;
+  }
+
+  async deleteAuthorizedDevice(id: number): Promise<void> {
+    await db
+      .delete(authorizedDevices)
+      .where(eq(authorizedDevices.id, id));
+  }
+
+  async updateDeviceLastUsed(id: number): Promise<void> {
+    await db
+      .update(authorizedDevices)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(authorizedDevices.id, id));
   }
 
   // Enhanced user shift assignment operations with sequential validation
