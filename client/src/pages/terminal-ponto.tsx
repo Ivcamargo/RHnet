@@ -330,6 +330,7 @@ export default function TerminalPonto() {
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="text-xl h-16"
                     data-testid="input-identifier"
+                    autoComplete="off"
                     autoFocus
                   />
                 </div>
@@ -342,6 +343,7 @@ export default function TerminalPonto() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="text-xl h-16"
                     data-testid="input-password"
+                    autoComplete="new-password"
                     onKeyDown={(e) => e.key === 'Enter' && loginMutation.mutate()}
                   />
                 </div>
@@ -351,6 +353,8 @@ export default function TerminalPonto() {
                       setStep('device');
                       setDevice(null);
                       setDeviceCode('');
+                      setIdentifier('');
+                      setPassword('');
                     }}
                     variant="outline"
                     size="lg"
