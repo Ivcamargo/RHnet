@@ -3348,15 +3348,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
-      const { date } = req.query;
-      if (!date) {
-        return res.status(400).json({ message: "Date parameter is required" });
+      const { startDate, endDate } = req.query;
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date parameters are required" });
       }
 
-      console.log("📅 Buscando registros para data:", date, "| Empresa:", currentUser.companyId);
+      console.log("📅 Buscando registros de", startDate, "até", endDate, "| Empresa:", currentUser.companyId);
 
-      // Get all time entries for the specified date within the admin's company
-      const timeEntries = await storage.getTimeEntriesByDate(date as string, currentUser.companyId);
+      // Get all time entries for the specified period within the admin's company
+      const timeEntries = await storage.getTimeEntriesByDateRange(startDate as string, endDate as string, currentUser.companyId);
       
       console.log("📊 Registros encontrados:", timeEntries.length);
       

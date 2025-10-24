@@ -220,19 +220,18 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
 
 export default function AdminTimeEntries() {
   const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState<string>(today);
+  const [endDate, setEndDate] = useState<string>(today);
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false); // Controls calendar popover state
 
   // Queries
-  const selectedDateString = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
-  
   const { data: entries = [], isLoading } = useQuery<TimeEntry[]>({
-    queryKey: ["/api/admin/time-entries", selectedDateString],
+    queryKey: ["/api/admin/time-entries", startDate, endDate],
     queryFn: async () => {
-      if (!selectedDateString) return [];
-      const response = await fetch(`/api/admin/time-entries?date=${selectedDateString}`, {
+      if (!startDate || !endDate) return [];
+      const response = await fetch(`/api/admin/time-entries?startDate=${startDate}&endDate=${endDate}`, {
         credentials: 'include',
       });
       if (!response.ok) {
@@ -240,7 +239,7 @@ export default function AdminTimeEntries() {
       }
       return response.json();
     },
-    enabled: !!selectedDateString,
+    enabled: !!startDate && !!endDate,
   });
 
   const getStatusBadge = (entry: TimeEntry) => {
@@ -294,37 +293,37 @@ export default function AdminTimeEntries() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Selecionar Data
+                    <CalendarIcon className="h-5 w-5" />
+                    Filtrar por Período
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[280px] justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
-                        )}
-                        data-testid="button-select-date"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Selecionar data"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => {
-                          setSelectedDate(date);
-                          setCalendarOpen(false);
-                        }}
-                        initialFocus
+                  <div className="flex flex-wrap gap-4 items-end">
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-sm font-medium mb-2">
+                        Data Inicial
+                      </label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        max={endDate}
+                        data-testid="input-start-date"
                       />
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-sm font-medium mb-2">
+                        Data Final
+                      </label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate}
+                        data-testid="input-end-date"
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

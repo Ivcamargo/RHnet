@@ -1109,7 +1109,32 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(timeEntries.date));
   }
 
-  async getTimeEntriesByDateRange(startDate: string, endDate: string): Promise<TimeEntry[]> {
+  async getTimeEntriesByDateRange(startDate: string, endDate: string, companyId?: number): Promise<TimeEntry[]> {
+    // If companyId is provided, filter by company users
+    if (companyId) {
+      const companyUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.companyId, companyId));
+      
+      const userIds = companyUsers.map(u => u.id);
+      
+      if (userIds.length === 0) {
+        return [];
+      }
+      
+      return await db
+        .select()
+        .from(timeEntries)
+        .where(and(
+          gte(timeEntries.date, startDate),
+          lte(timeEntries.date, endDate),
+          inArray(timeEntries.userId, userIds)
+        ))
+        .orderBy(desc(timeEntries.date));
+    }
+    
+    // Otherwise return all entries in the date range
     return await db
       .select()
       .from(timeEntries)
