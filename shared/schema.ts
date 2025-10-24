@@ -368,14 +368,13 @@ export const faceProfiles = pgTable("face_profiles", {
 // Authorized devices for fixed time clock terminals
 export const authorizedDevices = pgTable("authorized_devices", {
   id: serial("id").primaryKey(),
-  deviceCode: varchar("device_code").notNull().unique(), // TERMINAL-001, etc
-  deviceName: varchar("device_name").notNull(),
   companyId: integer("company_id").notNull(),
-  sectorId: integer("sector_id"), // Optional: device location
-  description: text("description"),
-  latitude: real("latitude"), // Device geofence center
-  longitude: real("longitude"), // Device geofence center
-  geofenceRadius: integer("geofence_radius").default(100), // Meters
+  deviceCode: varchar("device_code", { length: 50 }).notNull().unique(),
+  deviceName: varchar("device_name", { length: 100 }).notNull(),
+  location: varchar("location", { length: 100 }).notNull(), // Text description
+  latitude: real("latitude"), // Terminal geofence center
+  longitude: real("longitude"), // Terminal geofence center
+  radius: integer("radius").default(100), // Meters - geofence radius
   isActive: boolean("is_active").default(true),
   lastUsedAt: timestamp("last_used_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -385,10 +384,6 @@ export const authorizedDevices = pgTable("authorized_devices", {
     columns: [table.companyId],
     foreignColumns: [companies.id],
   }).onDelete('cascade'),
-  sectorReference: foreignKey({
-    columns: [table.sectorId],
-    foreignColumns: [sectors.id],
-  }).onDelete('set null'),
 }));
 
 // Message categories for organizing communications
