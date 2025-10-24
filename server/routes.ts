@@ -3396,13 +3396,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Get company name
+      const company = await storage.getCompany(device.companyId);
+
       res.json({ 
         valid: true,
         device: {
           id: device.id,
           deviceName: device.deviceName,
           location: device.location,
-          companyId: device.companyId
+          companyId: device.companyId,
+          companyName: company?.name || 'Empresa'
         }
       });
     } catch (error) {

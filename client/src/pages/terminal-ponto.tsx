@@ -12,6 +12,7 @@ type Device = {
   deviceName: string;
   location: string;
   companyId: number;
+  companyName: string;
 };
 
 type Employee = {
@@ -286,6 +287,11 @@ export default function TerminalPonto() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">RHNet Terminal</h1>
+          {device && (
+            <div className="mb-2">
+              <p className="text-cyan-200 text-2xl font-semibold">{device.companyName}</p>
+            </div>
+          )}
           <p className="text-blue-100 text-lg">Registro de Ponto</p>
         </div>
 
