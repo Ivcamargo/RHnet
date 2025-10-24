@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Edit, Clock, User, MapPin, Camera, AlertTriangle, Save, X } from "lucide-react";
+import { CalendarIcon, Edit, Clock, User, MapPin, Camera, AlertTriangle, Save, X, History as HistoryIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -76,8 +76,24 @@ interface EditTimeEntryDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface AuditHistoryEntry {
+  id: number;
+  fieldName: string;
+  oldValue: string | null;
+  newValue: string | null;
+  justification: string;
+  ipAddress?: string;
+  createdAt: string;
+  editor?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
 function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogProps) {
   const { toast } = useToast();
+  const [showHistory, setShowHistory] = useState(false);
 
   const form = useForm<EditTimeEntryForm>({
     resolver: zodResolver(editTimeEntrySchema),
@@ -86,6 +102,21 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
       clockOutTime: entry.clockOutTime ? formatToDateTimeLocal(entry.clockOutTime) : '',
       justification: '',
     },
+  });
+
+  // Fetch audit history
+  const { data: history = [] } = useQuery<AuditHistoryEntry[]>({
+    queryKey: ["/api/admin/time-entries", entry.id, "history"],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/time-entries/${entry.id}/history`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch history');
+      }
+      return response.json();
+    },
+    enabled: open && showHistory,
   });
 
   const editMutation = useMutation({
@@ -133,6 +164,78 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
             )}
           </div>
         </div>
+
+        {/* History Toggle Button */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowHistory(!showHistory)}
+          className="mb-4 w-full"
+          data-testid="button-toggle-history"
+        >
+          <HistoryIcon className="h-4 w-4 mr-2" />
+          {showHistory ? 'Ocultar Histórico' : 'Ver Histórico de Alterações'}
+        </Button>
+
+        {/* History Display */}
+        {showHistory && (
+          <div className="mb-4 max-h-64 overflow-y-auto border rounded-lg">
+            {history.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma alteração registrada</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {history.map((audit) => (
+                  <div key={audit.id} className="p-3 bg-white dark:bg-gray-900">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                          {audit.editor?.firstName} {audit.editor?.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500">{audit.editor?.email}</p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {format(parseISO(audit.createdAt), 'dd/MM/yyyy HH:mm')}
+                      </p>
+                    </div>
+                    
+                    <div className="text-sm mb-2">
+                      <p className="font-medium text-gray-700 dark:text-gray-300">
+                        Campo: {audit.fieldName === 'clockInTime' ? 'Entrada' : 'Saída'}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        <div>
+                          <p className="text-xs text-gray-500">De:</p>
+                          <p className="text-sm text-red-600 dark:text-red-400">
+                            {audit.oldValue ? formatBrazilianDateTime(audit.oldValue) : '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Para:</p>
+                          <p className="text-sm text-green-600 dark:text-green-400">
+                            {audit.newValue ? formatBrazilianDateTime(audit.newValue) : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs">
+                      <p className="font-medium text-gray-700 dark:text-gray-300 mb-1">Justificativa:</p>
+                      <p className="text-gray-600 dark:text-gray-400">{audit.justification}</p>
+                    </div>
+                    
+                    {audit.ipAddress && (
+                      <p className="text-xs text-gray-400 mt-1">IP: {audit.ipAddress}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

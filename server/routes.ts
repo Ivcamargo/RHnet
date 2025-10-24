@@ -3541,6 +3541,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get time entry audit history
+  app.get('/api/admin/time-entries/:id/history', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const entryId = parseInt(req.params.id);
+      
+      // Get the time entry to verify access
+      const timeEntry = await storage.getTimeEntry(entryId);
+      if (!timeEntry) {
+        return res.status(404).json({ message: "Time entry not found" });
+      }
+
+      // Verify the entry belongs to the admin's company
+      const entryUser = await storage.getUser(timeEntry.userId);
+      if (!entryUser || entryUser.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get audit history
+      const history = await storage.getTimeEntryAuditHistory(entryId);
+      
+      // Enrich with editor information
+      const enrichedHistory = await Promise.all(
+        history.map(async (entry) => {
+          const editor = await storage.getUser(entry.editedBy);
+          return {
+            ...entry,
+            editor: editor ? {
+              firstName: editor.firstName,
+              lastName: editor.lastName,
+              email: editor.email,
+            } : null,
+          };
+        })
+      );
+
+      res.json(enrichedHistory);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+      res.status(500).json({ message: "Failed to fetch audit history" });
+    }
+  });
+
   app.put('/api/admin/users/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.claims.sub);
