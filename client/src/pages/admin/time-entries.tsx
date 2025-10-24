@@ -195,12 +195,12 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Registro de Ponto</DialogTitle>
         </DialogHeader>
 
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
           <div className="text-sm">
             <p className="font-medium">{entry.user?.firstName} {entry.user?.lastName}</p>
             <p className="text-gray-600 dark:text-gray-400">{entry.user?.email}</p>
@@ -217,7 +217,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
           variant="outline"
           size="sm"
           onClick={() => setShowHistory(!showHistory)}
-          className="mb-4 w-full"
+          className="mb-2 w-full"
           data-testid="button-toggle-history"
         >
           <HistoryIcon className="h-4 w-4 mr-2" />
@@ -226,7 +226,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
 
         {/* History Display */}
         {showHistory && (
-          <div className="mb-4 max-h-64 overflow-y-auto border rounded-lg">
+          <div className="mb-2 max-h-48 overflow-y-auto border rounded-lg">
             {history.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -295,7 +295,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
             <FormField
               control={form.control}
               name="clockInTime"
@@ -342,7 +342,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
                     <Textarea
                       {...field}
                       placeholder="Explique o motivo da alteração do registro..."
-                      className="min-h-[100px]"
+                      className="min-h-[60px]"
                       data-testid="input-justification"
                     />
                   </FormControl>
@@ -374,7 +374,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
               </p>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-2 sticky bottom-0 bg-white dark:bg-gray-950 pb-2 border-t mt-2">
               <Button
                 type="submit"
                 disabled={editMutation.isPending || uploading}
