@@ -35,7 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tablet, Plus, Edit, Trash2, Copy, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import Layout from "@/components/layout/layout";
+import Sidebar from "@/components/layout/sidebar";
+import TopBar from "@/components/layout/top-bar";
 import { format } from "date-fns";
 
 type Terminal = {
@@ -206,8 +207,12 @@ export default function Terminals() {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto py-6 space-y-6">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="container mx-auto py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Terminais de Ponto</h1>
@@ -484,7 +489,9 @@ export default function Terminals() {
             </Form>
           </DialogContent>
         </Dialog>
+          </div>
+        </main>
       </div>
-    </Layout>
+    </div>
   );
 }
