@@ -3603,12 +3603,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entryDate = now.toISOString().split('T')[0];
 
       // Check existing entry for today
-      const existingEntry = await storage.getTimeEntry(userId, entryDate);
+      const existingEntry = await storage.getTimeEntry(tokenData.userId, entryDate);
 
       if (!existingEntry) {
         // Clock in
         const timeEntry = await storage.createTimeEntry({
-          userId,
+          userId: tokenData.userId,
           date: entryDate,
           clockIn: now.toISOString(),
           clockInPhotoUrl: photoUrl || null,
