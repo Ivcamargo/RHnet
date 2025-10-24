@@ -33,6 +33,7 @@ import Recruitment from "@/pages/recruitment";
 import PublicJobs from "@/pages/public-jobs";
 import JobApply from "@/pages/job-apply";
 import Manual from "@/pages/manual";
+import TerminalPonto from "@/pages/terminal-ponto";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -80,6 +81,9 @@ function Router() {
       
       {/* Manual do Sistema - acessível para todos */}
       <Route path="/manual" component={Manual} />
+      
+      {/* Terminal de ponto - acessível para todos (autenticação própria) */}
+      <Route path="/terminal-ponto" component={TerminalPonto} />
       
       {/* Landing page - acessível para todos */}
       <Route path="/landing" component={Landing} />
