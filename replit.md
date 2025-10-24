@@ -55,6 +55,16 @@ Preferred communication style: Simple, everyday language.
   - **Shift Compliance**: Validates clock time against assigned shift schedule, handles overnight shifts (e.g., 22:00-06:00), checks day of week and time range
   - **Validation Messages**: Stores and displays user-friendly messages with ✓/⚠ indicators for location and shift compliance
   - **Photo Visualization**: Facial recognition photos (clockInPhotoUrl, clockOutPhotoUrl) displayed in both employee reports (/reports "Ver detalhes" dialog) and admin interface (/admin/time-entries expanded cards) with click-to-enlarge modal functionality
+- **Terminal/Kiosk Mode**: Dedicated tablet-optimized interface for fixed time clock stations with stateless authentication and automatic logout:
+  - **Authorized Devices**: Admin-managed terminal registration via `/admin/terminals` with unique device codes (e.g., "TERM-0001"), location tracking, and active/inactive status control
+  - **Public Terminal Interface** (`/terminal-ponto`): Simplified three-step flow without sidebar - (1) device validation, (2) employee login via CPF/email/internalId + password, (3) clock in/out with large touch-friendly buttons
+  - **Stateless Authentication**: No session cookies; each action validates device code and employee credentials independently
+  - **Auto-Logout**: 5-second inactivity timer automatically logs out employees after successful clock registration to protect privacy on shared devices
+  - **Data Masking**: Sensitive employee data (CPF shows only last 2 digits as `***.***.***-XX`, email partially masked) returned to terminal for security
+  - **Device Provenance**: Time entries record `deviceId` to track which terminal was used for each clock in/out
+  - **Company Scoping**: Terminals are company-specific; employees can only clock in on terminals registered to their company
+  - **Validation Integration**: Terminal-based clock entries include same IP tracking, geofence validation, and shift compliance checks as standard time clock
+  - **Management Features**: Copy device codes, toggle active status, view last usage timestamp, generate random device codes
 - **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
 - **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
 - **Employee-Shift Assignment**: Advanced system for linking employees to shifts with optional start/end dates for flexible rotations, visual indicators, and dedicated assignment management dialogs.
