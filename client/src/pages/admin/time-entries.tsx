@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Edit, Clock, User, MapPin, Camera, AlertTriangle, Save, X, History as HistoryIcon } from "lucide-react";
+import { CalendarIcon, Edit, Clock, User, MapPin, Camera, AlertTriangle, Save, X, History as HistoryIcon, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -82,6 +82,7 @@ interface AuditHistoryEntry {
   oldValue: string | null;
   newValue: string | null;
   justification: string;
+  attachmentUrl?: string | null;
   ipAddress?: string;
   createdAt: string;
   editor?: {
@@ -94,6 +95,8 @@ interface AuditHistoryEntry {
 function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogProps) {
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const form = useForm<EditTimeEntryForm>({
     resolver: zodResolver(editTimeEntrySchema),
@@ -119,8 +122,31 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
     enabled: open && showHistory,
   });
 
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('attachment', file);
+
+    try {
+      const response = await fetch('/api/admin/time-entry-attachment', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      const result = await response.json();
+      return result.url;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+  };
+
   const editMutation = useMutation({
-    mutationFn: ({ entryId, data }: { entryId: number; data: EditTimeEntryForm }) =>
+    mutationFn: ({ entryId, data }: { entryId: number; data: EditTimeEntryForm & { attachmentUrl?: string } }) =>
       apiRequest(`/api/admin/time-entries/${entryId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -133,6 +159,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
       queryClient.invalidateQueries({ queryKey: ["/api/admin/time-entries"] });
       onOpenChange(false);
       form.reset();
+      setSelectedFile(null);
     },
     onError: (error: any) => {
       toast({
@@ -143,8 +170,27 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
     },
   });
 
-  const onSubmit = (data: EditTimeEntryForm) => {
-    editMutation.mutate({ entryId: entry.id, data });
+  const onSubmit = async (data: EditTimeEntryForm) => {
+    let attachmentUrl: string | undefined = undefined;
+
+    // Upload file if selected
+    if (selectedFile) {
+      setUploading(true);
+      const url = await uploadFile(selectedFile);
+      setUploading(false);
+
+      if (!url) {
+        toast({
+          title: "Erro no upload",
+          description: "Não foi possível fazer o upload do comprovante.",
+          variant: "destructive",
+        });
+        return;
+      }
+      attachmentUrl = url;
+    }
+
+    editMutation.mutate({ entryId: entry.id, data: { ...data, attachmentUrl } });
   };
 
   return (
@@ -225,6 +271,17 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
                     <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs">
                       <p className="font-medium text-gray-700 dark:text-gray-300 mb-1">Justificativa:</p>
                       <p className="text-gray-600 dark:text-gray-400">{audit.justification}</p>
+                      {audit.attachmentUrl && (
+                        <a
+                          href={audit.attachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 mt-2"
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          Ver comprovante anexado
+                        </a>
+                      )}
                     </div>
                     
                     {audit.ipAddress && (
@@ -294,15 +351,38 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
               )}
             />
 
+            {/* File attachment */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Anexar Comprovante (Opcional)</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="flex-1"
+                  data-testid="input-attachment"
+                />
+                {selectedFile && (
+                  <div className="flex items-center gap-1 text-xs text-green-600">
+                    <Paperclip className="h-3 w-3" />
+                    {selectedFile.name}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Atestados médicos, recibos, etc. (PDF, JPG, PNG - máx 5MB)
+              </p>
+            </div>
+
             <div className="flex gap-2 pt-4">
               <Button
                 type="submit"
-                disabled={editMutation.isPending}
+                disabled={editMutation.isPending || uploading}
                 className="flex-1"
                 data-testid="button-save-changes"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {editMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+                {uploading ? "Fazendo upload..." : editMutation.isPending ? "Salvando..." : "Salvar Alterações"}
               </Button>
               <Button
                 type="button"
