@@ -17,16 +17,27 @@ import {
   Upload,
   Timer,
   KeyRound,
-  BriefcaseBusiness
+  BriefcaseBusiness,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
+type MenuItem = {
+  name: string;
+  href?: string;
+  icon: any;
+  submenu?: MenuItem[];
+  adminOnly?: boolean;
+};
+
 export default function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Controle de Ponto"]);
   const queryClient = useQueryClient();
   
   const { data: user } = useQuery<any>({
@@ -36,29 +47,43 @@ export default function Sidebar() {
   const isAdmin = user && typeof user === 'object' && 'role' in user && (user.role === 'admin' || user.role === 'superadmin');
   const isSuperAdmin = user && typeof user === 'object' && 'role' in user && user.role === 'superadmin';
 
-  // Base navigation for all users - prioritizing HR and messaging features
-  const baseNavigation = [
+  const toggleMenu = (menuName: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuName) 
+        ? prev.filter(m => m !== menuName)
+        : [...prev, menuName]
+    );
+  };
+
+  // Navigation structure with submenus
+  const baseNavigation: MenuItem[] = [
     { name: "Dashboard RH", href: "/", icon: LayoutDashboard },
     { name: "Mensagens", href: "/messages", icon: MessageSquare },
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
-    { name: "Controle de Ponto", href: "/time-clock", icon: Clock },
-    { name: "Relatórios", href: "/reports", icon: TrendingUp },
+    { 
+      name: "Controle de Ponto", 
+      icon: Clock,
+      submenu: [
+        { name: "Registro de Ponto", href: "/time-clock", icon: Clock },
+        { name: "Relatórios", href: "/reports", icon: TrendingUp },
+        { name: "Administrar Pontos", href: "/admin/time-entries", icon: Clock, adminOnly: true },
+        { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer, adminOnly: true },
+        { name: "Feriados", href: "/holidays", icon: CalendarDays, adminOnly: true },
+      ]
+    },
   ];
 
   // Admin-only navigation items
-  const adminNavigation = [
+  const adminNavigation: MenuItem[] = [
     { name: "Funcionários", href: "/employees", icon: UsersRound },
     { name: "Recrutamento", href: "/recruitment", icon: BriefcaseBusiness },
     { name: "Departamentos", href: "/departments", icon: Building2 },
     { name: "Setores", href: "/sectors", icon: Building2 },
-    { name: "Feriados", href: "/holidays", icon: CalendarDays },
-    { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer },
-    { name: "Administrar Pontos", href: "/admin/time-entries", icon: Clock },
   ];
 
   // Superadmin-only navigation items
-  const superAdminNavigation = [
+  const superAdminNavigation: MenuItem[] = [
     { name: "Gerenciar Sistema", href: "/superadmin", icon: ShieldCheck },
   ];
 
@@ -66,10 +91,8 @@ export default function Sidebar() {
   let navigation = baseNavigation;
   
   if (isSuperAdmin) {
-    // Superadmin gets all base features plus admin features plus system management
     navigation = [...baseNavigation, ...adminNavigation, ...superAdminNavigation];
   } else if (isAdmin) {
-    // Admin gets all base features plus admin-specific ones
     navigation = [...baseNavigation, ...adminNavigation];
   }
 
@@ -110,11 +133,72 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
         {navigation.map((item) => {
-          const isActive = location === item.href;
           const Icon = item.icon;
+          const isExpanded = expandedMenus.includes(item.name);
+          
+          // Menu with submenu
+          if (item.submenu) {
+            const hasActiveSubmenu = item.submenu.some(sub => location === sub.href);
+            
+            return (
+              <div key={item.name} className="space-y-1">
+                {/* Parent Menu Item */}
+                <div 
+                  className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
+                    hasActiveSubmenu
+                      ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
+                      : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
+                  }`}
+                  onClick={() => toggleMenu(item.name)}
+                >
+                  <div className="flex items-center">
+                    <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                  )}
+                </div>
+                
+                {/* Submenu Items */}
+                {isExpanded && (
+                  <div className="ml-4 space-y-1">
+                    {item.submenu.map((subItem) => {
+                      // Skip admin-only items for non-admin users
+                      if (subItem.adminOnly && !isAdmin) return null;
+                      
+                      const isActive = location === subItem.href;
+                      const SubIcon = subItem.icon;
+                      
+                      return (
+                        <Link key={subItem.name} href={subItem.href!}>
+                          <div 
+                            className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
+                              isActive
+                                ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
+                                : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
+                            }`}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <SubIcon className="mr-3 h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">{subItem.name}</span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          
+          // Regular menu item (no submenu)
+          const isActive = location === item.href;
           
           return (
-            <Link key={item.name} href={item.href}>
+            <Link key={item.name} href={item.href!}>
               <div 
                 className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
                   isActive
