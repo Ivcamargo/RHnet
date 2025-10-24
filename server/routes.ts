@@ -3353,8 +3353,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Date parameter is required" });
       }
 
+      console.log("📅 Buscando registros para data:", date, "| Empresa:", currentUser.companyId);
+
       // Get all time entries for the specified date within the admin's company
       const timeEntries = await storage.getTimeEntriesByDate(date as string, currentUser.companyId);
+      
+      console.log("📊 Registros encontrados:", timeEntries.length);
       
       // Enrich entries with user and department information
       const enrichedEntries = await Promise.all(

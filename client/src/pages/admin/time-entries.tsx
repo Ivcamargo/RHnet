@@ -223,6 +223,7 @@ export default function AdminTimeEntries() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Queries
   const selectedDateString = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
@@ -298,7 +299,7 @@ export default function AdminTimeEntries() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Popover>
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -316,7 +317,10 @@ export default function AdminTimeEntries() {
                       <Calendar
                         mode="single"
                         selected={selectedDate}
-                        onSelect={setSelectedDate}
+                        onSelect={(date) => {
+                          setSelectedDate(date);
+                          setCalendarOpen(false);
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
