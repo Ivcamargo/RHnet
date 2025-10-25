@@ -117,16 +117,15 @@ export default function Landing() {
             <Button 
               onClick={handleLogin} 
               size="lg"
-              variant="ghost"
-              className="text-gray-700 hover:bg-gray-100 px-8 py-6 text-lg"
+              className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
               Começar Agora
             </Button>
             <Button 
               onClick={handleJobsPage} 
               size="lg"
-              variant="ghost"
-              className="text-gray-700 hover:bg-gray-100 px-8 py-6 text-lg"
+              variant="outline"
+              className="border-2 border-[hsl(175,65%,45%)] text-[hsl(220,65%,18%)] hover:bg-[hsl(175,65%,45%)] hover:text-white px-8 py-6 text-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
               Ver Vagas Disponíveis
             </Button>
