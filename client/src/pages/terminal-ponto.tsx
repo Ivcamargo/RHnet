@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Clock, User, LogOut } from "lucide-react";
-import FacialRecognition from "@/components/time-clock/facial-recognition";
+import TerminalFacialRecognition from "@/components/time-clock/terminal-facial-recognition";
 
 type Device = {
   id: number;
@@ -111,9 +111,9 @@ export default function TerminalPonto() {
   });
 
   // Handle facial recognition complete
-  const handleFacialRecognitionComplete = (faceData: any) => {
+  const handleFacialRecognitionComplete = (photoDataUrl: string | null) => {
     setShowFacialRecognition(false);
-    setCapturedPhotoUrl(faceData?.photoUrl || null);
+    setCapturedPhotoUrl(photoDataUrl);
     
     // After photo capture, proceed with clock
     clockMutation.mutate();
@@ -381,7 +381,7 @@ export default function TerminalPonto() {
       </div>
 
       {/* Facial Recognition Modal */}
-      <FacialRecognition
+      <TerminalFacialRecognition
         isActive={showFacialRecognition}
         onComplete={handleFacialRecognitionComplete}
         onCancel={handleFacialRecognitionCancel}
