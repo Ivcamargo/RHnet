@@ -349,35 +349,19 @@ export default function Landing() {
         </div>
       </section>
       {/* Footer */}
-      <footer className="bg-white/90 backdrop-blur-sm border-t border-[hsl(175,65%,45%)]/30 py-12 relative z-10">
+      <footer className="bg-white/90 backdrop-blur-sm border-t border-[hsl(175,65%,45%)]/30 py-8 relative z-10 text-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center">
-              <img src={rhnetLogo} alt="RHNet" className="h-11 w-11 mr-3 rounded" />
-              <span className="text-xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <Button 
-                onClick={handleJobsPage}
-                variant="ghost"
-                className="text-gray-700 hover:bg-gray-100"
-                data-testid="button-jobs-footer"
-              >
-                <Briefcase className="mr-2 h-4 w-4" />
-                Trabalhe Conosco
-              </Button>
-              <Button 
-                onClick={handleLogin}
-                variant="ghost"
-                className="text-gray-700 hover:bg-gray-100"
-                data-testid="button-login-footer"
-              >
-                Login
-              </Button>
-            </div>
-            <div className="text-gray-600">
-              <p>&copy; 2025 RHNet. Sistema de gestão de recursos humanos.</p>
-            </div>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-gray-600">
+              © 2025 RHNet. Sistema de gestão de recursos humanos.
+            </p>
+            <a 
+              href="mailto:infosis@infosis.com.br" 
+              className="text-[hsl(175,65%,45%)] hover:text-[hsl(175,70%,40%)] transition-colors"
+              data-testid="link-contact-email"
+            >
+              infosis@infosis.com.br
+            </a>
           </div>
         </div>
       </footer>

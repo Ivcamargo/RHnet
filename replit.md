@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: TanStack Query (server state), React Hook Form (form state).
 - **Routing**: Wouter.
 - **UI/Styling**: shadcn/ui (Radix UI primitives), Tailwind CSS with custom branding (Navy Blue, Turquoise), Lucide React icons.
+- **Visual Identity**: Modern gradient design (`bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)]`) applied consistently across all headers (TopBar, Landing, Recruitment, Manual) and primary CTA buttons. Simplified footer displays copyright and contact email (infosis@infosis.com.br) with mailto link.
 - **Build Tool**: Vite.
 - **PWA**: Full offline support, installability, service worker for caching static assets (cache-first) and network-first for API requests.
 
