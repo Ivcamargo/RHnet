@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Clock, User, LogOut, AlertCircle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { LogIn, Clock, User, LogOut } from "lucide-react";
 import FacialRecognition from "@/components/time-clock/facial-recognition";
 
 type Device = {
@@ -34,7 +33,6 @@ export default function TerminalPonto() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [autoLogoutTimer, setAutoLogoutTimer] = useState<number | null>(null);
   const [showFacialRecognition, setShowFacialRecognition] = useState(false);
   const [capturedPhotoUrl, setCapturedPhotoUrl] = useState<string | null>(null);
 
@@ -101,7 +99,6 @@ export default function TerminalPonto() {
         title: "Login realizado",
         description: `Bem-vindo, ${data.name}!`,
       });
-      startAutoLogout();
     },
     onError: (error: Error) => {
       toast({
@@ -196,10 +193,8 @@ export default function TerminalPonto() {
         duration: 3000,
       });
       
-      // Auto logout after success
-      setTimeout(() => {
-        handleLogout();
-      }, 3000);
+      // Logout imediato e retorna para tela de login
+      handleLogout();
     },
     onError: (error: Error) => {
       toast({
@@ -211,55 +206,17 @@ export default function TerminalPonto() {
     }
   });
 
-  // Auto logout timer
-  const startAutoLogout = () => {
-    if (autoLogoutTimer) {
-      clearTimeout(autoLogoutTimer);
-    }
-
-    const timer = window.setTimeout(() => {
-      handleLogout();
-      toast({
-        title: "Sessão encerrada",
-        description: "Logout automático por inatividade",
-      });
-    }, 60000); // 60 seconds
-
-    setAutoLogoutTimer(timer);
-  };
-
-  const resetAutoLogout = () => {
-    if (autoLogoutTimer) {
-      clearTimeout(autoLogoutTimer);
-    }
-    startAutoLogout();
-  };
-
   const handleLogout = () => {
-    if (autoLogoutTimer) {
-      clearTimeout(autoLogoutTimer);
-    }
     setEmployee(null);
     setIdentifier('');
     setPassword('');
     setStep('login');
-    setAutoLogoutTimer(null);
   };
 
   const handleClock = () => {
-    resetAutoLogout();
     // Show facial recognition modal
     setShowFacialRecognition(true);
   };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (autoLogoutTimer) {
-        clearTimeout(autoLogoutTimer);
-      }
-    };
-  }, [autoLogoutTimer]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-700 flex items-center justify-center p-4">
@@ -361,7 +318,7 @@ export default function TerminalPonto() {
                     className="flex-1 h-16 text-lg"
                     data-testid="button-back-device"
                   >
-                    Voltar
+                    SAIR
                   </Button>
                   <Button
                     onClick={() => loginMutation.mutate()}
@@ -381,7 +338,7 @@ export default function TerminalPonto() {
             {step === 'clock' && employee && (
               <div className="space-y-6">
                 <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                     <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                     <div>
                       <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{employee.name}</p>
@@ -390,12 +347,6 @@ export default function TerminalPonto() {
                       </p>
                     </div>
                   </div>
-                  {autoLogoutTimer && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-                      <AlertCircle className="h-4 w-4" />
-                      <p>Logout automático em 5 segundos</p>
-                    </div>
-                  )}
                 </div>
 
                 <Button
