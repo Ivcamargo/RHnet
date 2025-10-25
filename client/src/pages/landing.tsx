@@ -64,18 +64,18 @@ export default function Landing() {
         }}
       ></div>
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-[hsl(175,65%,45%)]/30 relative z-10">
+      <header className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-xl relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Sistema de gestão de recursos humanos</h1>
+              <h1 className="text-2xl font-bold text-white">Sistema de gestão de recursos humanos</h1>
             </div>
             <div className="flex gap-3">
               <Button 
                 onClick={handleManual} 
                 variant="ghost"
-                className="text-gray-700 hover:bg-gray-100 px-6 py-2"
+                className="text-white/90 hover:text-white hover:bg-white/10 px-6 py-2"
                 data-testid="button-manual"
               >
                 <Book className="mr-2 h-4 w-4" />
@@ -84,7 +84,7 @@ export default function Landing() {
               <Button 
                 onClick={handleJobsPage} 
                 variant="ghost"
-                className="text-gray-700 hover:bg-gray-100 px-6 py-2"
+                className="text-white/90 hover:text-white hover:bg-white/10 px-6 py-2"
                 data-testid="button-jobs"
               >
                 <Briefcase className="mr-2 h-4 w-4" />
@@ -93,7 +93,7 @@ export default function Landing() {
               <Button 
                 onClick={handleLogin} 
                 variant="ghost"
-                className="text-gray-700 hover:bg-gray-100 px-6 py-2"
+                className="text-white/90 hover:text-white hover:bg-white/10 px-6 py-2"
                 data-testid="button-login"
               >
                 Fazer Login
