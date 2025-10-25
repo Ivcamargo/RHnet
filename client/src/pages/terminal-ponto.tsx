@@ -227,14 +227,8 @@ export default function TerminalPonto() {
           <img 
             src={loginLogo} 
             alt="RHNet Logo"
-            className="mx-auto mb-2 max-w-[180px] h-auto"
+            className="mx-auto max-w-[180px] h-auto"
           />
-          {device && (
-            <div className="mb-1">
-              <p className="text-cyan-200 text-xl font-semibold">{device.companyName}</p>
-            </div>
-          )}
-          <p className="text-blue-100 text-base">Registro de Ponto - Terminal</p>
         </div>
 
         <Card className="shadow-2xl">
@@ -247,7 +241,7 @@ export default function TerminalPonto() {
             </CardTitle>
             {device && (
               <CardDescription className="text-blue-100 text-base">
-                {device.deviceName} - {device.location}
+                {device.companyName} - {device.deviceName} - {device.location}
               </CardDescription>
             )}
           </CardHeader>
