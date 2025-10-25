@@ -1,4 +1,4 @@
-import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn } from "lucide-react";
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn, Tablet, Camera } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -52,9 +52,10 @@ export default function Manual() {
         </div>
 
       <Tabs defaultValue="introducao" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-6">
           <TabsTrigger value="introducao">Introdução</TabsTrigger>
           <TabsTrigger value="ponto">Ponto</TabsTrigger>
+          <TabsTrigger value="terminal">Terminal</TabsTrigger>
           <TabsTrigger value="gestao">Gestão</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           <TabsTrigger value="recrutamento">Recrutamento</TabsTrigger>
@@ -263,6 +264,339 @@ export default function Manual() {
                       </CardContent>
                     </Card>
                   </div>
+                </section>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Terminal/Modo Kiosk */}
+        <TabsContent value="terminal">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tablet className="h-5 w-5" />
+                  Modo Terminal (Kiosk)
+                </CardTitle>
+                <CardDescription>
+                  Sistema de registro de ponto em terminais fixos (tablets/totens)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">O que é o Modo Terminal?</h3>
+                  <p className="text-muted-foreground leading-relaxed mb-4">
+                    O Modo Terminal é uma interface dedicada para registro de ponto em dispositivos fixos,
+                    como tablets instalados na entrada da empresa. Ele funciona de forma independente,
+                    sem necessidade de login permanente, permitindo que múltiplos funcionários registrem
+                    ponto no mesmo dispositivo de forma rápida e segura.
+                  </p>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      <strong>💡 Importante:</strong> O terminal deve ser configurado previamente por um
+                      administrador na seção "Gerenciar Terminais" antes de poder ser utilizado.
+                    </p>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Como Configurar um Terminal (Administrador)</h3>
+                  <ol className="space-y-3 list-decimal list-inside">
+                    <li className="text-muted-foreground">
+                      Acesse o menu <strong>"Gerenciar Terminais"</strong> no painel administrativo
+                    </li>
+                    <li className="text-muted-foreground">
+                      Clique em <strong>"Adicionar Terminal"</strong>
+                    </li>
+                    <li className="text-muted-foreground">
+                      Preencha as informações:
+                      <ul className="ml-6 mt-2 space-y-1 list-disc">
+                        <li><strong>Código do Dispositivo:</strong> Identificador único (ex: TERM-0001)</li>
+                        <li><strong>Nome:</strong> Descrição amigável (ex: "Entrada Principal")</li>
+                        <li><strong>Localização:</strong> Onde o terminal está instalado</li>
+                        <li><strong>Geofencing:</strong> Configure a área permitida no mapa interativo</li>
+                        <li><strong>Raio:</strong> Distância máxima permitida (em metros)</li>
+                      </ul>
+                    </li>
+                    <li className="text-muted-foreground">
+                      Salve e anote o <strong>código do dispositivo</strong> - será necessário para acessar o terminal
+                    </li>
+                    <li className="text-muted-foreground">
+                      Configure o terminal como ativo/inativo conforme necessário
+                    </li>
+                  </ol>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Como Usar o Terminal (Funcionário)</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
+                        Validar o Dispositivo
+                      </h4>
+                      <ul className="space-y-1 text-sm text-muted-foreground ml-8">
+                        <li>Acesse a interface do terminal: <code className="bg-muted px-2 py-0.5 rounded text-xs">/terminal-ponto</code></li>
+                        <li>Digite o código do dispositivo fornecido pelo administrador</li>
+                        <li>Clique em <strong>"Validar Dispositivo"</strong></li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
+                        Fazer Login
+                      </h4>
+                      <ul className="space-y-1 text-sm text-muted-foreground ml-8">
+                        <li>Digite seu CPF, email ou Registro Interno</li>
+                        <li>Digite sua senha</li>
+                        <li>Clique em <strong>"ENTRAR"</strong></li>
+                        <li className="text-xs text-amber-600 dark:text-amber-400">⚠ Seu login é válido por 10 minutos no terminal</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
+                        Registrar Ponto
+                      </h4>
+                      <ul className="space-y-1 text-sm text-muted-foreground ml-8">
+                        <li>Clique em <strong>"REGISTRAR ENTRADA"</strong> ou <strong>"REGISTRAR SAÍDA"</strong></li>
+                        <li>O sistema solicitará captura de foto facial (opcional)</li>
+                        <li>Aguarde a confirmação do registro</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">4</span>
+                        Logout Automático
+                      </h4>
+                      <p className="text-sm text-muted-foreground ml-8">
+                        Após registrar o ponto, o sistema faz logout automaticamente e retorna
+                        para a tela de validação do dispositivo, permitindo que o próximo funcionário
+                        possa usar o terminal.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-primary" />
+                    Reconhecimento Facial no Terminal
+                  </h3>
+                  <p className="text-muted-foreground mb-3">
+                    O terminal oferece captura de foto facial para verificação de identidade.
+                  </p>
+                  <div className="space-y-3">
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Captura de Foto</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p>Ao clicar para registrar o ponto, o sistema abrirá a câmera automaticamente.</p>
+                        <ul className="ml-4 space-y-1 list-disc">
+                          <li>Posicione seu rosto centralizado na área de captura</li>
+                          <li>Aguarde a câmera carregar (se necessário, permita o acesso)</li>
+                          <li>Clique em <strong>"Capturar Foto"</strong> quando estiver pronto</li>
+                          <li>A foto será enviada junto com o registro de ponto</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Registro sem Foto</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        Se a câmera não estiver disponível ou você preferir, pode clicar em
+                        <strong> "Registrar sem Foto"</strong>. O registro será salvo normalmente,
+                        mas sem a verificação facial.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Problemas com Câmera</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-1">
+                        <p>Se a câmera não funcionar:</p>
+                        <ul className="ml-4 space-y-1 list-disc">
+                          <li>Verifique se o navegador tem permissão para acessar a câmera</li>
+                          <li>Certifique-se de que nenhum outro aplicativo está usando a câmera</li>
+                          <li>Clique em "Tentar Novamente" se aparecer erro</li>
+                          <li>Como alternativa, use "Registrar sem Foto"</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Validação de Geolocalização no Terminal
+                  </h3>
+                  <p className="text-muted-foreground mb-3">
+                    O terminal possui um sistema de validação de localização em duas camadas:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          Validação do Terminal (Bloqueante)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p className="font-semibold text-green-900 dark:text-green-100">
+                          Esta validação BLOQUEIA o registro se não for atendida.
+                        </p>
+                        <p>
+                          O sistema compara a localização ATUAL do funcionário com a localização
+                          REGISTRADA DO TERMINAL (configurada pelo administrador).
+                        </p>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800">
+                          <p className="text-xs">
+                            <strong>✓ Dentro da área:</strong> "Terminal dentro da área autorizada (XXm)"
+                          </p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            <strong>❌ Fora da área:</strong> "Registro bloqueado: terminal fora da área autorizada"
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-blue-600" />
+                          Validação do Setor (Informativa)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">
+                          Esta validação NÃO bloqueia o registro, apenas informa.
+                        </p>
+                        <p>
+                          O sistema também compara com a localização do setor/departamento do funcionário,
+                          mas apenas para fins informativos.
+                        </p>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded border border-blue-200 dark:border-blue-800">
+                          <p className="text-xs">
+                            <strong>✓ Dentro do setor:</strong> "Funcionário dentro do setor autorizado (XXm)"
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            <strong>⚠ Fora do setor:</strong> "Funcionário fora do setor autorizado (XXm)" 
+                            <span className="block mt-1">(registro permitido, mas marcado para revisão)</span>
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="mt-4 bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>💡 Resumo:</strong> O registro só é bloqueado se o terminal estiver fora
+                      da área configurada. A validação do setor do funcionário é apenas um aviso adicional
+                      que aparece nos relatórios.
+                    </p>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Recursos de Segurança</h3>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Autenticação Stateless</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Cada login gera um token temporário de 10 minutos. Não há sessões permanentes no terminal.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Logout Automático</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Após cada registro de ponto, o sistema faz logout automaticamente para proteger a privacidade.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Rastreamento de IP</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        O endereço IP é registrado para auditoria e segurança.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Registro do Terminal</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Cada ponto registra qual terminal foi usado, facilitando auditoria.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Validação em Tempo Real</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        Geofencing e verificações de turno são processadas imediatamente.
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Foto Facial Opcional</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        A captura facial aumenta a segurança, mas pode ser ignorada se necessário.
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Visualização dos Registros</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Todos os registros feitos pelo terminal ficam disponíveis:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Para funcionários:</strong> No menu "Relatórios Mensais", com detalhes de data, hora, foto e validações</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Para administradores:</strong> Em "Registros de Ponto", com informações completas incluindo terminal usado, IP, e todas as validações</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                      <span><strong>Fotos capturadas:</strong> Podem ser visualizadas clicando no ícone de câmera nos relatórios</span>
+                    </li>
+                  </ul>
                 </section>
               </CardContent>
             </Card>
