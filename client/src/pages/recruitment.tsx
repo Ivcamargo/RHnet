@@ -323,22 +323,22 @@ export default function Recruitment() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center gap-4">
               <img src={rhnetLogo} alt="RHNet" className="h-10 w-10 rounded-lg" />
               <div>
-                <h1 className="text-2xl font-bold text-[hsl(215,80%,25%)]">Recrutamento & Seleção</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-2xl font-bold text-white">Recrutamento & Seleção</h1>
+                <p className="text-sm text-white/90">
                   Gerencie vagas, candidatos e processos seletivos
                 </p>
               </div>
             </div>
             <Button 
               onClick={() => window.location.href = '/'} 
-              variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              variant="ghost"
+              className="text-white/90 hover:text-white hover:bg-white/10"
               data-testid="button-home"
             >
               <Home className="mr-2 h-4 w-4" />
