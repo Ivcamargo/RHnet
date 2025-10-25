@@ -6830,6 +6830,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Note: Static file serving for uploads will be added separately
 
+  // Temporary endpoint to download database dump
+  app.get('/download-dump', (req, res) => {
+    const dumpPath = path.join(process.cwd(), 'rhnet-database-dump.sql.gz');
+    if (fs.existsSync(dumpPath)) {
+      res.download(dumpPath, 'rhnet-database-dump.sql.gz');
+    } else {
+      res.status(404).send('Dump file not found');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
