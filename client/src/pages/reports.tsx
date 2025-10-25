@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MonthlyTimeTable } from "@/components/reports/monthly-summary";
-import { FileDown, Calendar, Clock, TrendingUp } from "lucide-react";
+import { FileDown, Calendar, Clock, TrendingUp, Users } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 
@@ -12,11 +12,34 @@ export default function Reports() {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState((currentDate.getMonth() + 1).toString());
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+
+  // Get current user to check if admin
+  const { data: currentUser } = useQuery<{ role?: string }>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
+
+  // Get employees for admin users
+  const { data: employees = [] } = useQuery<Array<{ id: string; firstName: string; lastName: string; email: string }>>({
+    queryKey: ["/api/users/by-company"],
+    enabled: isAdmin,
+  });
 
   const { data: monthlyReport, isLoading } = useQuery({
-    queryKey: ["/api/reports/monthly", selectedYear, selectedMonth],
+    queryKey: ["/api/reports/monthly", selectedYear, selectedMonth, selectedUserId],
     queryFn: async () => {
-      const response = await fetch(`/api/reports/monthly?year=${selectedYear}&month=${selectedMonth}`, {
+      const params = new URLSearchParams({
+        year: selectedYear,
+        month: selectedMonth,
+      });
+      
+      if (selectedUserId) {
+        params.append('userId', selectedUserId);
+      }
+      
+      const response = await fetch(`/api/reports/monthly?${params.toString()}`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch report');
@@ -60,41 +83,72 @@ export default function Reports() {
         <TopBar title="Relatórios" />
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
-          <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-2xl font-bold text-blue-800">Relatórios de Ponto</h1>
-            
-            <div className="flex items-center gap-4">
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h1 className="text-2xl font-bold text-blue-800">Relatórios de Ponto</h1>
               
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Ano" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Button onClick={exportReport} className="point-primary">
-                <FileDown className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
+              <div className="flex items-center gap-4">
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Button onClick={exportReport} className="point-primary">
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </div>
             </div>
+
+            {/* Employee filter for admins */}
+            {isAdmin && employees.length > 0 && (
+              <Card className="border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Funcionário
+                      </label>
+                      <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                        <SelectTrigger className="w-full" data-testid="select-employee">
+                          <SelectValue placeholder="Meu relatório (padrão)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Meu relatório (padrão)</SelectItem>
+                          {employees.map((emp: any) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName} - {emp.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {isLoading ? (

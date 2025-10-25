@@ -3064,15 +3064,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/reports/monthly', isAuthenticatedHybrid, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { year, month } = req.query;
+      const currentUserId = req.user.claims.sub;
+      const { year, month, userId: requestedUserId } = req.query;
       
       if (!year || !month) {
         return res.status(400).json({ message: "Year and month are required" });
       }
       
+      // Determine which user's report to fetch
+      let targetUserId = currentUserId;
+      
+      // If a specific userId is requested, verify the current user is an admin
+      if (requestedUserId && requestedUserId !== currentUserId) {
+        const currentUser = await storage.getUserById(currentUserId);
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
+          return res.status(403).json({ message: "Only admins can view other users' reports" });
+        }
+        
+        // Verify the requested user exists and is in the same company (for admin)
+        const requestedUser = await storage.getUserById(requestedUserId as string);
+        if (!requestedUser) {
+          return res.status(404).json({ message: "Requested user not found" });
+        }
+        
+        // For regular admins, verify same company
+        if (currentUser.role === 'admin' && currentUser.companyId !== requestedUser.companyId) {
+          return res.status(403).json({ message: "Cannot view reports from other companies" });
+        }
+        
+        targetUserId = requestedUserId as string;
+      }
+      
       const stats = await storage.getUserMonthlyStats(
-        userId, 
+        targetUserId, 
         parseInt(year as string), 
         parseInt(month as string)
       );
@@ -3080,7 +3104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get detailed entries for the month
       const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
       const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
-      const entries = await storage.getTimeEntriesByUser(userId, startDate, endDate);
+      const entries = await storage.getTimeEntriesByUser(targetUserId, startDate, endDate);
       
       // Enrich each entry with irregularity data
       const enrichedEntries = await Promise.all(
