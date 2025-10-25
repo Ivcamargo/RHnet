@@ -33,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 ### Key Features
 - **Geolocation & Geofencing**: Browser Geolocation API, Haversine formula, `react-leaflet` for interactive map-based geofencing (10-1000m radius), Nominatim API for address search. Sector-based geofence configuration.
 - **Time Tracking**: Clock in/out with location/facial verification, break management. Includes IP address tracking, geofence proximity validation, shift schedule compliance (including overnight shifts), and UTC timestamp storage with Brazil timezone conversion for display. Admin edits are audited with detailed tracking.
-- **Terminal/Kiosk Mode**: Tablet-optimized interface for fixed time clock stations. Features device registration, public interface (`/terminal-ponto`) with simplified flow, stateless authentication, auto-logout, and data masking. Records `deviceId` for provenance.
+- **Terminal/Kiosk Mode**: Tablet-optimized interface for fixed time clock stations with compact logo display (180px). Features device registration, public interface (`/terminal-ponto`) with simplified flow fitting on screen without scroll, stateless authentication, auto-logout, and data masking. Records `deviceId` for provenance.
 - **Shift & Rotation Management**: Comprehensive CRUD for shifts and rotation templates (daily, weekly, monthly, custom) with advanced interval support.
 - **Employee-Shift Assignment**: Flexible system for assigning employees to shifts with optional start/end dates. Supports cross-company assignments for superadmins and cross-department flexibility.
 - **Password Management**: Self-service password change.

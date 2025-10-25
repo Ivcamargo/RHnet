@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Clock, User, LogOut } from "lucide-react";
 import TerminalFacialRecognition from "@/components/time-clock/terminal-facial-recognition";
-import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import loginLogo from "@assets/rhnetp_1758411296813.jpg";
 
 type Device = {
@@ -221,36 +220,21 @@ export default function TerminalPonto() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-700 flex items-center justify-center p-4 relative">
-      {/* Logo Watermark */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center"
-      >
-        <img 
-          src={rhnetLogo} 
-          alt="RHNet Logo Watermark"
-          className="w-96 h-96 opacity-30"
-          style={{
-            filter: 'brightness(1.5) contrast(1.2)',
-            mixBlendMode: 'overlay'
-          }}
-        />
-      </div>
-
-      <div className="w-full max-w-2xl relative z-10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-700 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
         {/* Logo Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-3">
           <img 
             src={loginLogo} 
             alt="RHNet Logo"
-            className="mx-auto mb-4 max-w-[280px] h-auto"
+            className="mx-auto mb-2 max-w-[180px] h-auto"
           />
           {device && (
-            <div className="mb-2">
-              <p className="text-cyan-200 text-2xl font-semibold">{device.companyName}</p>
+            <div className="mb-1">
+              <p className="text-cyan-200 text-xl font-semibold">{device.companyName}</p>
             </div>
           )}
-          <p className="text-blue-100 text-lg">Registro de Ponto - Terminal</p>
+          <p className="text-blue-100 text-base">Registro de Ponto - Terminal</p>
         </div>
 
         <Card className="shadow-2xl">
