@@ -19,7 +19,8 @@ import {
   CheckCircle,
   ArrowRight,
   Briefcase,
-  Book
+  Book,
+  MessageCircle
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
@@ -355,13 +356,26 @@ export default function Landing() {
             <p className="text-gray-600">
               © 2025 RHNet. Sistema de gestão de recursos humanos.
             </p>
-            <a 
-              href="mailto:infosis@infosis.com.br" 
-              className="text-[hsl(175,65%,45%)] hover:text-[hsl(175,70%,40%)] transition-colors"
-              data-testid="link-contact-email"
-            >
-              infosis@infosis.com.br
-            </a>
+            <div className="flex items-center gap-4">
+              <a 
+                href="mailto:infosis@infosis.com.br" 
+                className="text-[hsl(175,65%,45%)] hover:text-[hsl(175,70%,40%)] transition-colors"
+                data-testid="link-contact-email"
+              >
+                infosis@infosis.com.br
+              </a>
+              <span className="text-gray-400">|</span>
+              <a 
+                href="https://wa.me/5511961809921" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[hsl(175,65%,45%)] hover:text-[hsl(175,70%,40%)] transition-colors"
+                data-testid="link-whatsapp"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </a>
+            </div>
           </div>
         </div>
       </footer>
