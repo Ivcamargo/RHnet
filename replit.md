@@ -43,6 +43,10 @@ Preferred communication style: Simple, everyday language.
 - **CSV Import/Export**: Bulk employee management with template download, validation, error reporting, and company-filtered export. Supports `internalId` and uses semicolon delimiter/UTF-8 BOM for Excel compatibility.
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export. Includes "Inconsistency Reporting" with advanced irregularity detection (late arrivals, insufficient hours, missing punches) based on shift schedules, stored in `timeEntries` with detailed reasons.
 - **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding. Includes job postings, candidate database, application tracking (status flow: applied → hired), and secure digital onboarding links. All data is company-scoped.
+- **Overtime & Time Bank System**: Comprehensive overtime management with configurable percentage rates by department/shift. Supports multiple tier brackets (e.g., 0-2h @ 50%, 2-4h @ 100%, 4h+ @ 200%), separate rules for weekdays/weekends/holidays, and dual modes (paid overtime or time bank credits). Includes administrative interface (`/admin/overtime-config`) for rule configuration, automatic calculation during clock-out, and employee time bank balance tracking with full transaction history.
+  - **Database Tables**: `overtime_rules` (department/shift-specific rules with priority system), `overtime_tiers` (percentage brackets), `time_bank` (employee balance tracking), `time_bank_transactions` (credit/debit history).
+  - **Calculation Logic**: Automatic overtime processing via `processOvertimeForTimeEntry()` applies applicable rules based on date type (weekday/weekend/holiday), calculates hours across multiple percentage tiers, and credits time bank or marks for payment.
+  - **API Endpoints**: Full CRUD for rules (`/api/overtime-rules`), tiers (`/api/overtime-tiers`), and time bank queries (`/api/time-bank/:userId`). Admin-only manual adjustments supported.
 - **System User Manual**: In-app documentation (`/manual`) with tabbed sections covering all system features, written in simple language.
 
 ## External Dependencies
