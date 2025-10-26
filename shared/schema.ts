@@ -303,6 +303,12 @@ export const timeEntries = pgTable("time_entries", {
   status: varchar("status").default("active"), // active, completed, incomplete, irregular
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
   
+  // Overtime tracking (novo sistema de HE)
+  overtimeRuleId: integer("overtime_rule_id"), // ID da regra de HE aplicada
+  overtimeType: varchar("overtime_type"), // "paid" ou "time_bank"
+  overtimeBreakdown: jsonb("overtime_breakdown"), // Detalhamento por tier: [{ tier: 1, hours: 2, percentage: 50, equivalentHours: 3 }]
+  timeBankHours: decimal("time_bank_hours", { precision: 6, scale: 2 }).default('0'), // Horas creditadas no banco
+  
   // Fotos de reconhecimento facial
   clockInPhotoUrl: varchar("clock_in_photo_url"), // URL da foto na entrada
   clockOutPhotoUrl: varchar("clock_out_photo_url"), // URL da foto na saída
@@ -1667,3 +1673,132 @@ export const insertOnboardingFormDataSchema = createInsertSchema(onboardingFormD
   updatedAt: true,
 });
 export type InsertOnboardingFormData = z.infer<typeof insertOnboardingFormDataSchema>;
+
+// ========================================================================================
+// OVERTIME & TIME BANK SYSTEM
+// ========================================================================================
+
+// Overtime rules - Configuration for overtime calculation by department/shift
+export const overtimeRules = pgTable("overtime_rules", {
+  id: serial("id").primaryKey(),
+  departmentId: integer("department_id").notNull(),
+  shiftId: integer("shift_id"), // Optional: specific shift, null = applies to all shifts in department
+  name: varchar("name").notNull(), // "Regra de HE Padrão", "HE Fim de Semana"
+  overtimeType: varchar("overtime_type").notNull(), // "paid" or "time_bank"
+  applyToWeekdays: boolean("apply_to_weekdays").default(true),
+  applyToWeekends: boolean("apply_to_weekends").default(false),
+  applyToHolidays: boolean("apply_to_holidays").default(false),
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(0), // Higher priority rules override lower ones
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  departmentReference: foreignKey({
+    columns: [table.departmentId],
+    foreignColumns: [departments.id],
+  }).onDelete('cascade'),
+  shiftReference: foreignKey({
+    columns: [table.shiftId],
+    foreignColumns: [departmentShifts.id],
+  }).onDelete('cascade'),
+}));
+
+// Overtime tiers - Percentage rates for different hour ranges
+export const overtimeTiers = pgTable("overtime_tiers", {
+  id: serial("id").primaryKey(),
+  overtimeRuleId: integer("overtime_rule_id").notNull(),
+  minHours: decimal("min_hours", { precision: 4, scale: 2 }).notNull(), // 0.00
+  maxHours: decimal("max_hours", { precision: 4, scale: 2 }), // null = no limit
+  percentage: integer("percentage").notNull(), // 50, 100, 200 (represents 50%, 100%, 200%)
+  description: varchar("description"), // "Primeiras 2 horas", "Acima de 2 horas"
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  overtimeRuleReference: foreignKey({
+    columns: [table.overtimeRuleId],
+    foreignColumns: [overtimeRules.id],
+  }).onDelete('cascade'),
+}));
+
+// Time bank - Employee time bank balance
+export const timeBank = pgTable("time_bank", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique(),
+  companyId: integer("company_id").notNull(),
+  balanceHours: decimal("balance_hours", { precision: 8, scale: 2 }).default('0'), // Current balance
+  totalCredited: decimal("total_credited", { precision: 8, scale: 2 }).default('0'), // Total hours credited
+  totalDebited: decimal("total_debited", { precision: 8, scale: 2 }).default('0'), // Total hours debited
+  expirationDate: date("expiration_date"), // Optional: date when balance expires
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userReference: foreignKey({
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
+// Time bank transactions - History of credits and debits
+export const timeBankTransactions = pgTable("time_bank_transactions", {
+  id: serial("id").primaryKey(),
+  timeBankId: integer("time_bank_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  transactionType: varchar("transaction_type").notNull(), // "credit" or "debit"
+  hours: decimal("hours", { precision: 6, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 8, scale: 2 }).notNull(),
+  timeEntryId: integer("time_entry_id"), // Link to the time entry that generated this transaction
+  reason: varchar("reason").notNull(), // "Hora extra trabalhada", "Compensação utilizada", "Ajuste manual"
+  description: text("description"), // Additional details
+  createdBy: varchar("created_by"), // Admin who created manual adjustments
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  timeBankReference: foreignKey({
+    columns: [table.timeBankId],
+    foreignColumns: [timeBank.id],
+  }).onDelete('cascade'),
+  userReference: foreignKey({
+    columns: [table.userId],
+    foreignColumns: [users.id],
+  }).onDelete('cascade'),
+  timeEntryReference: foreignKey({
+    columns: [table.timeEntryId],
+    foreignColumns: [timeEntries.id],
+  }),
+}));
+
+// Types for Overtime System
+export type OvertimeRule = typeof overtimeRules.$inferSelect;
+export type OvertimeTier = typeof overtimeTiers.$inferSelect;
+export type TimeBank = typeof timeBank.$inferSelect;
+export type TimeBankTransaction = typeof timeBankTransactions.$inferSelect;
+
+// Insert schemas
+export const insertOvertimeRuleSchema = createInsertSchema(overtimeRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertOvertimeRule = z.infer<typeof insertOvertimeRuleSchema>;
+
+export const insertOvertimeTierSchema = createInsertSchema(overtimeTiers).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertOvertimeTier = z.infer<typeof insertOvertimeTierSchema>;
+
+export const insertTimeBankSchema = createInsertSchema(timeBank).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertTimeBank = z.infer<typeof insertTimeBankSchema>;
+
+export const insertTimeBankTransactionSchema = createInsertSchema(timeBankTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertTimeBankTransaction = z.infer<typeof insertTimeBankTransactionSchema>;
