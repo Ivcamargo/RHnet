@@ -1838,11 +1838,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
       
+      // Validate admin has a company
+      if (currentUser.role === 'admin' && !currentUser.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      }
+      
       let users;
       if (currentUser.role === 'superadmin') {
         users = await storage.getAllUsers();
       } else {
         // Regular admins only get users from their company
+        // Safe to use ! here because we validated above that admins have companyId
         users = await storage.getUsersByCompany(currentUser.companyId!);
       }
       
