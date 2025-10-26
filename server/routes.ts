@@ -451,7 +451,7 @@ async function computeIrregularities(
     if (irregularityReasons.length > 0) {
       status = 'irregular';
     } else if (timeEntry.clockInTime && timeEntry.clockOutTime) {
-      status = 'complete';
+      status = 'completed';
     } else if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
       status = 'incomplete';
     }
