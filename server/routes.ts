@@ -1827,7 +1827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Simple endpoint for getting users by company (for dropdowns/selects)
   app.get('/api/users/by-company', isAuthenticatedHybrid, async (req: any, res) => {
     try {
-      const currentUser = await storage.getUserById(req.user.claims.sub);
+      const currentUser = await storage.getUser(req.user.claims.sub);
       
       if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
@@ -3119,13 +3119,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If a specific userId is requested, verify the current user is an admin
       if (requestedUserId && requestedUserId !== currentUserId) {
-        const currentUser = await storage.getUserById(currentUserId);
+        const currentUser = await storage.getUser(currentUserId);
         if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
           return res.status(403).json({ message: "Only admins can view other users' reports" });
         }
         
         // Verify the requested user exists and is in the same company (for admin)
-        const requestedUser = await storage.getUserById(requestedUserId as string);
+        const requestedUser = await storage.getUser(requestedUserId as string);
         if (!requestedUser) {
           return res.status(404).json({ message: "Requested user not found" });
         }
