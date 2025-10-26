@@ -65,8 +65,12 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
+    // Parse date string (YYYY-MM-DD) sem interpretar timezone
+    // Evita problema de timezone que faz a data voltar 1 dia
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    
+    return localDate.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
