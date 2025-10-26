@@ -12,7 +12,7 @@ export default function Reports() {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState((currentDate.getMonth() + 1).toString());
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("me");
 
   // Get current user to check if admin
   const { data: currentUser } = useQuery<{ role?: string }>({
@@ -35,7 +35,7 @@ export default function Reports() {
         month: selectedMonth,
       });
       
-      if (selectedUserId) {
+      if (selectedUserId && selectedUserId !== "me") {
         params.append('userId', selectedUserId);
       }
       
@@ -136,7 +136,7 @@ export default function Reports() {
                           <SelectValue placeholder="Meu relatório (padrão)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Meu relatório (padrão)</SelectItem>
+                          <SelectItem value="me">Meu relatório (padrão)</SelectItem>
                           {employees.map((emp: any) => (
                             <SelectItem key={emp.id} value={emp.id}>
                               {emp.firstName} {emp.lastName} - {emp.email}
