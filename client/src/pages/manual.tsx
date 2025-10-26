@@ -830,23 +830,172 @@ export default function Manual() {
                     <Calendar className="h-5 w-5 text-primary" />
                     Gestão de Escalas e Rotações
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Crie escalas de trabalho automáticas com rotações personalizadas.
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Crie escalas de trabalho automáticas com rotações personalizadas para diferentes departamentos.
                   </p>
-                  <ul className="space-y-1 text-sm text-muted-foreground ml-4">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                      <span>Configure rotações diárias, semanais, mensais ou customizadas</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                      <span>Defina segmentos de trabalho e folga</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                      <span>Geração automática de escala para qualquer período</span>
-                    </li>
-                  </ul>
+
+                  <div className="space-y-4">
+                    <Card className="bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">O que são Escalas e Rotações?</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p>
+                          Escalas e rotações permitem criar padrões automáticos de trabalho onde funcionários
+                          alternam entre períodos de trabalho e folga de forma programada.
+                        </p>
+                        <ul className="ml-4 space-y-1 text-xs">
+                          <li>✅ Configure rotações diárias, semanais, mensais ou customizadas</li>
+                          <li>✅ Defina segmentos de trabalho e folga</li>
+                          <li>✅ Geração automática de escala para qualquer período</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-secondary/5 border-l-4 border-l-secondary">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Settings className="h-4 w-4" />
+                          Tipos de Rotação Disponíveis
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <div className="space-y-2">
+                          <div className="bg-white dark:bg-gray-900 p-3 rounded border">
+                            <p className="font-semibold text-primary text-xs mb-1">📅 Rotação Diária</p>
+                            <p className="text-xs">Alterna dia a dia. Exemplo: 1 dia trabalha, 1 dia folga</p>
+                          </div>
+                          
+                          <div className="bg-white dark:bg-gray-900 p-3 rounded border">
+                            <p className="font-semibold text-primary text-xs mb-1">📆 Rotação Semanal</p>
+                            <p className="text-xs">Alterna por semanas. Exemplo: 1 semana trabalha, 1 semana folga</p>
+                          </div>
+                          
+                          <div className="bg-white dark:bg-gray-900 p-3 rounded border">
+                            <p className="font-semibold text-primary text-xs mb-1">🗓️ Rotação Mensal</p>
+                            <p className="text-xs">Alterna por meses. Exemplo: 1 mês trabalha, 1 mês folga</p>
+                          </div>
+                          
+                          <div className="bg-white dark:bg-gray-900 p-3 rounded border">
+                            <p className="font-semibold text-primary text-xs mb-1">⚙️ Rotação Customizada</p>
+                            <p className="text-xs">Define número exato de dias. Exemplo: 5 dias trabalha, 2 dias folga</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                          Exemplo Prático: Escala 5×2
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <p className="text-blue-900 dark:text-blue-100">
+                          <strong>Cenário:</strong> Equipe que trabalha 5 dias seguidos e folga 2 dias.
+                        </p>
+                        
+                        <div className="bg-white dark:bg-gray-900 p-4 rounded border border-blue-200">
+                          <p className="text-xs font-semibold mb-2">Configuração:</p>
+                          <ul className="space-y-1 text-xs ml-4">
+                            <li>• <strong>Tipo de Rotação:</strong> Customizada</li>
+                            <li>• <strong>Dias de Trabalho:</strong> 5 dias</li>
+                            <li>• <strong>Dias de Folga:</strong> 2 dias</li>
+                            <li>• <strong>Turno Associado:</strong> Comercial (08:00 - 17:00)</li>
+                          </ul>
+                          
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <p className="text-xs font-semibold mb-2">Resultado da Escala:</p>
+                            <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Seg<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Ter<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Qua<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Qui<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Sex<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">Sáb<br/>-</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">Dom<br/>-</div>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                              (Verde = Trabalho | Vermelho = Folga)
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          Exemplo Prático: Escala 12×36
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <p className="text-green-900 dark:text-green-100">
+                          <strong>Cenário:</strong> Plantão de 12 horas com 36 horas de descanso (comum em saúde e segurança).
+                        </p>
+                        
+                        <div className="bg-white dark:bg-gray-900 p-4 rounded border border-green-200">
+                          <p className="text-xs font-semibold mb-2">Configuração:</p>
+                          <ul className="space-y-1 text-xs ml-4">
+                            <li>• <strong>Tipo de Rotação:</strong> Customizada</li>
+                            <li>• <strong>Dias de Trabalho:</strong> 1 dia (12 horas)</li>
+                            <li>• <strong>Dias de Folga:</strong> 1 dia (36 horas de descanso)</li>
+                            <li>• <strong>Turno Associado:</strong> Plantão Diurno (07:00 - 19:00)</li>
+                          </ul>
+                          
+                          <div className="mt-3 pt-3 border-t border-green-200">
+                            <p className="text-xs font-semibold mb-2">Resultado da Escala (15 dias):</p>
+                            <div className="grid grid-cols-8 gap-1 text-center text-xs">
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D1<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D2<br/>-</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D3<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D4<br/>-</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D5<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D6<br/>-</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D7<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D8<br/>-</div>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                              E assim sucessivamente...
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Como Criar uma Escala de Rotação</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <ol className="space-y-2 list-decimal list-inside text-xs">
+                          <li>Acesse o menu <strong>"Gestão de Escalas"</strong> (administrador)</li>
+                          <li>Clique em <strong>"Criar Nova Escala"</strong></li>
+                          <li>Preencha:
+                            <ul className="ml-6 mt-1 space-y-1 list-disc">
+                              <li>Nome da escala (ex: "Equipe Comercial 5×2")</li>
+                              <li>Tipo de rotação (diária, semanal, mensal ou customizada)</li>
+                              <li>Segmentos de trabalho e folga</li>
+                              <li>Turno padrão para os dias de trabalho</li>
+                            </ul>
+                          </li>
+                          <li>Salve a configuração</li>
+                          <li>Gere a escala para o período desejado (mensal, trimestral, etc.)</li>
+                          <li>Atribua funcionários à escala criada</li>
+                        </ol>
+                      </CardContent>
+                    </Card>
+
+                    <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg border border-amber-200">
+                      <p className="text-sm text-amber-900 dark:text-amber-100">
+                        <strong>💡 Dica:</strong> As escalas e rotações são especialmente úteis para equipes que trabalham
+                        em turnos alternados, plantões ou regimes especiais de trabalho. Uma vez configurada, a escala
+                        pode ser reutilizada mensalmente sem necessidade de reconfiguração.
+                      </p>
+                    </div>
+                  </div>
                 </section>
               </CardContent>
             </Card>
