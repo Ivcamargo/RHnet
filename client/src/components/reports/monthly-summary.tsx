@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle, Camera } from "lucide-react";
 
 interface TimeEntry {
@@ -433,7 +434,23 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 <div className="flex items-center gap-1">
                   {formatDate(entry.date)}
                   {hasValidationIssues(entry) && (
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => openDetails(entry)}
+                            className="cursor-pointer hover:scale-110 transition-transform"
+                            data-testid={`button-warning-${entry.id}`}
+                          >
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">⚠️ Problemas de validação detectados</p>
+                          <p className="text-xs text-gray-400">Clique para ver detalhes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               </TableCell>
@@ -455,7 +472,19 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               <TableCell className="py-3 px-4">
                 <div className="flex flex-col gap-1">
                   {entry.faceRecognitionVerified ? (
-                    <span className="text-green-600 text-xs">✓ Facial</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 text-green-600">
+                            <Camera className="h-4 w-4" />
+                            <span className="text-xs">Verificado</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">✓ Reconhecimento facial verificado</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ) : (
                     <span className="text-gray-400 text-xs">-</span>
                   )}
