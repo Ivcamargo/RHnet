@@ -6902,6 +6902,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Note: Static file serving for uploads will be added separately
 
+  // ========================================================================================
+  // OVERTIME & TIME BANK ROUTES
+  // ========================================================================================
+
+  // Get overtime rules for a department
+  app.get('/api/overtime-rules/:departmentId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const departmentId = parseInt(req.params.departmentId);
+      const rules = await storage.getOvertimeRules(departmentId);
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching overtime rules:", error);
+      res.status(500).json({ message: "Failed to fetch overtime rules" });
+    }
+  });
+
+  // Create overtime rule
+  app.post('/api/overtime-rules', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const rule = await storage.createOvertimeRule(req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error("Error creating overtime rule:", error);
+      res.status(500).json({ message: "Failed to create overtime rule" });
+    }
+  });
+
+  // Update overtime rule
+  app.put('/api/overtime-rules/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rule = await storage.updateOvertimeRule(id, req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error("Error updating overtime rule:", error);
+      res.status(500).json({ message: "Failed to update overtime rule" });
+    }
+  });
+
+  // Delete overtime rule
+  app.delete('/api/overtime-rules/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteOvertimeRule(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting overtime rule:", error);
+      res.status(500).json({ message: "Failed to delete overtime rule" });
+    }
+  });
+
+  // Get overtime tiers for a rule
+  app.get('/api/overtime-tiers/:ruleId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const ruleId = parseInt(req.params.ruleId);
+      const tiers = await storage.getOvertimeTiers(ruleId);
+      res.json(tiers);
+    } catch (error) {
+      console.error("Error fetching overtime tiers:", error);
+      res.status(500).json({ message: "Failed to fetch overtime tiers" });
+    }
+  });
+
+  // Create overtime tier
+  app.post('/api/overtime-tiers', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const tier = await storage.createOvertimeTier(req.body);
+      res.json(tier);
+    } catch (error) {
+      console.error("Error creating overtime tier:", error);
+      res.status(500).json({ message: "Failed to create overtime tier" });
+    }
+  });
+
+  // Update overtime tier
+  app.put('/api/overtime-tiers/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tier = await storage.updateOvertimeTier(id, req.body);
+      res.json(tier);
+    } catch (error) {
+      console.error("Error updating overtime tier:", error);
+      res.status(500).json({ message: "Failed to update overtime tier" });
+    }
+  });
+
+  // Delete overtime tier
+  app.delete('/api/overtime-tiers/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteOvertimeTier(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting overtime tier:", error);
+      res.status(500).json({ message: "Failed to delete overtime tier" });
+    }
+  });
+
+  // Get time bank for user
+  app.get('/api/time-bank/:userId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = req.user.claims.sub;
+      
+      // Check permissions
+      if (currentUser !== userId && req.user.claims.role === 'employee') {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const timeBank = await storage.getTimeBank(userId);
+      const balance = await storage.getTimeBankBalance(userId);
+      
+      res.json({ 
+        timeBank, 
+        balance 
+      });
+    } catch (error) {
+      console.error("Error fetching time bank:", error);
+      res.status(500).json({ message: "Failed to fetch time bank" });
+    }
+  });
+
+  // Get time bank transactions
+  app.get('/api/time-bank/:userId/transactions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      // Check permissions
+      if (currentUser !== userId && req.user.claims.role === 'employee') {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const transactions = await storage.getTimeBankTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching time bank transactions:", error);
+      res.status(500).json({ message: "Failed to fetch time bank transactions" });
+    }
+  });
+
+  // Manual time bank adjustment (admin only)
+  app.post('/api/time-bank/:userId/adjust', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = req.user.claims.sub;
+      const { hours, type, reason, description } = req.body;
+      
+      const timeBank = await storage.updateTimeBankBalance(
+        userId,
+        hours,
+        type,
+        reason,
+        description,
+        undefined,
+        currentUser
+      );
+      
+      res.json(timeBank);
+    } catch (error) {
+      console.error("Error adjusting time bank:", error);
+      res.status(500).json({ message: "Failed to adjust time bank" });
+    }
+  });
+
   // Temporary endpoint to download database dump
   app.get('/download-dump', (req, res) => {
     const dumpPath = path.join(process.cwd(), 'rhnet-database-dump.sql.gz');

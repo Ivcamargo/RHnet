@@ -3331,6 +3331,90 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newTransaction;
   }
+
+  // Overtime calculation logic
+  calculateOvertimeBreakdown(
+    overtimeHours: number,
+    tiers: OvertimeTier[]
+  ): { totalEquivalentHours: number; breakdown: Array<{ tierName: string; hours: number; percentage: number; equivalentHours: number }> } {
+    const breakdown: Array<{ tierName: string; hours: number; percentage: number; equivalentHours: number }> = [];
+    let remainingHours = overtimeHours;
+    let totalEquivalentHours = 0;
+
+    // Sort tiers by order
+    const sortedTiers = [...tiers].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    for (const tier of sortedTiers) {
+      if (remainingHours <= 0) break;
+
+      const minHours = parseFloat(tier.minHours);
+      const maxHours = tier.maxHours ? parseFloat(tier.maxHours) : Infinity;
+      const percentage = tier.percentage;
+
+      // Calculate hours in this tier
+      const tierRange = maxHours - minHours;
+      const hoursInThisTier = Math.min(remainingHours, Math.max(0, maxHours - Math.max(minHours, overtimeHours - remainingHours)));
+
+      if (hoursInThisTier > 0) {
+        const equivalentHours = hoursInThisTier * (1 + percentage / 100);
+        breakdown.push({
+          tierName: tier.description || `Faixa ${tier.orderIndex || 0}`,
+          hours: parseFloat(hoursInThisTier.toFixed(2)),
+          percentage,
+          equivalentHours: parseFloat(equivalentHours.toFixed(2))
+        });
+        totalEquivalentHours += equivalentHours;
+        remainingHours -= hoursInThisTier;
+      }
+    }
+
+    return {
+      totalEquivalentHours: parseFloat(totalEquivalentHours.toFixed(2)),
+      breakdown
+    };
+  }
+
+  async processOvertimeForTimeEntry(
+    timeEntryId: number,
+    userId: string,
+    departmentId: number,
+    shiftId: number | null,
+    workedHours: number,
+    expectedHours: number,
+    entryDate: Date
+  ): Promise<void> {
+    const overtimeHours = Math.max(0, workedHours - expectedHours);
+    if (overtimeHours === 0) return;
+
+    // Get applicable overtime rule
+    const rule = await this.getApplicableOvertimeRule(departmentId, shiftId, entryDate);
+    if (!rule) return;
+
+    // Calculate overtime breakdown
+    const { totalEquivalentHours, breakdown } = this.calculateOvertimeBreakdown(overtimeHours, rule.tiers);
+
+    // Update time entry with overtime info
+    await db.update(timeEntries)
+      .set({
+        overtimeRuleId: rule.id,
+        overtimeType: rule.overtimeType,
+        overtimeBreakdown: JSON.stringify(breakdown),
+        timeBankHours: rule.overtimeType === 'time_bank' ? totalEquivalentHours.toFixed(2) : null
+      })
+      .where(eq(timeEntries.id, timeEntryId));
+
+    // If time bank, credit the hours
+    if (rule.overtimeType === 'time_bank') {
+      await this.updateTimeBankBalance(
+        userId,
+        totalEquivalentHours,
+        'credit',
+        'overtime',
+        `HE processada: ${overtimeHours}h trabalhadas = ${totalEquivalentHours}h creditadas`,
+        timeEntryId
+      );
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
