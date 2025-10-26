@@ -1824,6 +1824,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple endpoint for getting users by company (for dropdowns/selects)
+  app.get('/api/users/by-company', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUserById(req.user.claims.sub);
+      
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only admins and superadmins can use this endpoint
+      if (currentUser.role !== 'admin' && currentUser.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      let users;
+      if (currentUser.role === 'superadmin') {
+        users = await storage.getAllUsers();
+      } else {
+        // Regular admins only get users from their company
+        users = await storage.getUsersByCompany(currentUser.companyId!);
+      }
+      
+      // Return minimal user data for dropdowns
+      const simpleUsers = users.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      }));
+      
+      res.json(simpleUsers);
+    } catch (error) {
+      console.error("Error fetching users by company:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   // User management routes (admin and supervisor)
   app.get('/api/admin/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
@@ -3656,12 +3693,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // Clock out - update existing entry
+        // Calculate total hours
+        const clockInDate = new Date(activeEntry.clockInTime);
+        const totalHours = calculateHours(clockInDate, now).toString();
+        
         const updated = await storage.updateTimeEntry(activeEntry.id, {
           clockOutTime: now,
           clockOutPhotoUrl: photoUrl || null,
           clockOutIp: clientIp,
           clockOutLocation: location,
           status: 'completed',
+          totalHours,
           clockOutLatitude: latitude,
           clockOutLongitude: longitude,
           clockOutValidationMessages: validationMessages.join('\n'),

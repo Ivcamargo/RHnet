@@ -1326,9 +1326,10 @@ export class DatabaseStorage implements IStorage {
     const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
     
     const entries = await this.getTimeEntriesByUser(userId, startDate, endDate);
-    const completedEntries = entries.filter(entry => entry.status === 'completed' && entry.totalHours);
+    const completedEntries = entries.filter(entry => entry.status === 'completed');
     
     const totalHours = completedEntries.reduce((sum, entry) => {
+      if (!entry.totalHours) return sum;
       return sum + (parseFloat(entry.totalHours || '0'));
     }, 0);
     
