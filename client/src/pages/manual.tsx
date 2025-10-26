@@ -1,4 +1,4 @@
-import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn, Tablet, Camera } from "lucide-react";
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn, Tablet, Camera, DollarSign, Coins } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -713,6 +713,120 @@ export default function Manual() {
 
                 <section>
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    Sistema de Horas Extras e Banco de Horas
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    O sistema calcula automaticamente as horas extras quando um funcionário trabalha além do
+                    esperado para seu turno. As horas extras podem ser pagas ou creditadas em banco de horas.
+                  </p>
+
+                  <div className="space-y-4">
+                    <Card className="bg-primary/5 border-l-4 border-l-primary">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Settings className="h-4 w-4" />
+                          Configuração de Regras (Administrador)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <p><strong>Acesse: Menu Admin → Configurar Horas Extras</strong></p>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded border">
+                          <p className="font-semibold text-primary mb-2">Crie regras personalizadas por:</p>
+                          <ul className="ml-4 space-y-1 text-xs">
+                            <li>• <strong>Departamento:</strong> Diferentes setores podem ter regras diferentes</li>
+                            <li>• <strong>Turno:</strong> Configure percentuais específicos por horário de trabalho</li>
+                            <li>• <strong>Tipo de Dia:</strong> Dias úteis, finais de semana ou feriados</li>
+                            <li>• <strong>Modo:</strong> Pago (💰) ou Banco de Horas (🏦)</li>
+                          </ul>
+                        </div>
+                        
+                        <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded border border-blue-200">
+                          <p className="text-xs text-blue-900 dark:text-blue-100">
+                            <strong>💡 Exemplo de Configuração:</strong>
+                          </p>
+                          <ul className="mt-2 ml-4 space-y-1 text-xs text-blue-800 dark:text-blue-200">
+                            <li>• 0h - 2h extras: +50% (Banco de Horas)</li>
+                            <li>• 2h - 4h extras: +100% (Banco de Horas)</li>
+                            <li>• Mais de 4h: +200% (Pago)</li>
+                          </ul>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-secondary/5 border-l-4 border-l-secondary">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Coins className="h-4 w-4" />
+                          Cálculo Automático
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p>O sistema calcula automaticamente as horas extras quando você registra a saída:</p>
+                        <ol className="ml-4 space-y-1 list-decimal text-xs">
+                          <li>Compara as horas trabalhadas com as horas esperadas do turno</li>
+                          <li>Identifica se há horas além do esperado</li>
+                          <li>Aplica a regra configurada para seu departamento/turno</li>
+                          <li>Calcula o valor considerando os diferentes percentuais por faixa</li>
+                          <li>Credita no banco de horas ou marca para pagamento</li>
+                        </ol>
+                        <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded border border-green-200 mt-3">
+                          <p className="text-xs text-green-900 dark:text-green-100">
+                            ✅ <strong>Exemplo:</strong> Trabalhou 10 horas em um turno de 8 horas = 2 horas extras.
+                            Com regra de +50%, você ganha crédito de 3 horas no banco de horas (2h × 1.5).
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Consulta do Banco de Horas (Funcionário)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <p><strong>Acesse: Menu → Banco de Horas</strong></p>
+                        <p>Veja seu saldo atual e todo o histórico de movimentações:</p>
+                        <ul className="ml-4 space-y-1 text-xs">
+                          <li>• <strong>Saldo Atual:</strong> Total de horas creditadas disponíveis</li>
+                          <li>• <strong>Histórico de Transações:</strong> Cada crédito com data, valor e origem</li>
+                          <li>• <strong>Detalhes:</strong> Regra aplicada, percentual e observações</li>
+                        </ul>
+                        <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded border border-amber-200 mt-3">
+                          <p className="text-xs text-amber-900 dark:text-amber-100">
+                            ⚠️ <strong>Importante:</strong> O uso das horas do banco (para folgas) deve ser autorizado
+                            pelo RH. O sistema registra os créditos, mas a utilização depende de aprovação.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Diferença: Pago vs. Banco de Horas</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded border border-green-200">
+                            <p className="font-semibold text-green-900 dark:text-green-100 mb-1">💰 Modo Pago</p>
+                            <p>Horas extras serão pagas na folha de pagamento seguinte, com os percentuais aplicados.</p>
+                          </div>
+                          <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded border border-blue-200">
+                            <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">🏦 Banco de Horas</p>
+                            <p>Horas são creditadas e podem ser usadas para folgas compensatórias no futuro.</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     Gestão de Escalas e Rotações
                   </h3>
@@ -864,6 +978,96 @@ export default function Manual() {
                     <p className="text-sm text-blue-900 dark:text-blue-100">
                       <strong>💡 Dica:</strong> Clique em "Ver detalhes" em qualquer registro marcado como "Irregular"
                       para ver a lista completa de motivos e informações sobre horas esperadas vs. trabalhadas.
+                    </p>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-primary" />
+                    Recursos Interativos do Relatório
+                  </h3>
+                  <p className="text-muted-foreground mb-3">
+                    O relatório mensal possui recursos visuais interativos para facilitar a análise:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Camera className="h-4 w-4 text-green-600" />
+                          Ícone de Câmera Verde
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p>
+                          Quando você vê o ícone de câmera verde com o texto "Verificado" na coluna de verificação,
+                          significa que o registro foi feito com reconhecimento facial bem-sucedido.
+                        </p>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200">
+                          <p className="text-xs flex items-center gap-2">
+                            <Camera className="h-4 w-4 text-green-600" />
+                            <strong>Passe o mouse sobre o ícone</strong> para ver a confirmação de verificação facial.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-amber-600" />
+                          Triângulo Amarelo de Aviso
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p>
+                          O triângulo amarelo ao lado da data indica que foram detectados <strong>problemas de validação</strong>
+                          no registro (como geofence fora da área ou horário fora do turno).
+                        </p>
+                        <div className="bg-white dark:bg-gray-900 p-3 rounded border border-amber-200 space-y-2">
+                          <p className="text-xs">
+                            <strong>⚠️ Clique no triângulo</strong> para abrir automaticamente o modal de detalhes
+                            e ver exatamente quais validações falharam.
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-400">
+                            Ao passar o mouse, aparece a mensagem: "Problemas de validação detectados - Clique para ver detalhes"
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-blue-600" />
+                          Botão "Ver Detalhes"
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p>
+                          Clique no link "Ver detalhes" ou "⚠ Ver detalhes" em qualquer registro para abrir
+                          um modal completo com:
+                        </p>
+                        <ul className="ml-4 space-y-1 text-xs">
+                          <li>• Validações de entrada e saída (geofence, horário de turno)</li>
+                          <li>• Endereço IP registrado</li>
+                          <li>• Coordenadas de localização GPS</li>
+                          <li>• Fotos faciais (quando disponíveis)</li>
+                          <li>• Irregularidades detectadas com descrição detalhada</li>
+                          <li>• Resumo de horas trabalhadas (regulares e extras)</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="mt-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      <strong>💡 Dica:</strong> Todos os elementos com informações adicionais possuem tooltips (mensagens
+                      que aparecem ao passar o mouse). Experimente passar o mouse sobre os ícones e indicadores para
+                      descobrir mais informações!
                     </p>
                   </div>
                 </section>
