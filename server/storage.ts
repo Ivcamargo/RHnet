@@ -39,6 +39,10 @@ import {
   onboardingLinks,
   onboardingDocuments,
   onboardingFormData,
+  overtimeRules,
+  overtimeTiers,
+  timeBank,
+  timeBankTransactions,
   type User,
   type UpsertUser,
   type Department,
@@ -92,6 +96,14 @@ import {
   type RotationException,
   type InsertRotationException,
   type RotationAudit,
+  type OvertimeRule,
+  type InsertOvertimeRule,
+  type OvertimeTier,
+  type InsertOvertimeTier,
+  type TimeBank,
+  type InsertTimeBank,
+  type TimeBankTransaction,
+  type InsertTimeBankTransaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
@@ -418,6 +430,30 @@ export interface IStorage {
   // Onboarding form data operations
   getOnboardingFormData(onboardingLinkId: number): Promise<any | undefined>;
   upsertOnboardingFormData(formData: any): Promise<any>;
+  
+  // Overtime Rules operations
+  getOvertimeRules(departmentId: number): Promise<OvertimeRule[]>;
+  getOvertimeRule(id: number): Promise<OvertimeRule | undefined>;
+  createOvertimeRule(rule: InsertOvertimeRule): Promise<OvertimeRule>;
+  updateOvertimeRule(id: number, rule: Partial<InsertOvertimeRule>): Promise<OvertimeRule>;
+  deleteOvertimeRule(id: number): Promise<void>;
+  getApplicableOvertimeRule(departmentId: number, shiftId: number | null, date: Date): Promise<(OvertimeRule & { tiers: OvertimeTier[] }) | undefined>;
+  
+  // Overtime Tiers operations
+  getOvertimeTiers(overtimeRuleId: number): Promise<OvertimeTier[]>;
+  createOvertimeTier(tier: InsertOvertimeTier): Promise<OvertimeTier>;
+  updateOvertimeTier(id: number, tier: Partial<InsertOvertimeTier>): Promise<OvertimeTier>;
+  deleteOvertimeTier(id: number): Promise<void>;
+  
+  // Time Bank operations
+  getTimeBank(userId: string): Promise<TimeBank | undefined>;
+  createTimeBank(timeBank: InsertTimeBank): Promise<TimeBank>;
+  updateTimeBankBalance(userId: string, hours: number, type: 'credit' | 'debit', reason: string, description?: string, timeEntryId?: number, createdBy?: string): Promise<TimeBank>;
+  getTimeBankBalance(userId: string): Promise<number>;
+  
+  // Time Bank Transaction operations
+  getTimeBankTransactions(userId: string, limit?: number): Promise<TimeBankTransaction[]>;
+  createTimeBankTransaction(transaction: InsertTimeBankTransaction): Promise<TimeBankTransaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3079,6 +3115,221 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return data;
+  }
+
+  // ========================================================================================
+  // OVERTIME & TIME BANK OPERATIONS
+  // ========================================================================================
+
+  // Overtime Rules operations
+  async getOvertimeRules(departmentId: number): Promise<OvertimeRule[]> {
+    return await db
+      .select()
+      .from(overtimeRules)
+      .where(eq(overtimeRules.departmentId, departmentId))
+      .orderBy(desc(overtimeRules.priority));
+  }
+
+  async getOvertimeRule(id: number): Promise<OvertimeRule | undefined> {
+    const [rule] = await db
+      .select()
+      .from(overtimeRules)
+      .where(eq(overtimeRules.id, id));
+    return rule;
+  }
+
+  async createOvertimeRule(rule: InsertOvertimeRule): Promise<OvertimeRule> {
+    const [newRule] = await db.insert(overtimeRules).values(rule).returning();
+    return newRule;
+  }
+
+  async updateOvertimeRule(id: number, rule: Partial<InsertOvertimeRule>): Promise<OvertimeRule> {
+    const [updated] = await db
+      .update(overtimeRules)
+      .set({ ...rule, updatedAt: new Date() })
+      .where(eq(overtimeRules.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteOvertimeRule(id: number): Promise<void> {
+    await db.delete(overtimeRules).where(eq(overtimeRules.id, id));
+  }
+
+  async getApplicableOvertimeRule(
+    departmentId: number, 
+    shiftId: number | null, 
+    date: Date
+  ): Promise<(OvertimeRule & { tiers: OvertimeTier[] }) | undefined> {
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Check if date is a holiday
+    const dateStr = date.toISOString().split('T')[0];
+    const [holiday] = await db
+      .select()
+      .from(holidays)
+      .where(
+        and(
+          eq(holidays.date, dateStr),
+          eq(holidays.isActive, true)
+        )
+      );
+    const isHoliday = !!holiday;
+    
+    // Find applicable rules ordered by priority
+    const rules = await db
+      .select()
+      .from(overtimeRules)
+      .where(
+        and(
+          eq(overtimeRules.departmentId, departmentId),
+          eq(overtimeRules.isActive, true),
+          or(
+            isNull(overtimeRules.shiftId),
+            shiftId ? eq(overtimeRules.shiftId, shiftId) : sql`true`
+          )
+        )
+      )
+      .orderBy(desc(overtimeRules.priority));
+    
+    // Find the first rule that applies to this day type
+    for (const rule of rules) {
+      if (isHoliday && rule.applyToHolidays) {
+        const tiers = await this.getOvertimeTiers(rule.id);
+        return { ...rule, tiers };
+      }
+      if (isWeekend && rule.applyToWeekends) {
+        const tiers = await this.getOvertimeTiers(rule.id);
+        return { ...rule, tiers };
+      }
+      if (!isWeekend && !isHoliday && rule.applyToWeekdays) {
+        const tiers = await this.getOvertimeTiers(rule.id);
+        return { ...rule, tiers };
+      }
+    }
+    
+    return undefined;
+  }
+
+  // Overtime Tiers operations
+  async getOvertimeTiers(overtimeRuleId: number): Promise<OvertimeTier[]> {
+    return await db
+      .select()
+      .from(overtimeTiers)
+      .where(eq(overtimeTiers.overtimeRuleId, overtimeRuleId))
+      .orderBy(overtimeTiers.orderIndex);
+  }
+
+  async createOvertimeTier(tier: InsertOvertimeTier): Promise<OvertimeTier> {
+    const [newTier] = await db.insert(overtimeTiers).values(tier).returning();
+    return newTier;
+  }
+
+  async updateOvertimeTier(id: number, tier: Partial<InsertOvertimeTier>): Promise<OvertimeTier> {
+    const [updated] = await db
+      .update(overtimeTiers)
+      .set(tier)
+      .where(eq(overtimeTiers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteOvertimeTier(id: number): Promise<void> {
+    await db.delete(overtimeTiers).where(eq(overtimeTiers.id, id));
+  }
+
+  // Time Bank operations
+  async getTimeBank(userId: string): Promise<TimeBank | undefined> {
+    const [bank] = await db
+      .select()
+      .from(timeBank)
+      .where(eq(timeBank.userId, userId));
+    return bank;
+  }
+
+  async createTimeBank(timeBankData: InsertTimeBank): Promise<TimeBank> {
+    const [newBank] = await db.insert(timeBank).values(timeBankData).returning();
+    return newBank;
+  }
+
+  async updateTimeBankBalance(
+    userId: string,
+    hours: number,
+    type: 'credit' | 'debit',
+    reason: string,
+    description?: string,
+    timeEntryId?: number,
+    createdBy?: string
+  ): Promise<TimeBank> {
+    // Get or create time bank
+    let bank = await this.getTimeBank(userId);
+    if (!bank) {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user?.companyId) throw new Error('User company not found');
+      bank = await this.createTimeBank({ userId, companyId: user.companyId });
+    }
+
+    // Calculate new balance
+    const currentBalance = parseFloat(bank.balanceHours || '0');
+    const hoursNum = parseFloat(hours.toString());
+    const newBalance = type === 'credit' 
+      ? currentBalance + hoursNum 
+      : currentBalance - hoursNum;
+
+    // Update time bank
+    const [updated] = await db
+      .update(timeBank)
+      .set({
+        balanceHours: newBalance.toFixed(2),
+        totalCredited: type === 'credit'
+          ? (parseFloat(bank.totalCredited || '0') + hoursNum).toFixed(2)
+          : bank.totalCredited,
+        totalDebited: type === 'debit'
+          ? (parseFloat(bank.totalDebited || '0') + hoursNum).toFixed(2)
+          : bank.totalDebited,
+        updatedAt: new Date()
+      })
+      .where(eq(timeBank.userId, userId))
+      .returning();
+
+    // Create transaction record
+    await this.createTimeBankTransaction({
+      timeBankId: bank.id,
+      userId,
+      transactionType: type,
+      hours: hoursNum.toFixed(2),
+      balanceAfter: newBalance.toFixed(2),
+      timeEntryId,
+      reason,
+      description,
+      createdBy
+    });
+
+    return updated;
+  }
+
+  async getTimeBankBalance(userId: string): Promise<number> {
+    const bank = await this.getTimeBank(userId);
+    return bank ? parseFloat(bank.balanceHours || '0') : 0;
+  }
+
+  // Time Bank Transaction operations
+  async getTimeBankTransactions(userId: string, limit = 50): Promise<TimeBankTransaction[]> {
+    return await db
+      .select()
+      .from(timeBankTransactions)
+      .where(eq(timeBankTransactions.userId, userId))
+      .orderBy(desc(timeBankTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async createTimeBankTransaction(transaction: InsertTimeBankTransaction): Promise<TimeBankTransaction> {
+    const [newTransaction] = await db
+      .insert(timeBankTransactions)
+      .values(transaction)
+      .returning();
+    return newTransaction;
   }
 }
 
