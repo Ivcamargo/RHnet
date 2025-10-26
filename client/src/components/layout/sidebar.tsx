@@ -20,7 +20,8 @@ import {
   BriefcaseBusiness,
   ChevronDown,
   ChevronRight,
-  Tablet
+  Tablet,
+  Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,6 +69,7 @@ export default function Sidebar() {
       submenu: [
         { name: "Registro de Ponto", href: "/time-clock", icon: Clock },
         { name: "Relatórios", href: "/reports", icon: TrendingUp },
+        { name: "Banco de Horas", href: "/banco-horas", icon: Briefcase },
         { name: "Administrar Pontos", href: "/admin/time-entries", icon: Clock, adminOnly: true },
         { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer, adminOnly: true },
         { name: "Terminais", href: "/admin/terminals", icon: Tablet, adminOnly: true },

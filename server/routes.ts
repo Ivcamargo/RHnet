@@ -7000,6 +7000,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current user's time bank (simplified endpoint)
+  app.get('/api/my-time-bank', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const timeBank = await storage.getTimeBank(userId);
+      
+      if (!timeBank) {
+        // Initialize time bank if doesn't exist
+        await storage.updateTimeBankBalance(userId, 0, 'credit', 'initial', 'Initial balance', undefined, userId);
+        const newTimeBank = await storage.getTimeBank(userId);
+        return res.json(newTimeBank || { userId, balance: 0, lastUpdated: new Date().toISOString() });
+      }
+      
+      res.json(timeBank);
+    } catch (error) {
+      console.error("Error fetching time bank:", error);
+      res.status(500).json({ message: "Failed to fetch time bank" });
+    }
+  });
+
+  // Get current user's time bank transactions (simplified endpoint)
+  app.get('/api/my-time-bank-transactions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getTimeBankTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching time bank transactions:", error);
+      res.status(500).json({ message: "Failed to fetch time bank transactions" });
+    }
+  });
+
   // Get time bank for user
   app.get('/api/time-bank/:userId', isAuthenticatedHybrid, async (req: any, res) => {
     try {

@@ -36,6 +36,7 @@ import JobApply from "@/pages/job-apply";
 import Manual from "@/pages/manual";
 import TerminalPonto from "@/pages/terminal-ponto";
 import OvertimeConfig from "@/pages/overtime-config";
+import TimeBank from "@/pages/time-bank";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -107,6 +108,7 @@ function Router() {
       <Route path="/superadmin" component={() => <ProtectedRoute component={SuperAdmin} />} />
       <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
+      <Route path="/banco-horas" component={() => <ProtectedRoute component={TimeBank} />} />
       <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} />} />
       <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} />} />
       <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
