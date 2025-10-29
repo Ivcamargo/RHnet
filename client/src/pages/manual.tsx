@@ -40,6 +40,66 @@ export default function Manual() {
         }
       };
 
+      // Função para desenhar mockup de tela
+      const drawScreenMockup = (title: string, elements: string[]) => {
+        yPosition += 5;
+        checkNewPage(70);
+        
+        // Borda externa (sombra)
+        pdf.setFillColor(200, 200, 200);
+        pdf.rect(margin + 2, yPosition + 2, contentWidth, 65, "F");
+        
+        // Fundo da tela
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(margin, yPosition, contentWidth, 65, "F");
+        
+        // Borda da tela
+        pdf.setDrawColor(26, 57, 96);
+        pdf.setLineWidth(0.5);
+        pdf.rect(margin, yPosition, contentWidth, 65);
+        
+        // Header da tela (barra azul)
+        pdf.setFillColor(26, 57, 96);
+        pdf.rect(margin, yPosition, contentWidth, 10, "F");
+        
+        // Título do mockup
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(title, margin + 5, yPosition + 6.5);
+        
+        // Elementos da tela
+        pdf.setTextColor(60, 60, 60);
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        let elementY = yPosition + 18;
+        elements.forEach((element, index) => {
+          if (element.startsWith("BOTÃO:")) {
+            // Desenhar botão
+            pdf.setFillColor(45, 175, 130);
+            pdf.roundedRect(margin + 40, elementY - 3, 100, 8, 2, 2, "F");
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(element.replace("BOTÃO:", "").trim(), margin + 90, elementY + 2, { align: "center" });
+            pdf.setTextColor(60, 60, 60);
+            pdf.setFont("helvetica", "normal");
+            elementY += 12;
+          } else if (element.startsWith("ÍCONE:")) {
+            // Desenhar ícone simulado
+            pdf.setDrawColor(100, 100, 100);
+            pdf.circle(margin + 10, elementY, 2);
+            pdf.text(element.replace("ÍCONE:", "").trim(), margin + 15, elementY + 1);
+            elementY += 8;
+          } else {
+            // Texto normal
+            pdf.text(element, margin + 5, elementY);
+            elementY += 6;
+          }
+        });
+        
+        yPosition += 70;
+      };
+
       // Capa
       pdf.setFillColor(26, 57, 96); // Navy blue
       pdf.rect(0, 0, pageWidth, pageHeight, "F");
@@ -152,17 +212,17 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Screenshot ilustrativo
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Página inicial com botão 'Registrar Ponto' em destaque ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Botão verde grande com ícone de relógio", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Logo RHNet no topo, menu lateral à esquerda", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      // Screenshot ilustrativo da página inicial
+      pdf.setTextColor(0, 0, 0);
+      drawScreenMockup("RHNet - Página Inicial", [
+        "ÍCONE: Menu lateral com navegação",
+        "Dashboard com informações do usuário",
+        "",
+        "BOTÃO: Registrar Ponto (Entrada)",
+        "",
+        "Último registro: Hoje às 08:00",
+        "Status: Trabalhando"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const pontoText2 = [
@@ -182,16 +242,16 @@ export default function Manual() {
       });
 
       // Screenshot de verificação facial
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Captura de foto facial durante registro de ponto ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Câmera ativada mostrando rosto do usuário", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Botão 'Capturar Foto' e indicação de posicionamento", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      drawScreenMockup("Captura de Foto Facial", [
+        "ÍCONE: Câmera ativada",
+        "[  Área de visualização da câmera  ]",
+        "Posicione seu rosto no centro",
+        "",
+        "BOTÃO: Capturar Foto",
+        "",
+        "✓ Localização validada",
+        "✓ Dentro do perímetro permitido"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const pontoText3 = [
@@ -245,16 +305,16 @@ export default function Manual() {
       });
 
       // Screenshot do terminal
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Interface do Terminal de Ponto (modo tablet) ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Logo compacto, campo de login simplificado", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Layout otimizado para toque em tela grande", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      drawScreenMockup("Terminal de Ponto (Modo Tablet)", [
+        "ÍCONE: Logo RHNet compacto",
+        "",
+        "[ E-mail: _________________ ]",
+        "[ Senha: _________________ ]",
+        "",
+        "BOTÃO: Registrar Ponto",
+        "",
+        "Interface otimizada para toque"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const terminalText2 = [
@@ -310,16 +370,16 @@ export default function Manual() {
       });
 
       // Screenshot gestão de funcionários
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Página de Gestão de Funcionários ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Tabela com lista de funcionários, botões de ação", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Botões: Adicionar, Importar CSV, Exportar", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      drawScreenMockup("Admin - Gestão de Funcionários", [
+        "BOTÃO: + Novo Funcionário",
+        "ÍCONE: Importar CSV | Exportar",
+        "",
+        "┌─────────────────────────────────┐",
+        "│ Nome      │ Cargo   │ Depto    │",
+        "│ João Silva│ Vendedor│ Vendas   │",
+        "│ Ana Costa │ Gerente │ Admin    │",
+        "└─────────────────────────────────┘"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const gestaoText2 = [
@@ -340,16 +400,16 @@ export default function Manual() {
       });
 
       // Screenshot setores
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Configuração de Setores com Mapa de Geofencing ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Mapa interativo mostrando perímetro permitido", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Campos para definir turnos, horários e tolerância", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      drawScreenMockup("Admin - Setores e Geofencing", [
+        "Setor: Vendas | Administração",
+        "",
+        "ÍCONE: Mapa interativo com marcador",
+        "[  ●  Área permitida (raio: 100m)  ]",
+        "",
+        "Turnos configurados:",
+        "• Manhã: 08:00 - 12:00",
+        "• Tarde: 13:00 - 17:00"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const gestaoText3 = [
@@ -407,16 +467,16 @@ export default function Manual() {
       });
 
       // Screenshot relatórios
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Relatório de Ponto Mensal ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Tabela com registros de entrada/saída por funcionário", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Indicadores coloridos para irregularidades (amarelo/vermelho)", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      drawScreenMockup("Admin - Relatório de Ponto Mensal", [
+        "Mês: Janeiro/2025",
+        "",
+        "┌────────────────────────────────┐",
+        "│ Func.  │ Entrada│ Saída │🟡🔴│",
+        "│ João   │ 08:05  │ 17:00 │ 🟡 │",
+        "│ Ana    │ 08:00  │ 17:00 │ ✓  │",
+        "└────────────────────────────────┘",
+        "🟡=Atraso | 🔴=Falta | 📷=Foto"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const relatoriosText2 = [
@@ -475,16 +535,16 @@ export default function Manual() {
       });
 
       // Screenshot recrutamento
-      yPosition += 5;
-      checkNewPage(50);
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(margin, yPosition, contentWidth, 45, "F");
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFontSize(9);
-      pdf.text("[ TELA: Gestão de Vagas e Candidaturas ]", pageWidth / 2, yPosition + 15, { align: "center" });
-      pdf.text("Cards com vagas abertas, status e número de candidatos", pageWidth / 2, yPosition + 22, { align: "center" });
-      pdf.text("Botões para criar vaga, visualizar candidatos", pageWidth / 2, yPosition + 29, { align: "center" });
-      yPosition += 50;
+      drawScreenMockup("Admin - Recrutamento e Seleção", [
+        "BOTÃO: + Nova Vaga",
+        "",
+        "┌────────────────────────────┐",
+        "│ Vendedor - Vendas         │",
+        "│ Salário: R$ 2.500         │",
+        "│ Candidatos: 15            │",
+        "│ Status: Aberta            │",
+        "└────────────────────────────┘"
+      ]);
       pdf.setTextColor(0, 0, 0);
 
       const recrutamentoText2 = [
