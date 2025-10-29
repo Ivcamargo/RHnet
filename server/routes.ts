@@ -3671,11 +3671,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user is already clocked in
       const activeEntry = await storage.getActiveTimeEntry(tokenData.userId);
-      const now = new Date();
+      const now = getBrazilianTime();
+      const today = getBrazilianDateString();
 
       if (!activeEntry) {
         // Clock in - create new entry
-        const today = now.toISOString().split('T')[0];
         const timeEntry = await storage.createTimeEntry({
           userId: tokenData.userId,
           date: today,
