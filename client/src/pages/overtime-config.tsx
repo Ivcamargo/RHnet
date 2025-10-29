@@ -13,6 +13,7 @@ import { Plus, Trash2, Edit, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import TopBar from "@/components/layout/top-bar";
+import Sidebar from "@/components/layout/sidebar";
 
 type Department = {
   id: number;
@@ -86,9 +87,15 @@ export default function OvertimeConfig() {
   const saveRuleMutation = useMutation({
     mutationFn: async (rule: Partial<OvertimeRule>) => {
       if (rule.id) {
-        return await apiRequest(`/api/overtime-rules/${rule.id}`, "PUT", rule);
+        return await apiRequest(`/api/overtime-rules/${rule.id}`, {
+          method: "PUT",
+          body: JSON.stringify(rule),
+        });
       } else {
-        return await apiRequest("/api/overtime-rules", "POST", rule);
+        return await apiRequest("/api/overtime-rules", {
+          method: "POST",
+          body: JSON.stringify(rule),
+        });
       }
     },
     onSuccess: () => {
@@ -105,7 +112,9 @@ export default function OvertimeConfig() {
   // Delete rule mutation
   const deleteRuleMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/overtime-rules/${id}`, "DELETE");
+      return await apiRequest(`/api/overtime-rules/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-rules"] });
@@ -120,11 +129,17 @@ export default function OvertimeConfig() {
   const saveTierMutation = useMutation({
     mutationFn: async (tier: Partial<OvertimeTier>) => {
       if (tier.id) {
-        return await apiRequest(`/api/overtime-tiers/${tier.id}`, "PUT", tier);
+        return await apiRequest(`/api/overtime-tiers/${tier.id}`, {
+          method: "PUT",
+          body: JSON.stringify(tier),
+        });
       } else {
-        return await apiRequest("/api/overtime-tiers", "POST", {
-          ...tier,
-          overtimeRuleId: selectedRule?.id,
+        return await apiRequest("/api/overtime-tiers", {
+          method: "POST",
+          body: JSON.stringify({
+            ...tier,
+            overtimeRuleId: selectedRule?.id,
+          }),
         });
       }
     },
@@ -142,7 +157,9 @@ export default function OvertimeConfig() {
   // Delete tier mutation
   const deleteTierMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/overtime-tiers/${id}`, "DELETE");
+      return await apiRequest(`/api/overtime-tiers/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/overtime-tiers"] });
@@ -191,19 +208,27 @@ export default function OvertimeConfig() {
 
   if (user?.role !== "admin" && user?.role !== "superadmin") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        <TopBar />
-        <div className="container py-8 text-center">
-          <p>Acesso restrito a administradores.</p>
+      <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <TopBar title="Configuração de Horas Extras" />
+          <main className="flex-1 p-6">
+            <div className="container py-8 text-center">
+              <p>Acesso restrito a administradores.</p>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <TopBar />
-      <div className="container py-8">
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <TopBar title="Configuração de Horas Extras" />
+        <main className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] bg-clip-text text-transparent">
             Configuração de Horas Extras
@@ -628,6 +653,8 @@ export default function OvertimeConfig() {
             </CardContent>
           </Card>
         </div>
+          </div>
+        </main>
       </div>
     </div>
   );
