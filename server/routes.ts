@@ -115,6 +115,48 @@ function calculateHours(start: Date, end: Date): number {
   return Number((diffMs / (1000 * 60 * 60)).toFixed(2));
 }
 
+// Helper function to get user's active shift for a specific date
+async function getUserShiftForDate(
+  userId: string,
+  date: Date,
+  storage: Storage
+): Promise<number | null> {
+  try {
+    // Get all user shift assignments
+    const assignments = await storage.getUserShiftAssignments(userId);
+    
+    // Filter for active assignments valid on the given date
+    const validAssignments = assignments.filter((assignment: any) => {
+      if (!assignment.isActive) return false;
+      
+      const entryDate = new Date(date);
+      entryDate.setHours(0, 0, 0, 0); // Normalize to start of day
+      
+      // Check if assignment is valid on this date
+      const startDate = assignment.startDate ? new Date(assignment.startDate) : null;
+      const endDate = assignment.endDate ? new Date(assignment.endDate) : null;
+      
+      if (startDate) {
+        startDate.setHours(0, 0, 0, 0);
+        if (entryDate < startDate) return false;
+      }
+      
+      if (endDate) {
+        endDate.setHours(0, 0, 0, 0);
+        if (entryDate > endDate) return false;
+      }
+      
+      return true;
+    });
+    
+    // Return the first valid assignment's shiftId (or null if none found)
+    return validAssignments.length > 0 ? validAssignments[0].shiftId : null;
+  } catch (error) {
+    console.error("Error getting user shift for date:", error);
+    return null;
+  }
+}
+
 // Helper function to compute net worked hours considering breaks
 async function computeNetWorkedHours(
   timeEntry: any, // TimeEntry with break entries
@@ -144,12 +186,14 @@ async function computeNetWorkedHours(
     }
   }
   
-  // 2. Subtract automatic unpaid breaks (from department shift configuration)
-  if (timeEntry.departmentId) {
-    const shifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+  // 2. Subtract automatic unpaid breaks (from user's specific shift configuration)
+  if (timeEntry.userId && timeEntry.date) {
+    // Get the user's assigned shift for this date
+    const userShiftId = await getUserShiftForDate(timeEntry.userId, new Date(timeEntry.date), storage);
     
-    for (const shift of shifts) {
-      const shiftBreaks = await storage.getShiftBreaks(shift.id);
+    if (userShiftId) {
+      // Get breaks only for the user's specific shift
+      const shiftBreaks = await storage.getShiftBreaks(userShiftId);
       
       for (const shiftBreak of shiftBreaks) {
         // Only process unpaid breaks that are set to auto-deduct
@@ -164,7 +208,7 @@ async function computeNetWorkedHours(
             if (shiftBreak.scheduledStart && shiftBreak.scheduledEnd) {
               // More sophisticated overlap detection could be implemented here
               // For now, we'll just check if the break names match
-              const matchingManualBreak = manualBreaks.find(mb => 
+              const matchingManualBreak = manualBreaks.find((mb: any) => 
                 mb.type && 
                 (mb.type.toLowerCase().includes('almoço') && shiftBreak.name.toLowerCase().includes('almoço')) ||
                 (mb.type.toLowerCase().includes('lanche') && shiftBreak.name.toLowerCase().includes('lanche'))

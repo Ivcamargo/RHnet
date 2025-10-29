@@ -36,6 +36,12 @@ Preferred communication style: Simple, everyday language.
 - **Time Tracking**: Clock in/out with location/facial verification, break management. Includes IP address tracking, geofence proximity validation, shift schedule compliance (including overnight shifts), and UTC timestamp storage with Brazil timezone conversion for display. Admin edits are audited with detailed tracking.
 - **Terminal/Kiosk Mode**: Tablet-optimized interface for fixed time clock stations with compact logo display (180px). Features device registration, public interface (`/terminal-ponto`) with simplified flow fitting on screen without scroll, stateless authentication, auto-logout, and data masking. Records `deviceId` for provenance.
 - **Shift & Rotation Management**: Comprehensive CRUD for shifts and rotation templates (daily, weekly, monthly, custom) with advanced interval support.
+- **Automatic Break Management**: Shift-specific break configuration system (`department_shift_breaks`) allows administrators to define automatic breaks (paid/unpaid) that are automatically deducted from worked hours during clock-out. Features include:
+  - **Break Configuration**: Multiple breaks per shift with duration (minutes), paid status, auto-deduct flag, and minimum work time requirement (default 6 hours).
+  - **User Interface**: Integrated ShiftBreaksManager component accessible from Sectors page with full CRUD operations.
+  - **Smart Deduction Logic**: `computeNetWorkedHours()` applies breaks only from employee's assigned shift (via `userShiftAssignments`) for the specific date, preventing cross-shift deduction errors in multi-shift departments. Checks minimum work hours and prevents duplicate deductions when overlapping manual breaks exist.
+  - **API Endpoints**: GET/POST `/api/department-shifts/:shiftId/breaks`, PATCH/DELETE `/api/shift-breaks/:id`.
+  - **Important Notes**: Break deductions apply only at clock-out time; existing time entries are not retroactively recalculated when new breaks are configured. Admins can manually adjust historical records via Admin → Time Entries.
 - **Employee-Shift Assignment**: Flexible system for assigning employees to shifts with optional start/end dates. Supports cross-company assignments for superadmins and cross-department flexibility.
 - **Password Management**: Self-service password change.
 - **Course Management**: Admin interface for quizzes with question CRUD and validation.
