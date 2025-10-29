@@ -66,6 +66,8 @@ const shiftFormSchema = z.object({
   breakStart: z.string().optional(),
   breakEnd: z.string().optional(),
   daysOfWeek: z.array(z.number()).default([1, 2, 3, 4, 5]), // Monday to Friday
+  toleranceBeforeMinutes: z.coerce.number().min(0).max(60).default(5),
+  toleranceAfterMinutes: z.coerce.number().min(0).max(60).default(5),
 });
 
 type SectorFormData = z.infer<typeof sectorFormSchema>;
@@ -221,6 +223,8 @@ export default function Sectors() {
       breakStart: "",
       breakEnd: "",
       daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
+      toleranceBeforeMinutes: 5,
+      toleranceAfterMinutes: 5,
     },
   });
 
@@ -657,6 +661,8 @@ export default function Sectors() {
       breakStart: shift.breakStart || "",
       breakEnd: shift.breakEnd || "",
       daysOfWeek: shift.daysOfWeek || [1, 2, 3, 4, 5],
+      toleranceBeforeMinutes: (shift as any).toleranceBeforeMinutes ?? 5,
+      toleranceAfterMinutes: (shift as any).toleranceAfterMinutes ?? 5,
     };
     
     shiftForm.reset(formData);
@@ -1318,6 +1324,57 @@ export default function Sectors() {
                               </div>
                             </div>
                           )}
+                        </div>
+
+                        {/* Tolerance Fields */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Tolerância de Horário</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={shiftForm.control}
+                              name="toleranceBeforeMinutes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Tolerância Antes (minutos)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      min="0"
+                                      max="60"
+                                      placeholder="5"
+                                      data-testid="input-shift-tolerance-before"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={shiftForm.control}
+                              name="toleranceAfterMinutes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Tolerância Depois (minutos)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number"
+                                      min="0"
+                                      max="60"
+                                      placeholder="5"
+                                      data-testid="input-shift-tolerance-after"
+                                      {...field} 
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Define quanto tempo antes ou depois do horário oficial é aceitável sem gerar irregularidade
+                          </div>
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-4">
