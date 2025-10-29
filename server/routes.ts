@@ -433,8 +433,8 @@ async function computeIrregularities(
         const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
         const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
         
-        // Calculate late minutes (with 5-minute grace period)
-        const GRACE_PERIOD_MINUTES = 5;
+        // Use shift's configured tolerance (default 5 minutes if not set)
+        const toleranceMinutes = shift.toleranceAfterMinutes ?? 5;
         let rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
         
         // Handle overnight shifts (e.g., 22:00-06:00)
@@ -443,7 +443,7 @@ async function computeIrregularities(
           rawLateMinutes += 24 * 60;
         }
         
-        if (rawLateMinutes > GRACE_PERIOD_MINUTES) {
+        if (rawLateMinutes > toleranceMinutes) {
           lateMinutes = rawLateMinutes;
           const hours = Math.floor(lateMinutes / 60);
           const mins = lateMinutes % 60;

@@ -114,6 +114,8 @@ export const departmentShifts = pgTable("department_shifts", {
   breakStart: varchar("break_start"), // "12:00" - Início do intervalo
   breakEnd: varchar("break_end"), // "13:00" - Fim do intervalo
   daysOfWeek: integer("days_of_week").array(), // [1,2,3,4,5] for Mon-Fri
+  toleranceBeforeMinutes: integer("tolerance_before_minutes").default(5), // Tolerância para entrada antecipada (padrão: 5 min)
+  toleranceAfterMinutes: integer("tolerance_after_minutes").default(5), // Tolerância para entrada atrasada (padrão: 5 min)
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
