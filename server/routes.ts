@@ -433,8 +433,9 @@ async function computeIrregularities(
         const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
         const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
         
-        // Use shift's configured tolerance (default 5 minutes if not set)
-        const toleranceMinutes = shift.toleranceAfterMinutes ?? 5;
+        // Use shift's configured tolerances (default 5 minutes if not set)
+        const toleranceAfter = shift.toleranceAfterMinutes ?? 5;
+        const toleranceBefore = shift.toleranceBeforeMinutes ?? 5;
         let rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
         
         // Handle overnight shifts (e.g., 22:00-06:00)
@@ -443,12 +444,22 @@ async function computeIrregularities(
           rawLateMinutes += 24 * 60;
         }
         
-        if (rawLateMinutes > toleranceMinutes) {
+        // Check for late arrival (after tolerance)
+        if (rawLateMinutes > toleranceAfter) {
           lateMinutes = rawLateMinutes;
           const hours = Math.floor(lateMinutes / 60);
           const mins = lateMinutes % 60;
           irregularityReasons.push(
             `Atraso - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} depois do horário (${shift.startTime})`
+          );
+        }
+        // Check for excessively early arrival (before tolerance)
+        else if (rawLateMinutes < -toleranceBefore) {
+          const earlyMinutes = Math.abs(rawLateMinutes);
+          const hours = Math.floor(earlyMinutes / 60);
+          const mins = earlyMinutes % 60;
+          irregularityReasons.push(
+            `Chegada antecipada - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} antes do horário (${shift.startTime})`
           );
         }
       }
