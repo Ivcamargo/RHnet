@@ -25,8 +25,10 @@ import {
   Trash2,
   UserCheck,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Clock
 } from "lucide-react";
+import { ShiftBreaksManager } from "@/components/shifts/shift-breaks-manager";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { useForm } from "react-hook-form";
@@ -191,6 +193,7 @@ export default function Sectors() {
   const [deletingSector, setDeletingSector] = useState<Sector | null>(null);
   const [deletingShift, setDeletingShift] = useState<DepartmentShift | null>(null);
   const [managingShiftEmployees, setManagingShiftEmployees] = useState<DepartmentShift | null>(null);
+  const [managingShiftBreaks, setManagingShiftBreaks] = useState<DepartmentShift | null>(null);
   const [selectedEmployeeForAssignment, setSelectedEmployeeForAssignment] = useState<string>("");
   const [assignmentStartDate, setAssignmentStartDate] = useState<string>("");
   const [assignmentEndDate, setAssignmentEndDate] = useState<string>("");
@@ -1122,6 +1125,15 @@ export default function Sectors() {
                                       <Button
                                         variant="outline"
                                         size="sm"
+                                        onClick={() => setManagingShiftBreaks(shift)}
+                                        data-testid={`button-manage-breaks-${shift.id}`}
+                                        title="Gerenciar intervalos automáticos"
+                                      >
+                                        <Clock className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
                                         onClick={() => handleManageShiftEmployees(shift)}
                                         data-testid={`button-manage-employees-${shift.id}`}
                                         title="Gerenciar funcionários"
@@ -1774,6 +1786,16 @@ export default function Sectors() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Shift Breaks Management Dialog */}
+            {managingShiftBreaks && (
+              <ShiftBreaksManager
+                shiftId={managingShiftBreaks.id}
+                shiftName={managingShiftBreaks.name}
+                open={!!managingShiftBreaks}
+                onOpenChange={(open) => !open && setManagingShiftBreaks(null)}
+              />
+            )}
           </div>
         </main>
       </div>
