@@ -21,7 +21,9 @@ import {
   ChevronDown,
   ChevronRight,
   Tablet,
-  Briefcase
+  Briefcase,
+  TrendingUp as TrendingUpIcon,
+  Percent
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -74,6 +76,7 @@ export default function Sidebar() {
         { name: "Períodos de Ponto", href: "/admin/time-periods", icon: Timer, adminOnly: true },
         { name: "Terminais", href: "/admin/terminals", icon: Tablet, adminOnly: true },
         { name: "Feriados", href: "/holidays", icon: CalendarDays, adminOnly: true },
+        { name: "Horas Extras", href: "/admin/overtime-config", icon: Percent, adminOnly: true },
       ]
     },
   ];
