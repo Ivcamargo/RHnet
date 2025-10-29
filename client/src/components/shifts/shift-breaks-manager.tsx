@@ -68,7 +68,7 @@ export function ShiftBreaksManager({ shiftId, shiftName, open, onOpenChange }: S
 
   // Fetch breaks for this shift
   const { data: breaks = [], isLoading } = useQuery<ShiftBreak[]>({
-    queryKey: ["/api/department-shifts", shiftId, "breaks"],
+    queryKey: [`/api/department-shifts/${shiftId}/breaks`],
     enabled: open && !!shiftId,
   });
 
@@ -81,7 +81,7 @@ export function ShiftBreaksManager({ shiftId, shiftName, open, onOpenChange }: S
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", shiftId, "breaks"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/department-shifts/${shiftId}/breaks`] });
       toast({
         title: "Intervalo criado",
         description: "O intervalo automático foi criado com sucesso.",
@@ -106,7 +106,7 @@ export function ShiftBreaksManager({ shiftId, shiftName, open, onOpenChange }: S
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", shiftId, "breaks"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/department-shifts/${shiftId}/breaks`] });
       toast({
         title: "Intervalo atualizado",
         description: "O intervalo foi atualizado com sucesso.",
@@ -130,7 +130,7 @@ export function ShiftBreaksManager({ shiftId, shiftName, open, onOpenChange }: S
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/department-shifts", shiftId, "breaks"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/department-shifts/${shiftId}/breaks`] });
       toast({
         title: "Intervalo removido",
         description: "O intervalo foi removido com sucesso.",
