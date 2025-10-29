@@ -1,4 +1,4 @@
-import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn, Tablet, Camera, DollarSign, Coins } from "lucide-react";
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn, Tablet, Camera, DollarSign, Coins, FileDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -6,8 +6,453 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Manual() {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const { toast } = useToast();
+
+  const handleExportPdf = async () => {
+    setIsGeneratingPdf(true);
+    toast({ title: "Gerando PDF...", description: "Por favor, aguarde enquanto criamos o documento." });
+
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+      let yPosition = margin;
+
+      // Função para adicionar nova página
+      const addNewPage = () => {
+        pdf.addPage();
+        yPosition = margin;
+      };
+
+      // Função para verificar se precisa de nova página
+      const checkNewPage = (heightNeeded: number) => {
+        if (yPosition + heightNeeded > pageHeight - margin) {
+          addNewPage();
+        }
+      };
+
+      // Capa
+      pdf.setFillColor(26, 57, 96); // Navy blue
+      pdf.rect(0, 0, pageWidth, pageHeight, "F");
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(32);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Manual do Sistema", pageWidth / 2, 80, { align: "center" });
+      
+      pdf.setFontSize(48);
+      pdf.text("RHNet", pageWidth / 2, 120, { align: "center" });
+      
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Guia Completo de Utilização", pageWidth / 2, 150, { align: "center" });
+      
+      pdf.setFontSize(12);
+      pdf.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth / 2, pageHeight - 30, { align: "center" });
+
+      // Sumário
+      addNewPage();
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(24);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Sumário", margin, yPosition);
+      yPosition += 15;
+
+      const sections = [
+        { title: "1. Introdução", page: 3 },
+        { title: "2. Controle de Ponto", page: 5 },
+        { title: "3. Terminal de Ponto", page: 8 },
+        { title: "4. Gestão de Recursos", page: 11 },
+        { title: "5. Relatórios", page: 15 },
+        { title: "6. Recrutamento e Seleção", page: 18 },
+        { title: "7. Outros Recursos", page: 21 },
+      ];
+
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      sections.forEach(section => {
+        checkNewPage(10);
+        pdf.text(section.title, margin, yPosition);
+        pdf.text(`Pág. ${section.page}`, pageWidth - margin - 20, yPosition);
+        yPosition += 8;
+      });
+
+      // Seção 1: Introdução
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("1. Introdução", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+      
+      const introText = [
+        "O RHNet é um sistema completo de gestão de recursos humanos que integra controle de ponto",
+        "eletrônico, mensagens corporativas, gestão de documentos, treinamentos e processos de",
+        "recrutamento e seleção. Tudo em uma única plataforma moderna e fácil de usar.",
+        "",
+        "NÍVEIS DE ACESSO:",
+        "",
+        "Superadministrador:",
+        "Acesso completo ao sistema, incluindo gestão de múltiplas empresas, configurações globais",
+        "e todas as funcionalidades administrativas.",
+        "",
+        "Administrador:",
+        "Gerencia sua empresa, incluindo cadastro de funcionários, departamentos, turnos,",
+        "visualização de relatórios e gestão de processos seletivos.",
+        "",
+        "Funcionário:",
+        "Registra ponto, visualiza histórico pessoal, acessa mensagens, documentos e treinamentos.",
+      ];
+
+      introText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 2: Controle de Ponto
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("2. Controle de Ponto", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const pontoText = [
+        "COMO REGISTRAR PONTO:",
+        "",
+        "1. Acesse a página inicial após fazer login",
+        "2. Clique no botão 'Registrar Ponto' (verde para entrada, vermelho para saída)",
+        "3. Autorize o acesso à câmera e localização quando solicitado",
+        "4. Tire uma foto do seu rosto (para verificação facial)",
+        "5. O sistema validará sua localização automaticamente",
+        "6. Confirme o registro",
+        "",
+        "VALIDAÇÕES DE SEGURANÇA:",
+        "",
+        "• Verificação Facial: Cada registro inclui uma foto para comprovar presença",
+        "• Geolocalização: Valida se você está próximo ao local de trabalho",
+        "• Geofencing: Sistema verifica se você está dentro do perímetro permitido",
+        "• Registro de IP: Endereço IP é registrado para auditoria",
+        "",
+        "HORÁRIOS E TOLERÂNCIA:",
+        "",
+        "• Cada turno possui horários de entrada e saída definidos",
+        "• Tolerância configurável para chegadas antecipadas ou atrasadas",
+        "• Irregularidades são marcadas automaticamente",
+        "",
+        "PAUSAS E INTERVALOS:",
+        "",
+        "• Pausas automáticas podem ser configuradas por turno",
+        "• Pausas manuais podem ser registradas durante o expediente",
+        "• Sistema diferencia pausas pagas e não-pagas",
+      ];
+
+      pontoText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 3: Terminal de Ponto
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("3. Terminal de Ponto", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const terminalText = [
+        "O Terminal de Ponto é um modo especial do sistema otimizado para tablets e dispositivos",
+        "fixos instalados na empresa.",
+        "",
+        "CONFIGURAÇÃO DO TERMINAL:",
+        "",
+        "1. Acesse /terminal-ponto em um tablet",
+        "2. O sistema solicitará registro do dispositivo na primeira utilização",
+        "3. Após registro, o terminal ficará pronto para uso por todos os funcionários",
+        "",
+        "USO DO TERMINAL:",
+        "",
+        "1. Na tela inicial, clique em 'Registrar Ponto'",
+        "2. Digite seu e-mail e senha",
+        "3. Tire a foto facial",
+        "4. Confirme o registro",
+        "5. O sistema fará logout automático após alguns segundos",
+        "",
+        "CARACTERÍSTICAS:",
+        "",
+        "• Interface simplificada e otimizada para toque",
+        "• Logout automático por segurança",
+        "• Não exige geolocalização (usa localização do dispositivo registrado)",
+        "• Identifica o dispositivo usado em cada registro",
+        "• Ideal para pontos de registro fixos na empresa",
+      ];
+
+      terminalText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 4: Gestão de Recursos (Admin)
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("4. Gestão de Recursos (Administradores)", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const gestaoText = [
+        "CADASTRO DE FUNCIONÁRIOS:",
+        "",
+        "• Acesse Admin > Funcionários",
+        "• Preencha dados pessoais, cargo, departamento e turno",
+        "• Configure permissões de acesso",
+        "• Importe múltiplos funcionários via CSV",
+        "",
+        "GESTÃO DE SETORES E TURNOS:",
+        "",
+        "• Acesse Admin > Setores",
+        "• Crie departamentos e configure geofencing (perímetro permitido)",
+        "• Defina turnos com horários de entrada/saída",
+        "• Configure tolerâncias e pausas automáticas",
+        "• Atribua funcionários aos turnos",
+        "",
+        "CONFIGURAÇÃO DE HORAS EXTRAS:",
+        "",
+        "• Acesse Controle de Ponto > Horas Extras",
+        "• Crie regras por departamento ou turno",
+        "• Defina percentuais de acréscimo (50%, 100%, 200%, etc.)",
+        "• Configure se é pago ou banco de horas",
+        "• Aplique regras diferentes para dias úteis, finais de semana e feriados",
+        "",
+        "IMPORTAÇÃO/EXPORTAÇÃO CSV:",
+        "",
+        "• Baixe o modelo CSV na página de funcionários",
+        "• Preencha os dados conforme o modelo",
+        "• Faça upload do arquivo",
+        "• Sistema valida e reporta erros",
+        "• Exporte dados atuais a qualquer momento",
+      ];
+
+      gestaoText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 5: Relatórios
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("5. Relatórios", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const relatoriosText = [
+        "RELATÓRIO DE PONTO:",
+        "",
+        "• Acesse Admin > Relatórios de Ponto",
+        "• Selecione mês e ano",
+        "• Visualize registros de todos os funcionários",
+        "• Identifique irregularidades (atrasos, faltas, horas insuficientes)",
+        "• Veja detalhes de cada registro (foto, localização, IP)",
+        "• Exporte dados para análise externa",
+        "",
+        "INDICADORES DE IRREGULARIDADE:",
+        "",
+        "• Círculo Amarelo: Chegada atrasada",
+        "• Círculo Vermelho: Falta ou horas insuficientes",
+        "• Ícone de Câmera: Indica que há foto de verificação facial",
+        "",
+        "RELATÓRIO DE INCONSISTÊNCIAS:",
+        "",
+        "• Lista todas as irregularidades detectadas",
+        "• Mostra motivo de cada inconsistência",
+        "• Permite identificar padrões e tomar ações",
+        "",
+        "DASHBOARDS:",
+        "",
+        "• Visualize estatísticas gerais da empresa",
+        "• Acompanhe métricas de presença",
+        "• Monitore tendências ao longo do tempo",
+      ];
+
+      relatoriosText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 6: Recrutamento e Seleção
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("6. Recrutamento e Seleção", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const recrutamentoText = [
+        "GESTÃO DE VAGAS:",
+        "",
+        "• Acesse Admin > Recrutamento > Vagas",
+        "• Crie novas oportunidades de emprego",
+        "• Defina cargo, departamento, salário e requisitos",
+        "• Publique ou mantenha como rascunho",
+        "• Acompanhe status de cada vaga",
+        "",
+        "CADASTRO DE CANDIDATOS:",
+        "",
+        "• Acesse Admin > Recrutamento > Candidatos",
+        "• Registre informações completas dos candidatos",
+        "• Anexe currículos e documentos",
+        "• Gerencie banco de talentos",
+        "",
+        "PROCESSO SELETIVO:",
+        "",
+        "• Acesse Admin > Recrutamento > Candidaturas",
+        "• Vincule candidatos às vagas abertas",
+        "• Acompanhe status: Em Análise, Entrevista, Aprovado, Reprovado",
+        "• Atualize etapas conforme o processo avança",
+        "• Gere links de onboarding digital para aprovados",
+        "",
+        "ONBOARDING DIGITAL:",
+        "",
+        "• Sistema gera link único para cada candidato aprovado",
+        "• Candidato preenche dados pessoais e documentos",
+        "• Upload seguro de documentação",
+        "• Integração automática com cadastro de funcionários",
+      ];
+
+      recrutamentoText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 7: Outros Recursos
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("7. Outros Recursos", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const outrosText = [
+        "MENSAGENS:",
+        "",
+        "• Comunicação interna entre funcionários",
+        "• Envie e receba mensagens",
+        "• Arquive conversas importantes",
+        "• Exclusão independente (não afeta destinatário)",
+        "",
+        "DOCUMENTOS:",
+        "",
+        "• Armazene e compartilhe documentos corporativos",
+        "• Organize por categorias",
+        "• Controle de acesso por perfil",
+        "",
+        "TREINAMENTOS:",
+        "",
+        "• Acesse cursos disponibilizados pela empresa",
+        "• Complete módulos e avaliações",
+        "• Acompanhe seu progresso",
+        "• Obtenha certificados de conclusão",
+        "",
+        "CONFIGURAÇÕES DE CONTA:",
+        "",
+        "• Altere sua senha regularmente",
+        "• Atualize informações de perfil",
+        "• Configure preferências do sistema",
+        "",
+        "BANCO DE HORAS:",
+        "",
+        "• Visualize seu saldo de horas extras",
+        "• Acompanhe créditos e débitos",
+        "• Consulte histórico de transações",
+        "",
+        "SUPORTE:",
+        "",
+        "• Em caso de dúvidas, entre em contato com o RH",
+        "• E-mail: infosis@infosis.com.br",
+        "• Consulte este manual sempre que necessário",
+      ];
+
+      outrosText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Rodapé em todas as páginas
+      const totalPages = pdf.internal.pages.length - 1; // -1 porque o array inclui uma página vazia no início
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        if (i > 1) { // Não adiciona rodapé na capa
+          pdf.setFontSize(9);
+          pdf.setTextColor(128, 128, 128);
+          pdf.text(`RHNet - Manual do Sistema`, margin, pageHeight - 10);
+          pdf.text(`Página ${i} de ${totalPages}`, pageWidth - margin - 30, pageHeight - 10);
+        }
+      }
+
+      // Salvar PDF
+      pdf.save(`Manual_RHNet_${new Date().toISOString().split("T")[0]}.pdf`);
+      
+      toast({
+        title: "PDF gerado com sucesso!",
+        description: "O manual foi baixado para seu dispositivo.",
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Ocorreu um erro ao criar o documento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
       {/* Header Público */}
@@ -42,9 +487,20 @@ export default function Manual() {
       {/* Conteúdo Principal */}
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Book className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <Book className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
+            </div>
+            <Button
+              onClick={handleExportPdf}
+              disabled={isGeneratingPdf}
+              className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)]"
+              data-testid="button-export-pdf"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              {isGeneratingPdf ? "Gerando PDF..." : "Baixar PDF"}
+            </Button>
           </div>
           <p className="text-muted-foreground text-lg">
             Guia completo para utilização de todas as funcionalidades do sistema
