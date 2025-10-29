@@ -53,7 +53,7 @@ Preferred communication style: Simple, everyday language.
   - **Database Tables**: `overtime_rules` (department/shift-specific rules with priority system), `overtime_tiers` (percentage brackets), `time_bank` (employee balance tracking), `time_bank_transactions` (credit/debit history).
   - **Calculation Logic**: Automatic overtime processing via `processOvertimeForTimeEntry()` applies applicable rules based on date type (weekday/weekend/holiday), calculates hours across multiple percentage tiers, and credits time bank or marks for payment.
   - **API Endpoints**: Full CRUD for rules (`/api/overtime-rules`), tiers (`/api/overtime-tiers`), and time bank queries (`/api/time-bank/:userId`). Admin-only manual adjustments supported.
-- **System User Manual**: In-app documentation (`/manual`) with tabbed sections covering all system features, written in simple language.
+- **System User Manual**: In-app documentation (`/manual`) with tabbed sections covering all system features, written in simple language. Features PDF export functionality with professional formatting, visual illustrations of key screens, and comprehensive coverage of all modules. Export generates a complete manual with cover page, table of contents, and descriptive boxes illustrating main interface screens.
 
 ## External Dependencies
 
@@ -63,4 +63,5 @@ Preferred communication style: Simple, everyday language.
 - **Geolocation**: Browser Geolocation API, Nominatim API (OpenStreetMap).
 - **Mapping**: react-leaflet, OpenStreetMap.
 - **Facial Recognition**: MediaDevices API, Canvas API.
+- **PDF Generation**: jsPDF, html2canvas.
 - **Other**: WebSocket Constructor (custom for Neon).

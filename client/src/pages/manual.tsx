@@ -144,6 +144,28 @@ export default function Manual() {
         "4. Tire uma foto do seu rosto (para verificação facial)",
         "5. O sistema validará sua localização automaticamente",
         "6. Confirme o registro",
+      ];
+
+      pontoText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot ilustrativo
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Página inicial com botão 'Registrar Ponto' em destaque ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Botão verde grande com ícone de relógio", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Logo RHNet no topo, menu lateral à esquerda", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const pontoText2 = [
         "",
         "VALIDAÇÕES DE SEGURANÇA:",
         "",
@@ -151,6 +173,28 @@ export default function Manual() {
         "• Geolocalização: Valida se você está próximo ao local de trabalho",
         "• Geofencing: Sistema verifica se você está dentro do perímetro permitido",
         "• Registro de IP: Endereço IP é registrado para auditoria",
+      ];
+
+      pontoText2.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot de verificação facial
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Captura de foto facial durante registro de ponto ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Câmera ativada mostrando rosto do usuário", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Botão 'Capturar Foto' e indicação de posicionamento", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const pontoText3 = [
         "",
         "HORÁRIOS E TOLERÂNCIA:",
         "",
@@ -165,7 +209,7 @@ export default function Manual() {
         "• Sistema diferencia pausas pagas e não-pagas",
       ];
 
-      pontoText.forEach(line => {
+      pontoText3.forEach(line => {
         checkNewPage(7);
         pdf.text(line, margin, yPosition);
         yPosition += 6;
@@ -192,6 +236,28 @@ export default function Manual() {
         "1. Acesse /terminal-ponto em um tablet",
         "2. O sistema solicitará registro do dispositivo na primeira utilização",
         "3. Após registro, o terminal ficará pronto para uso por todos os funcionários",
+      ];
+
+      terminalText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot do terminal
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Interface do Terminal de Ponto (modo tablet) ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Logo compacto, campo de login simplificado", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Layout otimizado para toque em tela grande", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const terminalText2 = [
         "",
         "USO DO TERMINAL:",
         "",
@@ -210,7 +276,7 @@ export default function Manual() {
         "• Ideal para pontos de registro fixos na empresa",
       ];
 
-      terminalText.forEach(line => {
+      terminalText2.forEach(line => {
         checkNewPage(7);
         pdf.text(line, margin, yPosition);
         yPosition += 6;
@@ -235,6 +301,28 @@ export default function Manual() {
         "• Preencha dados pessoais, cargo, departamento e turno",
         "• Configure permissões de acesso",
         "• Importe múltiplos funcionários via CSV",
+      ];
+
+      gestaoText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot gestão de funcionários
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Página de Gestão de Funcionários ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Tabela com lista de funcionários, botões de ação", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Botões: Adicionar, Importar CSV, Exportar", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const gestaoText2 = [
         "",
         "GESTÃO DE SETORES E TURNOS:",
         "",
@@ -243,6 +331,28 @@ export default function Manual() {
         "• Defina turnos com horários de entrada/saída",
         "• Configure tolerâncias e pausas automáticas",
         "• Atribua funcionários aos turnos",
+      ];
+
+      gestaoText2.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot setores
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Configuração de Setores com Mapa de Geofencing ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Mapa interativo mostrando perímetro permitido", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Campos para definir turnos, horários e tolerância", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const gestaoText3 = [
         "",
         "CONFIGURAÇÃO DE HORAS EXTRAS:",
         "",
@@ -261,7 +371,7 @@ export default function Manual() {
         "• Exporte dados atuais a qualquer momento",
       ];
 
-      gestaoText.forEach(line => {
+      gestaoText3.forEach(line => {
         checkNewPage(7);
         pdf.text(line, margin, yPosition);
         yPosition += 6;
@@ -288,6 +398,28 @@ export default function Manual() {
         "• Identifique irregularidades (atrasos, faltas, horas insuficientes)",
         "• Veja detalhes de cada registro (foto, localização, IP)",
         "• Exporte dados para análise externa",
+      ];
+
+      relatoriosText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot relatórios
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Relatório de Ponto Mensal ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Tabela com registros de entrada/saída por funcionário", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Indicadores coloridos para irregularidades (amarelo/vermelho)", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const relatoriosText2 = [
         "",
         "INDICADORES DE IRREGULARIDADE:",
         "",
@@ -308,7 +440,7 @@ export default function Manual() {
         "• Monitore tendências ao longo do tempo",
       ];
 
-      relatoriosText.forEach(line => {
+      relatoriosText2.forEach(line => {
         checkNewPage(7);
         pdf.text(line, margin, yPosition);
         yPosition += 6;
@@ -334,6 +466,28 @@ export default function Manual() {
         "• Defina cargo, departamento, salário e requisitos",
         "• Publique ou mantenha como rascunho",
         "• Acompanhe status de cada vaga",
+      ];
+
+      recrutamentoText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot recrutamento
+      yPosition += 5;
+      checkNewPage(50);
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(margin, yPosition, contentWidth, 45, "F");
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(9);
+      pdf.text("[ TELA: Gestão de Vagas e Candidaturas ]", pageWidth / 2, yPosition + 15, { align: "center" });
+      pdf.text("Cards com vagas abertas, status e número de candidatos", pageWidth / 2, yPosition + 22, { align: "center" });
+      pdf.text("Botões para criar vaga, visualizar candidatos", pageWidth / 2, yPosition + 29, { align: "center" });
+      yPosition += 50;
+      pdf.setTextColor(0, 0, 0);
+
+      const recrutamentoText2 = [
         "",
         "CADASTRO DE CANDIDATOS:",
         "",
@@ -358,7 +512,7 @@ export default function Manual() {
         "• Integração automática com cadastro de funcionários",
       ];
 
-      recrutamentoText.forEach(line => {
+      recrutamentoText2.forEach(line => {
         checkNewPage(7);
         pdf.text(line, margin, yPosition);
         yPosition += 6;
