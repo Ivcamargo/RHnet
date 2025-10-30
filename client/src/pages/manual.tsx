@@ -15,9 +15,7 @@ export default function Manual() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const { toast } = useToast();
 
-  const handleExportPdf = async () => {
-    setIsGeneratingPdf(true);
-    
+  const handleExportPdf = () => {
     // Verificar se há screenshots salvos
     const savedScreenshots = localStorage.getItem('rhnet-screenshots');
     const screenshots = savedScreenshots ? JSON.parse(savedScreenshots) : null;
@@ -28,130 +26,132 @@ export default function Manual() {
         description: "Acesse /screenshot-helper para capturar as telas primeiro.",
         variant: "destructive",
       });
-      setIsGeneratingPdf(false);
       window.open('/screenshot-helper', '_blank');
       return;
     }
     
+    setIsGeneratingPdf(true);
     toast({ title: "Gerando PDF...", description: "Por favor, aguarde enquanto criamos o documento." });
 
-    try {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-      const contentWidth = pageWidth - 2 * margin;
-      let yPosition = margin;
+    // Usar setTimeout para permitir que o React atualize o UI antes de bloquear com a geração síncrona
+    setTimeout(() => {
+      try {
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 15;
+        const contentWidth = pageWidth - 2 * margin;
+        let yPosition = margin;
 
-      // Função para adicionar nova página
-      const addNewPage = () => {
-        pdf.addPage();
-        yPosition = margin;
-      };
+        // Função para adicionar nova página
+        const addNewPage = () => {
+          pdf.addPage();
+          yPosition = margin;
+        };
 
-      // Função para verificar se precisa de nova página
-      const checkNewPage = (heightNeeded: number) => {
-        if (yPosition + heightNeeded > pageHeight - margin) {
-          addNewPage();
-        }
-      };
-
-      // Função para adicionar screenshot real ao PDF
-      const addScreenshot = (imageData: string, title: string) => {
-        yPosition += 5;
-        checkNewPage(90);
-        
-        // Título da screenshot
-        pdf.setTextColor(26, 57, 96);
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(title, margin, yPosition);
-        yPosition += 7;
-        
-        // Adicionar imagem
-        try {
-          const imgWidth = contentWidth;
-          const imgHeight = 70; // Altura fixa para consistência
-          pdf.addImage(imageData, 'PNG', margin, yPosition, imgWidth, imgHeight);
-          yPosition += imgHeight + 5;
-        } catch (error) {
-          console.error('Erro ao adicionar imagem:', error);
-          pdf.setTextColor(200, 0, 0);
-          pdf.setFontSize(9);
-          pdf.text('[Erro ao carregar screenshot]', margin, yPosition);
-          yPosition += 10;
-        }
-        
-        pdf.setTextColor(0, 0, 0);
-      };
-
-      // Função para desenhar mockup de tela
-      const drawScreenMockup = (title: string, elements: string[]) => {
-        yPosition += 5;
-        checkNewPage(70);
-        
-        // Borda externa (sombra)
-        pdf.setFillColor(200, 200, 200);
-        pdf.rect(margin + 2, yPosition + 2, contentWidth, 65, "F");
-        
-        // Fundo da tela
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(margin, yPosition, contentWidth, 65, "F");
-        
-        // Borda da tela
-        pdf.setDrawColor(26, 57, 96);
-        pdf.setLineWidth(0.5);
-        pdf.rect(margin, yPosition, contentWidth, 65);
-        
-        // Header da tela (barra azul)
-        pdf.setFillColor(26, 57, 96);
-        pdf.rect(margin, yPosition, contentWidth, 10, "F");
-        
-        // Título do mockup
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(8);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(title, margin + 5, yPosition + 6.5);
-        
-        // Elementos da tela
-        pdf.setTextColor(60, 60, 60);
-        pdf.setFontSize(8);
-        pdf.setFont("helvetica", "normal");
-        let elementY = yPosition + 18;
-        elements.forEach((element, index) => {
-          if (element.startsWith("BOTÃO:")) {
-            // Desenhar botão
-            pdf.setFillColor(45, 175, 130);
-            pdf.roundedRect(margin + 40, elementY - 3, 100, 8, 2, 2, "F");
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFont("helvetica", "bold");
-            pdf.text(element.replace("BOTÃO:", "").trim(), margin + 90, elementY + 2, { align: "center" });
-            pdf.setTextColor(60, 60, 60);
-            pdf.setFont("helvetica", "normal");
-            elementY += 12;
-          } else if (element.startsWith("ÍCONE:")) {
-            // Desenhar ícone simulado
-            pdf.setDrawColor(100, 100, 100);
-            pdf.circle(margin + 10, elementY, 2);
-            pdf.text(element.replace("ÍCONE:", "").trim(), margin + 15, elementY + 1);
-            elementY += 8;
-          } else {
-            // Texto normal
-            pdf.text(element, margin + 5, elementY);
-            elementY += 6;
+        // Função para verificar se precisa de nova página
+        const checkNewPage = (heightNeeded: number) => {
+          if (yPosition + heightNeeded > pageHeight - margin) {
+            addNewPage();
           }
-        });
-        
-        yPosition += 70;
-      };
+        };
 
-      // Capa
-      pdf.setFillColor(26, 57, 96); // Navy blue
-      pdf.rect(0, 0, pageWidth, pageHeight, "F");
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(32);
-      pdf.setFont("helvetica", "bold");
+        // Função para adicionar screenshot real ao PDF
+        const addScreenshot = (imageData: string, title: string) => {
+          yPosition += 5;
+          checkNewPage(90);
+          
+          // Título da screenshot
+          pdf.setTextColor(26, 57, 96);
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(title, margin, yPosition);
+          yPosition += 7;
+          
+          // Adicionar imagem
+          try {
+            const imgWidth = contentWidth;
+            const imgHeight = 70; // Altura fixa para consistência
+            pdf.addImage(imageData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+            yPosition += imgHeight + 5;
+          } catch (error) {
+            console.error('Erro ao adicionar imagem:', error);
+            pdf.setTextColor(200, 0, 0);
+            pdf.setFontSize(9);
+            pdf.text('[Erro ao carregar screenshot]', margin, yPosition);
+            yPosition += 10;
+          }
+          
+          pdf.setTextColor(0, 0, 0);
+        };
+
+        // Função para desenhar mockup de tela
+        const drawScreenMockup = (title: string, elements: string[]) => {
+          yPosition += 5;
+          checkNewPage(70);
+          
+          // Borda externa (sombra)
+          pdf.setFillColor(200, 200, 200);
+          pdf.rect(margin + 2, yPosition + 2, contentWidth, 65, "F");
+          
+          // Fundo da tela
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(margin, yPosition, contentWidth, 65, "F");
+          
+          // Borda da tela
+          pdf.setDrawColor(26, 57, 96);
+          pdf.setLineWidth(0.5);
+          pdf.rect(margin, yPosition, contentWidth, 65);
+          
+          // Header da tela (barra azul)
+          pdf.setFillColor(26, 57, 96);
+          pdf.rect(margin, yPosition, contentWidth, 10, "F");
+          
+          // Título do mockup
+          pdf.setTextColor(255, 255, 255);
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(title, margin + 5, yPosition + 6.5);
+          
+          // Elementos da tela
+          pdf.setTextColor(60, 60, 60);
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "normal");
+          let elementY = yPosition + 18;
+          elements.forEach((element, index) => {
+            if (element.startsWith("BOTÃO:")) {
+              // Desenhar botão
+              pdf.setFillColor(45, 175, 130);
+              pdf.roundedRect(margin + 40, elementY - 3, 100, 8, 2, 2, "F");
+              pdf.setTextColor(255, 255, 255);
+              pdf.setFont("helvetica", "bold");
+              pdf.text(element.replace("BOTÃO:", "").trim(), margin + 90, elementY + 2, { align: "center" });
+              pdf.setTextColor(60, 60, 60);
+              pdf.setFont("helvetica", "normal");
+              elementY += 12;
+            } else if (element.startsWith("ÍCONE:")) {
+              // Desenhar ícone simulado
+              pdf.setDrawColor(100, 100, 100);
+              pdf.circle(margin + 10, elementY, 2);
+              pdf.text(element.replace("ÍCONE:", "").trim(), margin + 15, elementY + 1);
+              elementY += 8;
+            } else {
+              // Texto normal
+              pdf.text(element, margin + 5, elementY);
+              elementY += 6;
+            }
+          });
+          
+          yPosition += 70;
+        };
+
+        // Capa
+        pdf.setFillColor(26, 57, 96); // Navy blue
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(32);
+        pdf.setFont("helvetica", "bold");
       pdf.text("Manual do Sistema", pageWidth / 2, 80, { align: "center" });
       
       pdf.setFontSize(48);
@@ -639,23 +639,24 @@ export default function Manual() {
         }
       }
 
-      // Salvar PDF
-      pdf.save(`Manual_RHNet_${new Date().toISOString().split("T")[0]}.pdf`);
-      
-      toast({
-        title: "PDF gerado com sucesso!",
-        description: "O manual foi baixado para seu dispositivo.",
-      });
-    } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
-      toast({
-        title: "Erro ao gerar PDF",
-        description: "Ocorreu um erro ao criar o documento. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingPdf(false);
-    }
+        // Salvar PDF
+        pdf.save(`Manual_RHNet_${new Date().toISOString().split("T")[0]}.pdf`);
+        
+        toast({
+          title: "PDF gerado com sucesso!",
+          description: "O manual foi baixado para seu dispositivo.",
+        });
+      } catch (error) {
+        console.error("Erro ao gerar PDF:", error);
+        toast({
+          title: "Erro ao gerar PDF",
+          description: "Ocorreu um erro ao criar o documento. Tente novamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsGeneratingPdf(false);
+      }
+    }, 200); // Delay de 200ms para permitir atualização do UI
   };
 
   return (
