@@ -37,6 +37,7 @@ import Manual from "@/pages/manual";
 import TerminalPonto from "@/pages/terminal-ponto";
 import OvertimeConfig from "@/pages/overtime-config";
 import TimeBank from "@/pages/time-bank";
+import ScreenshotHelper from "@/pages/screenshot-helper";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -84,6 +85,9 @@ function Router() {
       
       {/* Manual do Sistema - acessível para todos */}
       <Route path="/manual" component={Manual} />
+      
+      {/* Screenshot Helper - ferramenta para capturar telas */}
+      <Route path="/screenshot-helper" component={ScreenshotHelper} />
       
       {/* Terminal de ponto - acessível para todos (autenticação própria) */}
       <Route path="/terminal-ponto" component={TerminalPonto} />

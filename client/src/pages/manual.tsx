@@ -17,6 +17,22 @@ export default function Manual() {
 
   const handleExportPdf = async () => {
     setIsGeneratingPdf(true);
+    
+    // Verificar se há screenshots salvos
+    const savedScreenshots = localStorage.getItem('rhnet-screenshots');
+    const screenshots = savedScreenshots ? JSON.parse(savedScreenshots) : null;
+    
+    if (!screenshots || Object.keys(screenshots).length === 0) {
+      toast({
+        title: "Screenshots não encontrados",
+        description: "Acesse /screenshot-helper para capturar as telas primeiro.",
+        variant: "destructive",
+      });
+      setIsGeneratingPdf(false);
+      window.open('/screenshot-helper', '_blank');
+      return;
+    }
+    
     toast({ title: "Gerando PDF...", description: "Por favor, aguarde enquanto criamos o documento." });
 
     try {
@@ -38,6 +54,35 @@ export default function Manual() {
         if (yPosition + heightNeeded > pageHeight - margin) {
           addNewPage();
         }
+      };
+
+      // Função para adicionar screenshot real ao PDF
+      const addScreenshot = (imageData: string, title: string) => {
+        yPosition += 5;
+        checkNewPage(90);
+        
+        // Título da screenshot
+        pdf.setTextColor(26, 57, 96);
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(title, margin, yPosition);
+        yPosition += 7;
+        
+        // Adicionar imagem
+        try {
+          const imgWidth = contentWidth;
+          const imgHeight = 70; // Altura fixa para consistência
+          pdf.addImage(imageData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 5;
+        } catch (error) {
+          console.error('Erro ao adicionar imagem:', error);
+          pdf.setTextColor(200, 0, 0);
+          pdf.setFontSize(9);
+          pdf.text('[Erro ao carregar screenshot]', margin, yPosition);
+          yPosition += 10;
+        }
+        
+        pdf.setTextColor(0, 0, 0);
       };
 
       // Função para desenhar mockup de tela
@@ -212,18 +257,10 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Screenshot ilustrativo da página inicial
-      pdf.setTextColor(0, 0, 0);
-      drawScreenMockup("RHNet - Página Inicial", [
-        "ÍCONE: Menu lateral com navegação",
-        "Dashboard com informações do usuário",
-        "",
-        "BOTÃO: Registrar Ponto (Entrada)",
-        "",
-        "Último registro: Hoje às 08:00",
-        "Status: Trabalhando"
-      ]);
-      pdf.setTextColor(0, 0, 0);
+      // Screenshot da página inicial
+      if (screenshots.home) {
+        addScreenshot(screenshots.home, "Tela: Página Inicial - Registrar Ponto");
+      }
 
       const pontoText2 = [
         "",
@@ -241,17 +278,11 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Screenshot de verificação facial
-      drawScreenMockup("Captura de Foto Facial", [
-        "ÍCONE: Câmera ativada",
-        "[  Área de visualização da câmera  ]",
-        "Posicione seu rosto no centro",
-        "",
-        "BOTÃO: Capturar Foto",
-        "",
-        "✓ Localização validada",
-        "✓ Dentro do perímetro permitido"
-      ]);
+      // Nota sobre verificação facial (não temos screenshot específico dessa tela)
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("* Durante o registro, o sistema solicita captura de foto facial para validação", margin, yPosition);
+      yPosition += 10;
       pdf.setTextColor(0, 0, 0);
 
       const pontoText3 = [
@@ -305,17 +336,9 @@ export default function Manual() {
       });
 
       // Screenshot do terminal
-      drawScreenMockup("Terminal de Ponto (Modo Tablet)", [
-        "ÍCONE: Logo RHNet compacto",
-        "",
-        "[ E-mail: _________________ ]",
-        "[ Senha: _________________ ]",
-        "",
-        "BOTÃO: Registrar Ponto",
-        "",
-        "Interface otimizada para toque"
-      ]);
-      pdf.setTextColor(0, 0, 0);
+      if (screenshots.terminal) {
+        addScreenshot(screenshots.terminal, "Tela: Terminal de Ponto (Modo Tablet)");
+      }
 
       const terminalText2 = [
         "",
@@ -370,17 +393,9 @@ export default function Manual() {
       });
 
       // Screenshot gestão de funcionários
-      drawScreenMockup("Admin - Gestão de Funcionários", [
-        "BOTÃO: + Novo Funcionário",
-        "ÍCONE: Importar CSV | Exportar",
-        "",
-        "┌─────────────────────────────────┐",
-        "│ Nome      │ Cargo   │ Depto    │",
-        "│ João Silva│ Vendedor│ Vendas   │",
-        "│ Ana Costa │ Gerente │ Admin    │",
-        "└─────────────────────────────────┘"
-      ]);
-      pdf.setTextColor(0, 0, 0);
+      if (screenshots.employees) {
+        addScreenshot(screenshots.employees, "Tela: Admin - Gestão de Funcionários");
+      }
 
       const gestaoText2 = [
         "",
@@ -400,17 +415,9 @@ export default function Manual() {
       });
 
       // Screenshot setores
-      drawScreenMockup("Admin - Setores e Geofencing", [
-        "Setor: Vendas | Administração",
-        "",
-        "ÍCONE: Mapa interativo com marcador",
-        "[  ●  Área permitida (raio: 100m)  ]",
-        "",
-        "Turnos configurados:",
-        "• Manhã: 08:00 - 12:00",
-        "• Tarde: 13:00 - 17:00"
-      ]);
-      pdf.setTextColor(0, 0, 0);
+      if (screenshots.sectors) {
+        addScreenshot(screenshots.sectors, "Tela: Admin - Setores e Geofencing");
+      }
 
       const gestaoText3 = [
         "",
@@ -467,17 +474,9 @@ export default function Manual() {
       });
 
       // Screenshot relatórios
-      drawScreenMockup("Admin - Relatório de Ponto Mensal", [
-        "Mês: Janeiro/2025",
-        "",
-        "┌────────────────────────────────┐",
-        "│ Func.  │ Entrada│ Saída │🟡🔴│",
-        "│ João   │ 08:05  │ 17:00 │ 🟡 │",
-        "│ Ana    │ 08:00  │ 17:00 │ ✓  │",
-        "└────────────────────────────────┘",
-        "🟡=Atraso | 🔴=Falta | 📷=Foto"
-      ]);
-      pdf.setTextColor(0, 0, 0);
+      if (screenshots.reports) {
+        addScreenshot(screenshots.reports, "Tela: Admin - Relatório de Ponto Mensal");
+      }
 
       const relatoriosText2 = [
         "",
@@ -535,17 +534,9 @@ export default function Manual() {
       });
 
       // Screenshot recrutamento
-      drawScreenMockup("Admin - Recrutamento e Seleção", [
-        "BOTÃO: + Nova Vaga",
-        "",
-        "┌────────────────────────────┐",
-        "│ Vendedor - Vendas         │",
-        "│ Salário: R$ 2.500         │",
-        "│ Candidatos: 15            │",
-        "│ Status: Aberta            │",
-        "└────────────────────────────┘"
-      ]);
-      pdf.setTextColor(0, 0, 0);
+      if (screenshots.recruitment) {
+        addScreenshot(screenshots.recruitment, "Tela: Admin - Recrutamento e Seleção");
+      }
 
       const recrutamentoText2 = [
         "",
@@ -706,18 +697,29 @@ export default function Manual() {
               <Book className="h-8 w-8 text-primary" />
               <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
             </div>
-            <Button
-              onClick={handleExportPdf}
-              disabled={isGeneratingPdf}
-              className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)]"
-              data-testid="button-export-pdf"
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {isGeneratingPdf ? "Gerando PDF..." : "Baixar PDF"}
-            </Button>
+            <div className="flex gap-3">
+              <Link href="/screenshot-helper">
+                <Button variant="outline">
+                  <Camera className="h-4 w-4 mr-2" />
+                  Capturar Telas
+                </Button>
+              </Link>
+              <Button
+                onClick={handleExportPdf}
+                disabled={isGeneratingPdf}
+                className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)]"
+                data-testid="button-export-pdf"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {isGeneratingPdf ? "Gerando PDF..." : "Baixar PDF"}
+              </Button>
+            </div>
           </div>
           <p className="text-muted-foreground text-lg">
             Guia completo para utilização de todas as funcionalidades do sistema
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            💡 Dica: Clique em "Capturar Telas" para obter screenshots reais do sistema antes de gerar o PDF
           </p>
         </div>
 
