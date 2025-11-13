@@ -4,17 +4,83 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TopBar from "@/components/layout/top-bar";
 import Sidebar from "@/components/layout/sidebar";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+
+interface ScreenshotData {
+  [key: string]: string;
+}
 
 export default function Manual() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const { toast } = useToast();
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false);
+  const [screenshots, setScreenshots] = useState<ScreenshotData>({});
+  const [capturing, setCapturing] = useState(false);
+
+  const { data: user } = useQuery<any>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  // Funções de captura de screenshots
+  const captureScreen = async (elementId: string, name: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      
+      const imageData = canvas.toDataURL("image/png");
+      setScreenshots(prev => ({ ...prev, [name]: imageData }));
+    } catch (error) {
+      console.error(`Erro ao capturar ${name}:`, error);
+    }
+  };
+
+  const captureAllScreens = async () => {
+    setCapturing(true);
+    
+    await captureScreen("screen-home", "home");
+    await new Promise(r => setTimeout(r, 500));
+    
+    await captureScreen("screen-employees", "employees");
+    await new Promise(r => setTimeout(r, 500));
+    
+    await captureScreen("screen-sectors", "sectors");
+    await new Promise(r => setTimeout(r, 500));
+    
+    await captureScreen("screen-reports", "reports");
+    await new Promise(r => setTimeout(r, 500));
+    
+    await captureScreen("screen-recruitment", "recruitment");
+    await new Promise(r => setTimeout(r, 500));
+    
+    await captureScreen("screen-terminal", "terminal");
+    
+    setCapturing(false);
+    
+    toast({
+      title: "Screenshots capturadas!",
+      description: "Todas as telas foram capturadas com sucesso.",
+    });
+  };
+
+  // Salvar screenshots no localStorage sempre que mudarem
+  useEffect(() => {
+    if (Object.keys(screenshots).length > 0) {
+      localStorage.setItem('rhnet-screenshots', JSON.stringify(screenshots));
+    }
+  }, [screenshots]);
 
   const handleExportPdf = () => {
     // Verificar se há screenshots salvos
@@ -673,12 +739,14 @@ export default function Manual() {
               <h1 className="text-4xl font-bold">Manual do Sistema RHNet</h1>
             </div>
             <div className="flex gap-3">
-              <Link href="/screenshot-helper">
-                <Button variant="outline">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Capturar Telas
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowScreenshotModal(true)}
+                data-testid="button-capture-screens"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Capturar Telas
+              </Button>
               <Button
                 onClick={handleExportPdf}
                 disabled={isGeneratingPdf}
@@ -694,7 +762,7 @@ export default function Manual() {
             Guia completo para utilização de todas as funcionalidades do sistema
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            💡 Dica: Clique em "Capturar Telas" para obter screenshots reais do sistema antes de gerar o PDF
+            💡 Dica: Clique em "Capturar Telas" para capturar screenshots no modal antes de gerar o PDF
           </p>
         </div>
 

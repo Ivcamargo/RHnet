@@ -34,10 +34,6 @@ export default function Landing() {
     window.location.href = "/vagas";
   };
 
-  const handleManual = () => {
-    window.location.href = "/manual";
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 text-gray-800 relative">
       {/* Logo Watermark */}
@@ -73,15 +69,6 @@ export default function Landing() {
               <h1 className="text-2xl font-bold text-white">Sistema de gestão de recursos humanos</h1>
             </div>
             <div className="flex gap-3">
-              <Button 
-                onClick={handleManual} 
-                variant="ghost"
-                className="text-white/90 hover:text-white hover:bg-white/10 px-6 py-2"
-                data-testid="button-manual"
-              >
-                <Book className="mr-2 h-4 w-4" />
-                Manual
-              </Button>
               <Button 
                 onClick={handleJobsPage} 
                 variant="ghost"
