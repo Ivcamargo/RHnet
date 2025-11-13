@@ -79,22 +79,11 @@ export default function ScreenshotHelper() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Captura de Screenshots para Manual</h1>
-            <p className="text-muted-foreground mt-2">
-              Use esta página para capturar screenshots das principais telas do sistema
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Button onClick={captureAllScreens} disabled={capturing}>
-              {capturing ? "Capturando..." : "Capturar Todas"}
-            </Button>
-            <Button onClick={downloadScreenshots} variant="outline" disabled={Object.keys(screenshots).length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              Baixar Screenshots
-            </Button>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Captura de Screenshots para Manual</h1>
+          <p className="text-muted-foreground mt-2">
+            Use esta página para capturar screenshots das principais telas do sistema
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8">
