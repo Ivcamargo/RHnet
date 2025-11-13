@@ -83,9 +83,6 @@ function Router() {
       <Route path="/vagas" component={PublicJobs} />
       <Route path="/apply/:jobId" component={JobApply} />
       
-      {/* Manual do Sistema - acessível para todos */}
-      <Route path="/manual" component={Manual} />
-      
       {/* Screenshot Helper - ferramenta para capturar telas */}
       <Route path="/screenshot-helper" component={ScreenshotHelper} />
       
@@ -120,6 +117,7 @@ function Router() {
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       <Route path="/admin/overtime-config" component={() => <ProtectedRoute component={OvertimeConfig} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
+      <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
       
       <Route component={NotFound} />
     </Switch>

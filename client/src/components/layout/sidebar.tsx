@@ -23,7 +23,8 @@ import {
   Tablet,
   Briefcase,
   TrendingUp as TrendingUpIcon,
-  Percent
+  Percent,
+  Book
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -65,6 +66,7 @@ export default function Sidebar() {
     { name: "Mensagens", href: "/messages", icon: MessageSquare },
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
+    { name: "Manual do Sistema", href: "/manual", icon: Book },
     { 
       name: "Controle de Ponto", 
       icon: Clock,

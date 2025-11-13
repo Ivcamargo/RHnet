@@ -1,11 +1,12 @@
-import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Home, LogIn, Tablet, Camera, DollarSign, Coins, FileDown } from "lucide-react";
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Tablet, Camera, DollarSign, Coins, FileDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
+import TopBar from "@/components/layout/top-bar";
+import Sidebar from "@/components/layout/sidebar";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useState } from "react";
@@ -660,38 +661,11 @@ export default function Manual() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-      {/* Header Público */}
-      <header className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/landing">
-              <div className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity">
-                <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 rounded-lg" />
-                <h1 className="text-2xl font-bold text-white">RHNet</h1>
-              </div>
-            </Link>
-            
-            <div className="flex items-center gap-3">
-              <Link href="/landing">
-                <Button variant="ghost" className="text-white hover:bg-white/10">
-                  <Home className="h-4 w-4 mr-2" />
-                  Início
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="secondary">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Entrar
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Conteúdo Principal */}
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar title="Manual do Sistema" />
+        <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-blue-50 via-teal-50 to-green-50"  data-testid="main-content">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
@@ -2180,7 +2154,8 @@ export default function Manual() {
             </div>
           </CardContent>
         </Card>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
