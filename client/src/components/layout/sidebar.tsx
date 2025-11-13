@@ -66,7 +66,6 @@ export default function Sidebar() {
     { name: "Mensagens", href: "/messages", icon: MessageSquare },
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
-    { name: "Manual do Sistema", href: "/manual", icon: Book },
     { 
       name: "Controle de Ponto", 
       icon: Clock,
@@ -96,13 +95,18 @@ export default function Sidebar() {
     { name: "Gerenciar Sistema", href: "/superadmin", icon: ShieldCheck },
   ];
 
+  // Manual sempre como último item (separado para ficar ao final)
+  const manualItem: MenuItem = { name: "Manual do Sistema", href: "/manual", icon: Book };
+
   // Combine navigation based on user role
   let navigation = baseNavigation;
   
   if (isSuperAdmin) {
-    navigation = [...baseNavigation, ...adminNavigation, ...superAdminNavigation];
+    navigation = [...baseNavigation, ...adminNavigation, ...superAdminNavigation, manualItem];
   } else if (isAdmin) {
-    navigation = [...baseNavigation, ...adminNavigation];
+    navigation = [...baseNavigation, ...adminNavigation, manualItem];
+  } else {
+    navigation = [...baseNavigation, manualItem];
   }
 
   const handleLogout = async () => {
