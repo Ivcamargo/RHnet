@@ -2690,8 +2690,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const shiftDays = shift.daysOfWeek || [];
               
               if (shiftDays.includes(dayOfWeek)) {
-                // Check time range (handle overnight shifts)
-                const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+                // Check time range (handle overnight shifts) - convert UTC to Brazil time
+                const currentTime = now.toLocaleTimeString('pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).slice(0, 5); // "HH:MM"
                 const startTime = shift.startTime;
                 const endTime = shift.endTime;
                 
@@ -2873,8 +2878,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (shiftDays.includes(dayOfWeek)) {
                 const now = getBrazilianTime();
-                // Check time range
-                const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+                // Check time range - convert UTC to Brazil time
+                const currentTime = now.toLocaleTimeString('pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).slice(0, 5); // "HH:MM"
                 const startTime = shift.startTime;
                 const endTime = shift.endTime;
                 
