@@ -24,7 +24,8 @@ import {
   Briefcase,
   TrendingUp as TrendingUpIcon,
   Percent,
-  Book
+  Book,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -86,6 +87,7 @@ export default function Sidebar() {
   const adminNavigation: MenuItem[] = [
     { name: "Funcionários", href: "/employees", icon: UsersRound },
     { name: "Recrutamento", href: "/recruitment", icon: BriefcaseBusiness },
+    { name: "Leads", href: "/admin/leads", icon: UserPlus },
     { name: "Departamentos", href: "/departments", icon: Building2 },
     { name: "Setores", href: "/sectors", icon: Building2 },
   ];

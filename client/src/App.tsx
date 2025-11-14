@@ -32,6 +32,7 @@ import Terminals from "@/pages/admin/terminals";
 import ArquivosLegais from "@/pages/admin/arquivos-legais";
 import RotationManagement from "@/pages/rotation-management";
 import Recruitment from "@/pages/recruitment";
+import AdminLeads from "@/pages/admin-leads";
 import PublicJobs from "@/pages/public-jobs";
 import JobApply from "@/pages/job-apply";
 import Manual from "@/pages/manual";
@@ -118,6 +119,7 @@ function Router() {
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       <Route path="/admin/overtime-config" component={() => <ProtectedRoute component={OvertimeConfig} />} />
       <Route path="/admin/arquivos-legais" component={() => <ProtectedRoute component={ArquivosLegais} />} />
+      <Route path="/admin/leads" component={() => <ProtectedRoute component={AdminLeads} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
       <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
       
