@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Clock, 
   MapPin, 
@@ -29,6 +30,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 export default function Landing() {
   const [leadDialogOpen, setLeadDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleLogin = () => {
     window.location.href = "/login";
@@ -36,6 +38,14 @@ export default function Landing() {
 
   const handleJobsPage = () => {
     window.location.href = "/vagas";
+  };
+
+  const handleLeadSuccess = () => {
+    toast({
+      title: "Contato enviado com sucesso!",
+      description: "Entraremos em contato em breve para agendar uma apresentação.",
+      duration: 5000,
+    });
   };
 
   return (
@@ -379,7 +389,11 @@ export default function Landing() {
       </footer>
 
       {/* Lead Capture Dialog */}
-      <LeadCaptureDialog open={leadDialogOpen} onOpenChange={setLeadDialogOpen} />
+      <LeadCaptureDialog 
+        open={leadDialogOpen} 
+        onOpenChange={setLeadDialogOpen} 
+        onSuccess={handleLeadSuccess}
+      />
     </div>
   );
 }

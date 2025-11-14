@@ -38,9 +38,10 @@ type LeadCaptureForm = z.infer<typeof leadCaptureSchema>;
 interface LeadCaptureDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps) {
+export function LeadCaptureDialog({ open, onOpenChange, onSuccess: onSuccessCallback }: LeadCaptureDialogProps) {
   const { toast } = useToast();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -66,16 +67,16 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
     onSuccess: () => {
       setIsSubmitted(true);
       form.reset();
-      
-      toast({
-        title: "Contato enviado com sucesso!",
-        description: "Entraremos em contato em breve para agendar uma apresentação.",
-      });
 
       // Close dialog after 2 seconds
       setTimeout(() => {
         onOpenChange(false);
         setIsSubmitted(false);
+        
+        // Call parent success callback after dialog closes
+        if (onSuccessCallback) {
+          onSuccessCallback();
+        }
       }, 2000);
     },
     onError: (error: Error) => {
