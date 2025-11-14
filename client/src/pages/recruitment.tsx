@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/select";
 import { RequirementsManager, type JobRequirement } from "@/components/recruitment/RequirementsManager";
 import { DISCAssessmentsPanel } from "@/components/recruitment/DISCAssessmentsPanel";
+import { DISC_OPTIONS, buildIdealDiscProfile, validateDiscProfile, mapDiscValueToOption } from "@/lib/discOptions";
 
 export default function Recruitment() {
   const [activeTab, setActiveTab] = useState('jobs');
@@ -63,8 +64,16 @@ export default function Recruitment() {
   const [editExperienceLevel, setEditExperienceLevel] = useState('mid');
   const [createRequiresDISC, setCreateRequiresDISC] = useState(false);
   const [createDiscTiming, setCreateDiscTiming] = useState('during_selection');
+  const [createDiscD, setCreateDiscD] = useState('0');
+  const [createDiscI, setCreateDiscI] = useState('0');
+  const [createDiscS, setCreateDiscS] = useState('0');
+  const [createDiscC, setCreateDiscC] = useState('0');
   const [editRequiresDISC, setEditRequiresDISC] = useState(false);
   const [editDiscTiming, setEditDiscTiming] = useState('during_selection');
+  const [editDiscD, setEditDiscD] = useState('0');
+  const [editDiscI, setEditDiscI] = useState('0');
+  const [editDiscS, setEditDiscS] = useState('0');
+  const [editDiscC, setEditDiscC] = useState('0');
   const [isCreateApplicationDialogOpen, setIsCreateApplicationDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isViewApplicationDialogOpen, setIsViewApplicationDialogOpen] = useState(false);
@@ -249,13 +258,20 @@ export default function Recruitment() {
     const formData = new FormData(e.currentTarget);
     
     try {
-      // Prepare DISC profile data
-      const idealDISCProfile = createRequiresDISC ? {
-        D: formData.get('idealD') ? parseInt(formData.get('idealD') as string) : 0,
-        I: formData.get('idealI') ? parseInt(formData.get('idealI') as string) : 0,
-        S: formData.get('idealS') ? parseInt(formData.get('idealS') as string) : 0,
-        C: formData.get('idealC') ? parseInt(formData.get('idealC') as string) : 0,
-      } : null;
+      // Validate DISC profile if required
+      if (createRequiresDISC && !validateDiscProfile(createDiscD, createDiscI, createDiscS, createDiscC)) {
+        toast({
+          title: "Perfil DISC inválido",
+          description: "Pelo menos uma dimensão DISC deve ser diferente de 'Não relevante'.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prepare DISC profile data using centralized helper
+      const idealDISCProfile = createRequiresDISC 
+        ? buildIdealDiscProfile(createDiscD, createDiscI, createDiscS, createDiscC)
+        : null;
 
       // First, create the job opening
       const newJobRes = await apiRequest('/api/job-openings', {
@@ -307,6 +323,10 @@ export default function Recruitment() {
       setCreateRequirements([]);
       setCreateRequiresDISC(false);
       setCreateDiscTiming('during_selection');
+      setCreateDiscD('0');
+      setCreateDiscI('0');
+      setCreateDiscS('0');
+      setCreateDiscC('0');
       toast({
         title: "Vaga criada com sucesso!",
         description: `A vaga foi adicionada com ${createRequirements.length} requisito(s).`,
@@ -330,13 +350,20 @@ export default function Recruitment() {
     const previousRequirements = [...editRequirements];
     
     try {
-      // Prepare DISC profile data
-      const idealDISCProfile = editRequiresDISC ? {
-        D: formData.get('idealD') ? parseInt(formData.get('idealD') as string) : 0,
-        I: formData.get('idealI') ? parseInt(formData.get('idealI') as string) : 0,
-        S: formData.get('idealS') ? parseInt(formData.get('idealS') as string) : 0,
-        C: formData.get('idealC') ? parseInt(formData.get('idealC') as string) : 0,
-      } : null;
+      // Validate DISC profile if required
+      if (editRequiresDISC && !validateDiscProfile(editDiscD, editDiscI, editDiscS, editDiscC)) {
+        toast({
+          title: "Perfil DISC inválido",
+          description: "Pelo menos uma dimensão DISC deve ser diferente de 'Não relevante'.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prepare DISC profile data using centralized helper
+      const idealDISCProfile = editRequiresDISC 
+        ? buildIdealDiscProfile(editDiscD, editDiscI, editDiscS, editDiscC)
+        : null;
 
       // First, update the job opening
       await apiRequest(`/api/job-openings/${selectedJob.id}`, {
@@ -389,6 +416,13 @@ export default function Recruitment() {
     setEditExperienceLevel(job.experienceLevel || 'mid');
     setEditRequiresDISC(job.requiresDISC || false);
     setEditDiscTiming(job.discTiming || 'during_selection');
+    
+    // Hydrate DISC values using mapper to handle legacy numeric values
+    const idealProfile = job.idealDISCProfile || {};
+    setEditDiscD(mapDiscValueToOption(idealProfile.D).optionValue);
+    setEditDiscI(mapDiscValueToOption(idealProfile.I).optionValue);
+    setEditDiscS(mapDiscValueToOption(idealProfile.S).optionValue);
+    setEditDiscC(mapDiscValueToOption(idealProfile.C).optionValue);
     
     // Load existing requirements
     try {
@@ -653,59 +687,63 @@ export default function Recruitment() {
                     </div>
 
                     <div>
-                      <Label className="mb-2 block">Perfil DISC Ideal (0-100%)</Label>
-                      <div className="grid grid-cols-4 gap-3">
+                      <Label className="mb-2 block">Perfil DISC Ideal</Label>
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="idealD" className="text-xs text-red-600 font-bold">D - Dominância</Label>
-                          <Input
-                            id="idealD"
-                            name="idealD"
-                            type="number"
-                            min="0"
-                            max="100"
-                            placeholder="0-100"
-                            data-testid="input-ideal-d"
-                          />
+                          <Label htmlFor="idealD" className="text-sm text-red-600 font-semibold mb-1">D - Dominância</Label>
+                          <Select value={createDiscD} onValueChange={setCreateDiscD}>
+                            <SelectTrigger data-testid="select-ideal-d">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DISC_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <Label htmlFor="idealI" className="text-xs text-yellow-600 font-bold">I - Influência</Label>
-                          <Input
-                            id="idealI"
-                            name="idealI"
-                            type="number"
-                            min="0"
-                            max="100"
-                            placeholder="0-100"
-                            data-testid="input-ideal-i"
-                          />
+                          <Label htmlFor="idealI" className="text-sm text-yellow-600 font-semibold mb-1">I - Influência</Label>
+                          <Select value={createDiscI} onValueChange={setCreateDiscI}>
+                            <SelectTrigger data-testid="select-ideal-i">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DISC_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <Label htmlFor="idealS" className="text-xs text-green-600 font-bold">S - Estabilidade</Label>
-                          <Input
-                            id="idealS"
-                            name="idealS"
-                            type="number"
-                            min="0"
-                            max="100"
-                            placeholder="0-100"
-                            data-testid="input-ideal-s"
-                          />
+                          <Label htmlFor="idealS" className="text-sm text-green-600 font-semibold mb-1">S - Estabilidade</Label>
+                          <Select value={createDiscS} onValueChange={setCreateDiscS}>
+                            <SelectTrigger data-testid="select-ideal-s">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DISC_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <Label htmlFor="idealC" className="text-xs text-blue-600 font-bold">C - Conformidade</Label>
-                          <Input
-                            id="idealC"
-                            name="idealC"
-                            type="number"
-                            min="0"
-                            max="100"
-                            placeholder="0-100"
-                            data-testid="input-ideal-c"
-                          />
+                          <Label htmlFor="idealC" className="text-sm text-blue-600 font-semibold mb-1">C - Conformidade</Label>
+                          <Select value={createDiscC} onValueChange={setCreateDiscC}>
+                            <SelectTrigger data-testid="select-ideal-c">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DISC_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Deixe em branco ou 0 para perfis não relevantes
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Selecione o nível ideal para cada dimensão. Pelo menos uma deve ser diferente de "Não relevante".
                       </p>
                     </div>
                   </>
@@ -895,63 +933,63 @@ export default function Recruitment() {
                       </div>
 
                       <div>
-                        <Label className="mb-2 block">Perfil DISC Ideal (0-100%)</Label>
-                        <div className="grid grid-cols-4 gap-3">
+                        <Label className="mb-2 block">Perfil DISC Ideal</Label>
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <Label htmlFor="edit-idealD" className="text-xs text-red-600 font-bold">D - Dominância</Label>
-                            <Input
-                              id="edit-idealD"
-                              name="idealD"
-                              type="number"
-                              min="0"
-                              max="100"
-                              defaultValue={selectedJob.idealDISCProfile?.D || ''}
-                              placeholder="0-100"
-                              data-testid="input-edit-ideal-d"
-                            />
+                            <Label htmlFor="edit-idealD" className="text-sm text-red-600 font-semibold mb-1">D - Dominância</Label>
+                            <Select value={editDiscD} onValueChange={setEditDiscD}>
+                              <SelectTrigger data-testid="select-edit-ideal-d">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DISC_OPTIONS.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
-                            <Label htmlFor="edit-idealI" className="text-xs text-yellow-600 font-bold">I - Influência</Label>
-                            <Input
-                              id="edit-idealI"
-                              name="idealI"
-                              type="number"
-                              min="0"
-                              max="100"
-                              defaultValue={selectedJob.idealDISCProfile?.I || ''}
-                              placeholder="0-100"
-                              data-testid="input-edit-ideal-i"
-                            />
+                            <Label htmlFor="edit-idealI" className="text-sm text-yellow-600 font-semibold mb-1">I - Influência</Label>
+                            <Select value={editDiscI} onValueChange={setEditDiscI}>
+                              <SelectTrigger data-testid="select-edit-ideal-i">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DISC_OPTIONS.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
-                            <Label htmlFor="edit-idealS" className="text-xs text-green-600 font-bold">S - Estabilidade</Label>
-                            <Input
-                              id="edit-idealS"
-                              name="idealS"
-                              type="number"
-                              min="0"
-                              max="100"
-                              defaultValue={selectedJob.idealDISCProfile?.S || ''}
-                              placeholder="0-100"
-                              data-testid="input-edit-ideal-s"
-                            />
+                            <Label htmlFor="edit-idealS" className="text-sm text-green-600 font-semibold mb-1">S - Estabilidade</Label>
+                            <Select value={editDiscS} onValueChange={setEditDiscS}>
+                              <SelectTrigger data-testid="select-edit-ideal-s">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DISC_OPTIONS.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
-                            <Label htmlFor="edit-idealC" className="text-xs text-blue-600 font-bold">C - Conformidade</Label>
-                            <Input
-                              id="edit-idealC"
-                              name="idealC"
-                              type="number"
-                              min="0"
-                              max="100"
-                              defaultValue={selectedJob.idealDISCProfile?.C || ''}
-                              placeholder="0-100"
-                              data-testid="input-edit-ideal-c"
-                            />
+                            <Label htmlFor="edit-idealC" className="text-sm text-blue-600 font-semibold mb-1">C - Conformidade</Label>
+                            <Select value={editDiscC} onValueChange={setEditDiscC}>
+                              <SelectTrigger data-testid="select-edit-ideal-c">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DISC_OPTIONS.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Deixe em branco ou 0 para perfis não relevantes
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Selecione o nível ideal para cada dimensão. Pelo menos uma deve ser diferente de "Não relevante".
                         </p>
                       </div>
                     </>
