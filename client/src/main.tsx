@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import App from "./App-minimal-test";
 import "./index.css";
 
 console.log('[RHNet] Starting application...');
