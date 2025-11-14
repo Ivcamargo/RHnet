@@ -6850,6 +6850,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/job-openings/:id/requirements/bulk', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the job opening belongs to user's company
+      const jobOpening = await storage.getJobOpening(parseInt(req.params.id));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      if (user.role === 'admin' && jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot update requirements for other companies' job openings" });
+      }
+
+      // Validate array of requirements
+      const requirementsArray = Array.isArray(req.body) ? req.body : [];
+      const validated = requirementsArray.map(reqData => {
+        const { id, createdAt, updatedAt, jobOpeningId: _, ...rest } = reqData;
+        const validationResult = insertJobRequirementSchema.safeParse(rest);
+        if (!validationResult.success) {
+          throw new Error(`Invalid requirement data: ${JSON.stringify(validationResult.error.errors)}`);
+        }
+        return validationResult.data;
+      });
+
+      // Atomically replace all requirements using transaction
+      const newRequirements = await storage.bulkReplaceJobRequirements(parseInt(req.params.id), validated);
+      res.json(newRequirements);
+    } catch (error: any) {
+      console.error("Error bulk replacing job requirements:", error);
+      res.status(500).json({ message: "Failed to bulk replace requirements", error: error.message });
+    }
+  });
+
   app.post('/api/job-openings/:id/requirements', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);

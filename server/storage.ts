@@ -385,6 +385,7 @@ export interface IStorage {
   createJobRequirement(requirement: any): Promise<any>;
   updateJobRequirement(id: number, requirement: Partial<any>): Promise<any>;
   deleteJobRequirement(id: number): Promise<void>;
+  bulkReplaceJobRequirements(jobOpeningId: number, requirements: any[]): Promise<any[]>;
   
   // Candidate operations
   getCandidates(companyId: number): Promise<any[]>;
@@ -3078,6 +3079,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteJobRequirement(id: number): Promise<void> {
     await db.delete(jobRequirements).where(eq(jobRequirements.id, id));
+  }
+
+  async bulkReplaceJobRequirements(jobOpeningId: number, requirements: any[]): Promise<any[]> {
+    // Wrap delete + insert in a transaction for atomicity
+    return await db.transaction(async (tx) => {
+      // Delete all existing requirements for this job opening
+      await tx
+        .delete(jobRequirements)
+        .where(eq(jobRequirements.jobOpeningId, jobOpeningId));
+      
+      // Insert new requirements if any
+      if (requirements.length === 0) {
+        return [];
+      }
+
+      const newRequirements = await tx
+        .insert(jobRequirements)
+        .values(requirements.map((req, index) => ({
+          ...req,
+          jobOpeningId,
+          order: req.order ?? index,
+        })))
+        .returning();
+      
+      return newRequirements;
+    });
   }
 
   // Application requirement responses operations

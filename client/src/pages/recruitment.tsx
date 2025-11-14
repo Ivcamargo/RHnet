@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RequirementsManager, type JobRequirement } from "@/components/recruitment/RequirementsManager";
 
 export default function Recruitment() {
   const [activeTab, setActiveTab] = useState('jobs');
@@ -61,6 +62,8 @@ export default function Recruitment() {
   const [isViewApplicationDialogOpen, setIsViewApplicationDialogOpen] = useState(false);
   const [selectedJobForApplication, setSelectedJobForApplication] = useState<number>(0);
   const [selectedCandidateForApplication, setSelectedCandidateForApplication] = useState<number>(0);
+  const [createRequirements, setCreateRequirements] = useState<JobRequirement[]>([]);
+  const [editRequirements, setEditRequirements] = useState<JobRequirement[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -223,46 +226,136 @@ export default function Recruitment() {
     },
   });
 
-  const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    createJobMutation.mutate({
-      title: formData.get('title'),
-      description: formData.get('description'),
-      requirements: formData.get('requirements'),
-      location: formData.get('location'),
-      employmentType: formData.get('employmentType'),
-      salaryMin: formData.get('salaryMin') ? parseFloat(formData.get('salaryMin') as string) : null,
-      salaryMax: formData.get('salaryMax') ? parseFloat(formData.get('salaryMax') as string) : null,
-      experienceLevel: formData.get('experienceLevel'),
-      status: 'draft',
-    });
+    try {
+      // First, create the job opening
+      const newJobRes = await apiRequest('/api/job-openings', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: formData.get('title'),
+          description: formData.get('description'),
+          requirements: formData.get('requirements'),
+          location: formData.get('location'),
+          employmentType: formData.get('employmentType'),
+          salaryMin: formData.get('salaryMin') ? parseFloat(formData.get('salaryMin') as string) : null,
+          salaryMax: formData.get('salaryMax') ? parseFloat(formData.get('salaryMax') as string) : null,
+          experienceLevel: formData.get('experienceLevel'),
+          status: 'draft',
+        }),
+      });
+      const newJob = await newJobRes.json();
+
+      // Then, create the requirements in parallel
+      if (createRequirements.length > 0) {
+        try {
+          await Promise.all(
+            createRequirements.map(requirement =>
+              apiRequest(`/api/job-openings/${newJob.id}/requirements`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  ...requirement,
+                  jobOpeningId: newJob.id,
+                }),
+              })
+            )
+          );
+        } catch (reqError) {
+          // If requirements creation fails, show warning but don't fail completely
+          toast({
+            title: "Vaga criada, mas com avisos",
+            description: "Alguns requisitos não foram salvos. Edite a vaga para tentar novamente.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+      await refetch();
+      setIsCreateDialogOpen(false);
+      setCreateRequirements([]);
+      toast({
+        title: "Vaga criada com sucesso!",
+        description: `A vaga foi adicionada com ${createRequirements.length} requisito(s).`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao criar vaga",
+        description: "Não foi possível criar a vaga. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleUpdateJob = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedJob) return; // Guard against null selectedJob
+    
     const formData = new FormData(e.currentTarget);
     
-    updateJobMutation.mutate({
-      id: selectedJob.id,
-      data: {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        requirements: formData.get('requirements'),
-        location: formData.get('location'),
-        employmentType: formData.get('employmentType'),
-        salaryMin: formData.get('salaryMin') ? parseFloat(formData.get('salaryMin') as string) : null,
-        salaryMax: formData.get('salaryMax') ? parseFloat(formData.get('salaryMax') as string) : null,
-        experienceLevel: formData.get('experienceLevel'),
-      },
-    });
+    // Save previous state for rollback
+    const previousRequirements = [...editRequirements];
+    
+    try {
+      // First, update the job opening
+      await apiRequest(`/api/job-openings/${selectedJob.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: formData.get('title'),
+          description: formData.get('description'),
+          requirements: formData.get('requirements'),
+          location: formData.get('location'),
+          employmentType: formData.get('employmentType'),
+          salaryMin: formData.get('salaryMin') ? parseFloat(formData.get('salaryMin') as string) : null,
+          salaryMax: formData.get('salaryMax') ? parseFloat(formData.get('salaryMax') as string) : null,
+          experienceLevel: formData.get('experienceLevel'),
+        }),
+      });
+
+      // Atomically replace all requirements using bulk endpoint with transaction
+      await apiRequest(`/api/job-openings/${selectedJob.id}/requirements/bulk`, {
+        method: 'POST',
+        body: JSON.stringify(editRequirements),
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
+      await refetch();
+      setIsEditDialogOpen(false);
+      setSelectedJob(null);
+      setEditRequirements([]);
+      toast({
+        title: "Vaga atualizada!",
+        description: `As alterações foram salvas com ${editRequirements.length} requisito(s).`,
+      });
+    } catch (error: any) {
+      // Rollback UI state to previous requirements
+      setEditRequirements(previousRequirements);
+      
+      toast({
+        title: "Erro ao atualizar vaga",
+        description: error.message || "Não foi possível atualizar a vaga. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditJob = (job: any) => {
+  const handleEditJob = async (job: any) => {
     setSelectedJob(job);
     setEditEmploymentType(job.employmentType || 'full_time');
     setEditExperienceLevel(job.experienceLevel || 'mid');
+    
+    // Load existing requirements
+    try {
+      const requirementsRes = await apiRequest(`/api/job-openings/${job.id}/requirements`);
+      const requirements = await requirementsRes.json();
+      setEditRequirements(requirements);
+    } catch (error) {
+      console.error("Error loading requirements:", error);
+      setEditRequirements([]);
+    }
+    
     setIsEditDialogOpen(true);
   };
 
@@ -386,16 +479,20 @@ export default function Recruitment() {
               </div>
 
               <div>
-                <Label htmlFor="requirements">Requisitos *</Label>
+                <Label htmlFor="requirements">Descrição Geral dos Requisitos (opcional)</Label>
                 <Textarea
                   id="requirements"
                   name="requirements"
-                  required
-                  placeholder="Liste os requisitos necessários..."
-                  rows={3}
+                  placeholder="Descrição geral adicional sobre os requisitos..."
+                  rows={2}
                   data-testid="input-job-requirements"
                 />
               </div>
+
+              <RequirementsManager
+                requirements={createRequirements}
+                onChange={setCreateRequirements}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -527,16 +624,20 @@ export default function Recruitment() {
                 </div>
 
                 <div>
-                  <Label htmlFor="edit-requirements">Requisitos *</Label>
+                  <Label htmlFor="edit-requirements">Descrição Geral dos Requisitos (opcional)</Label>
                   <Textarea
                     id="edit-requirements"
                     name="requirements"
-                    required
                     defaultValue={selectedJob.requirements}
-                    rows={3}
+                    rows={2}
                     data-testid="input-edit-job-requirements"
                   />
                 </div>
+
+                <RequirementsManager
+                  requirements={editRequirements}
+                  onChange={setEditRequirements}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
