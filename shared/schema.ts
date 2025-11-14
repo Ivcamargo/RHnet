@@ -1808,3 +1808,64 @@ export const insertTimeBankTransactionSchema = createInsertSchema(timeBankTransa
   createdAt: true,
 });
 export type InsertTimeBankTransaction = z.infer<typeof insertTimeBankTransactionSchema>;
+
+// Legal Files - AFD/AEJ metadata storage
+export const legalFiles = pgTable("legal_files", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  type: varchar("type").notNull(), // "AFD" or "AEJ"
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  nsrStart: integer("nsr_start"), // First NSR in this file
+  nsrEnd: integer("nsr_end"), // Last NSR in this file
+  totalRecords: integer("total_records").default(0),
+  filePath: text("file_path"), // Path to stored file
+  sha256Hash: varchar("sha256_hash", { length: 64 }), // SHA-256 of file content
+  crcAggregate: varchar("crc_aggregate"), // Aggregate CRC for validation
+  repIdentifier: varchar("rep_identifier").default("REP-P-001"), // REP equipment identifier
+  generatedBy: varchar("generated_by"), // User who generated the file
+  generatedAt: timestamp("generated_at").defaultNow(),
+  status: varchar("status").default("generated"), // generated, downloaded, submitted
+  digitalSignatureMeta: jsonb("digital_signature_meta"), // Placeholder for future CAdES signature
+  description: text("description"), // Additional notes
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  generatedByReference: foreignKey({
+    columns: [table.generatedBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Legal NSR Sequences - Ensures monotonic NSR per company/REP
+export const legalNsrSequences = pgTable("legal_nsr_sequences", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull().unique(),
+  currentNsr: integer("current_nsr").default(0).notNull(),
+  repIdentifier: varchar("rep_identifier").default("REP-P-001").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
+// Types for Legal Files
+export type LegalFile = typeof legalFiles.$inferSelect;
+export type LegalNsrSequence = typeof legalNsrSequences.$inferSelect;
+
+// Insert schemas
+export const insertLegalFileSchema = createInsertSchema(legalFiles).omit({
+  id: true,
+  generatedAt: true,
+});
+export type InsertLegalFile = z.infer<typeof insertLegalFileSchema>;
+
+export const insertLegalNsrSequenceSchema = createInsertSchema(legalNsrSequences).omit({
+  id: true,
+  updatedAt: true,
+});
+export type InsertLegalNsrSequence = z.infer<typeof insertLegalNsrSequenceSchema>;

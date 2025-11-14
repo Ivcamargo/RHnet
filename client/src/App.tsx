@@ -29,6 +29,7 @@ import Sectors from "@/pages/sectors";
 import TimePeriods from "@/pages/admin/time-periods";
 import AdminTimeEntries from "@/pages/admin/time-entries";
 import Terminals from "@/pages/admin/terminals";
+import ArquivosLegais from "@/pages/admin/arquivos-legais";
 import RotationManagement from "@/pages/rotation-management";
 import Recruitment from "@/pages/recruitment";
 import PublicJobs from "@/pages/public-jobs";
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/admin/terminals" component={() => <ProtectedRoute component={Terminals} />} />
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
       <Route path="/admin/overtime-config" component={() => <ProtectedRoute component={OvertimeConfig} />} />
+      <Route path="/admin/arquivos-legais" component={() => <ProtectedRoute component={ArquivosLegais} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
       <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
       

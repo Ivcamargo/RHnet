@@ -7215,6 +7215,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== LEGAL FILES (AFD/AEJ) ROUTES =====
+  
+  // Export AFD file
+  app.post('/api/legal-files/afd/export', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { periodStart, periodEnd } = req.body;
+      const companyId = req.user.claims.companyId;
+      const userId = req.user.claims.sub;
+
+      if (!periodStart || !periodEnd) {
+        return res.status(400).json({ message: "Período obrigatório" });
+      }
+
+      const { exportAFD } = await import('./services/legalFiles/legalFileService');
+      const result = await exportAFD({
+        companyId,
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        userId
+      });
+
+      res.json({ 
+        success: true, 
+        fileId: result.id,
+        fileName: result.filePath 
+      });
+    } catch (error: any) {
+      console.error("Error exporting AFD:", error);
+      res.status(500).json({ message: error.message || "Failed to export AFD" });
+    }
+  });
+
+  // Export AEJ file
+  app.post('/api/legal-files/aej/export', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { periodStart, periodEnd } = req.body;
+      const companyId = req.user.claims.companyId;
+      const userId = req.user.claims.sub;
+
+      if (!periodStart || !periodEnd) {
+        return res.status(400).json({ message: "Período obrigatório" });
+      }
+
+      const { exportAEJ } = await import('./services/legalFiles/legalFileService');
+      const result = await exportAEJ({
+        companyId,
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        userId
+      });
+
+      res.json({ 
+        success: true, 
+        fileId: result.id,
+        fileName: result.filePath 
+      });
+    } catch (error: any) {
+      console.error("Error exporting AEJ:", error);
+      res.status(500).json({ message: error.message || "Failed to export AEJ" });
+    }
+  });
+
+  // List legal files
+  app.get('/api/legal-files', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+
+      const { listLegalFiles } = await import('./services/legalFiles/legalFileService');
+      const files = await listLegalFiles(companyId);
+
+      res.json(files);
+    } catch (error: any) {
+      console.error("Error listing legal files:", error);
+      res.status(500).json({ message: error.message || "Failed to list legal files" });
+    }
+  });
+
+  // Download legal file
+  app.get('/api/legal-files/:id/download', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const companyId = req.user.claims.companyId;
+
+      const { getLegalFile } = await import('./services/legalFiles/legalFileService');
+      const filePath = await getLegalFile(fileId, companyId);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      res.download(filePath);
+    } catch (error: any) {
+      console.error("Error downloading legal file:", error);
+      res.status(500).json({ message: error.message || "Failed to download file" });
+    }
+  });
+
+  // Import AFD file
+  app.post('/api/legal-files/afd/import', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { fileContent } = req.body;
+      const companyId = req.user.claims.companyId;
+      const userId = req.user.claims.sub;
+
+      if (!fileContent) {
+        return res.status(400).json({ message: "Conteúdo do arquivo obrigatório" });
+      }
+
+      const { importAFD } = await import('./services/legalFiles/legalFileService');
+      const result = await importAFD({
+        companyId,
+        fileContent,
+        userId
+      });
+
+      res.json({ 
+        success: true, 
+        imported: result.imported,
+        errors: result.errors 
+      });
+    } catch (error: any) {
+      console.error("Error importing AFD:", error);
+      res.status(500).json({ message: error.message || "Failed to import AFD" });
+    }
+  });
+
   // Temporary endpoint to download database dump
   app.get('/download-dump', (req, res) => {
     const dumpPath = path.join(process.cwd(), 'rhnet-database-dump.sql.gz');
