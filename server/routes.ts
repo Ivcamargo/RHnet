@@ -6722,12 +6722,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get public job openings (active only)
+  // Get public job openings (published only)
   app.get('/api/public/jobs', async (req, res) => {
     try {
       const { companyId } = req.query;
       
-      // Get all active job openings
+      // Get all published job openings
       const jobOpenings = await storage.getPublicJobOpenings(companyId ? parseInt(companyId as string) : undefined);
       res.json(jobOpenings);
     } catch (error) {
@@ -6746,8 +6746,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Job opening not found" });
       }
       
-      if (jobOpening.status !== 'active') {
-        return res.status(404).json({ message: "This job opening is no longer active" });
+      if (jobOpening.status !== 'published') {
+        return res.status(404).json({ message: "This job opening is no longer available" });
       }
       
       res.json(jobOpening);
@@ -6773,13 +6773,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing required fields", details: { jobOpeningId: !!jobOpeningId, name: !!name, email: !!email } });
       }
 
-      // Validate job opening exists and is active
+      // Validate job opening exists and is published
       const jobOpening = await storage.getJobOpening(parseInt(jobOpeningId));
       if (!jobOpening) {
         return res.status(404).json({ message: "Job opening not found" });
       }
       
-      if (jobOpening.status !== 'active') {
+      if (jobOpening.status !== 'published') {
         return res.status(400).json({ message: "This job opening is no longer accepting applications" });
       }
 
