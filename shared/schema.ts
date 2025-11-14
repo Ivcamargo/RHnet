@@ -1382,7 +1382,9 @@ export const jobOpenings = pgTable("job_openings", {
   benefits: text("benefits"),
   location: varchar("location"),
   employmentType: varchar("employment_type").notNull(), // "CLT", "PJ", "Estágio", "Temporário"
-  salaryRange: varchar("salary_range"), // "R$ 3.000 - R$ 5.000"
+  salaryMin: decimal("salary_min", { precision: 10, scale: 2 }), // Salário mínimo
+  salaryMax: decimal("salary_max", { precision: 10, scale: 2 }), // Salário máximo
+  salaryRange: varchar("salary_range"), // Legacy field, deprecated - use salaryMin/Max
   workSchedule: varchar("work_schedule"), // "Segunda a Sexta, 8h-17h"
   vacancies: integer("vacancies").default(1), // Número de vagas
   status: varchar("status").default("draft"), // draft, published, closed, filled
@@ -1671,6 +1673,17 @@ export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).refine((data) => {
+  // Validate that salaryMin <= salaryMax when both are provided
+  if (data.salaryMin && data.salaryMax) {
+    const min = parseFloat(data.salaryMin);
+    const max = parseFloat(data.salaryMax);
+    return min <= max;
+  }
+  return true;
+}, {
+  message: "Salário mínimo deve ser menor ou igual ao salário máximo",
+  path: ["salaryMax"]
 });
 export type InsertJobOpening = z.infer<typeof insertJobOpeningSchema>;
 
