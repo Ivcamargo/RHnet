@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { DISCResultsDialog } from './DISCResultsDialog';
 
 interface DISCAssessmentsPanelProps {
   jobOpenings: any[];
@@ -47,6 +48,8 @@ export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isL
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterJob, setFilterJob] = useState<string>('all');
   const [searchCandidate, setSearchCandidate] = useState('');
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<number | null>(null);
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
 
   const createAssessmentMutation = useMutation({
     mutationFn: async (data: { candidateId: number; jobOpeningId: number }) => {
@@ -118,6 +121,16 @@ export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isL
       title: "Link copiado!",
       description: "O link do teste DISC foi copiado para a área de transferência.",
     });
+  };
+
+  const handleViewResults = (assessmentId: number) => {
+    setSelectedAssessmentId(assessmentId);
+    setIsResultsDialogOpen(true);
+  };
+
+  const handleCloseResults = () => {
+    setIsResultsDialogOpen(false);
+    setSelectedAssessmentId(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -420,6 +433,7 @@ export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isL
                       {assessment.status === 'completed' && (
                         <Button
                           size="sm"
+                          onClick={() => handleViewResults(assessment.id)}
                           data-testid={`button-view-results-${assessment.id}`}
                         >
                           <Eye className="h-4 w-4 mr-2" />
@@ -434,6 +448,12 @@ export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isL
           })}
         </div>
       )}
+
+      <DISCResultsDialog
+        assessmentId={selectedAssessmentId}
+        isOpen={isResultsDialogOpen}
+        onClose={handleCloseResults}
+      />
     </div>
   );
 }
