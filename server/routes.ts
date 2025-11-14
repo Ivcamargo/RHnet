@@ -37,6 +37,7 @@ import {
   insertRotationSegmentSchema,
   insertRotationUserAssignmentSchema,
   insertRotationExceptionSchema,
+  insertJobRequirementSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -6868,9 +6869,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate array of requirements
       const requirementsArray = Array.isArray(req.body) ? req.body : [];
+      const jobOpeningId = parseInt(req.params.id);
+      
       const validated = requirementsArray.map(reqData => {
+        // Remove auto-generated fields and add jobOpeningId from URL
         const { id, createdAt, updatedAt, jobOpeningId: _, ...rest } = reqData;
-        const validationResult = insertJobRequirementSchema.safeParse(rest);
+        const validationResult = insertJobRequirementSchema.safeParse({
+          ...rest,
+          jobOpeningId, // Add jobOpeningId from route parameter
+        });
         if (!validationResult.success) {
           throw new Error(`Invalid requirement data: ${JSON.stringify(validationResult.error.errors)}`);
         }
@@ -6878,7 +6885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Atomically replace all requirements using transaction
-      const newRequirements = await storage.bulkReplaceJobRequirements(parseInt(req.params.id), validated);
+      const newRequirements = await storage.bulkReplaceJobRequirements(jobOpeningId, validated);
       res.json(newRequirements);
     } catch (error: any) {
       console.error("Error bulk replacing job requirements:", error);
