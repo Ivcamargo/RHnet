@@ -6766,7 +6766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("req.body.jobOpeningId:", req.body.jobOpeningId);
       console.log("=========================");
       
-      const { jobOpeningId, name, email, phone, cpf, coverLetter, city, state } = req.body;
+      const { jobOpeningId, name, email, phone, cpf, coverLetter, city, state, requirementResponses } = req.body;
       
       if (!jobOpeningId || !name || !email) {
         console.error("Missing required fields. jobOpeningId:", jobOpeningId, "name:", name, "email:", email);
@@ -6836,6 +6836,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessToken
       });
 
+      // Process requirement responses and calculate score if provided
+      let scoreResult = null;
+      if (requirementResponses && Array.isArray(requirementResponses) && requirementResponses.length > 0) {
+        try {
+          scoreResult = await storage.submitAndScoreApplication(application.id, requirementResponses);
+          
+          // Update application with calculated score
+          await storage.updateApplication(application.id, {
+            score: scoreResult.score,
+            status: scoreResult.isQualified ? 'applied' : 'rejected'
+          });
+        } catch (scoreError) {
+          console.error("Error scoring application:", scoreError);
+          // Don't fail the application if scoring fails
+        }
+      }
+
       // Send notification message to HR and admin
       try {
         // Get all HR users and admins from the company
@@ -6844,7 +6861,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           u.role === 'admin' || u.role === 'superadmin'
         );
 
-        const messageContent = `📋 Nova Candidatura Recebida!\n\nVaga: ${jobOpening.title}\nCandidato: ${name}\nEmail: ${email}\n${phone ? `Telefone: ${phone}\n` : ''}${coverLetter ? `\nCarta de Apresentação:\n${coverLetter}` : ''}`;
+        const scoreInfo = scoreResult ? `\n\n🎯 Pontuação: ${scoreResult.score}\nStatus: ${scoreResult.isQualified ? '✅ Qualificado' : '❌ Não qualificado'}${scoreResult.missingMandatoryRequirements.length > 0 ? `\nRequisitos obrigatórios faltantes: ${scoreResult.missingMandatoryRequirements.join(', ')}` : ''}` : '';
+        
+        const messageContent = `📋 Nova Candidatura Recebida!\n\nVaga: ${jobOpening.title}\nCandidato: ${name}\nEmail: ${email}\n${phone ? `Telefone: ${phone}\n` : ''}${scoreInfo}${coverLetter ? `\n\nCarta de Apresentação:\n${coverLetter}` : ''}`;
 
         // Send message to each HR/admin user
         for (const hrUser of hrAndAdmins) {
@@ -6864,7 +6883,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ 
         message: "Application submitted successfully",
         applicationId: application.id,
-        candidateId: candidate.id
+        candidateId: candidate.id,
+        score: scoreResult?.score || 0,
+        isQualified: scoreResult?.isQualified ?? true
       });
     } catch (error) {
       console.error("Error submitting application:", error);

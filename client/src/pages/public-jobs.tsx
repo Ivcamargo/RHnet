@@ -40,6 +40,7 @@ export default function PublicJobs() {
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
+  const [requirementResponses, setRequirementResponses] = useState<Record<number, string>>({});
   const { toast } = useToast();
   
   // Filtros
@@ -56,6 +57,18 @@ export default function PublicJobs() {
       return res.json();
     },
     refetchOnMount: 'always',
+  });
+
+  // Buscar requisitos da vaga selecionada
+  const { data: jobRequirements = [], isLoading: requirementsLoading } = useQuery<any[]>({
+    queryKey: ['/api/job-openings', selectedJob?.id, 'requirements'],
+    queryFn: async () => {
+      if (!selectedJob?.id) return [];
+      const res = await fetch(`/api/job-openings/${selectedJob.id}/requirements`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!selectedJob?.id && isApplyDialogOpen,
   });
 
   const applyMutation = useMutation({
@@ -84,12 +97,19 @@ export default function PublicJobs() {
   const handleApply = (job: any) => {
     setSelectedJob(job);
     setApplicationSuccess(false);
+    setRequirementResponses({});
     setIsApplyDialogOpen(true);
   };
 
   const handleSubmitApplication = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    // Construir array de respostas aos requisitos
+    const responses = Object.entries(requirementResponses).map(([requirementId, proficiencyLevel]) => ({
+      requirementId: parseInt(requirementId),
+      proficiencyLevel,
+    }));
     
     applyMutation.mutate({
       jobOpeningId: selectedJob.id,
@@ -98,6 +118,7 @@ export default function PublicJobs() {
       phone: formData.get('phone'),
       resume: formData.get('resume'),
       coverLetter: formData.get('coverLetter'),
+      requirementResponses: responses,
     });
   };
 
@@ -386,6 +407,67 @@ export default function PublicJobs() {
                     data-testid="input-cover-letter"
                   />
                 </div>
+
+                {/* Seção de Requisitos */}
+                {requirementsLoading ? (
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    Carregando requisitos...
+                  </div>
+                ) : jobRequirements.length > 0 && (
+                  <div className="border-t pt-4 space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">Requisitos da Vaga</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Avalie seu nível de conhecimento em cada requisito abaixo. Isso nos ajudará a entender melhor seu perfil.
+                      </p>
+                    </div>
+
+                    {jobRequirements.map((requirement: any) => {
+                      const levels = requirement.proficiencyLevels || [];
+                      const isMandatory = requirement.requirementType === 'mandatory';
+                      
+                      return (
+                        <div key={requirement.id} className="space-y-2">
+                          <Label htmlFor={`requirement-${requirement.id}`}>
+                            {requirement.title}
+                            {isMandatory && <span className="text-red-500 ml-1">*</span>}
+                          </Label>
+                          {requirement.description && (
+                            <p className="text-sm text-muted-foreground">{requirement.description}</p>
+                          )}
+                          <Select
+                            value={requirementResponses[requirement.id] || ''}
+                            onValueChange={(value) => {
+                              setRequirementResponses(prev => ({
+                                ...prev,
+                                [requirement.id]: value
+                              }));
+                            }}
+                            required={isMandatory}
+                          >
+                            <SelectTrigger 
+                              id={`requirement-${requirement.id}`}
+                              data-testid={`select-requirement-${requirement.id}`}
+                            >
+                              <SelectValue placeholder="Selecione seu nível" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {levels.map((level: any, idx: number) => (
+                                <SelectItem 
+                                  key={idx} 
+                                  value={level.level}
+                                  data-testid={`requirement-${requirement.id}-level-${level.level}`}
+                                >
+                                  {level.level} ({level.points} pontos)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2 pt-4">
                   <Button
