@@ -1448,9 +1448,11 @@ export const applications = pgTable("applications", {
   candidateId: integer("candidate_id").notNull(),
   status: varchar("status").default("applied"), // applied, screening, interview, test, approved, rejected, hired
   currentStageId: integer("current_stage_id"), // Etapa atual do processo
-  score: integer("score").default(0), // Pontuação automática (0-100)
+  score: integer("score").default(0), // Pontuação ponderada (Σ(Pi × Wi))
+  isQualified: boolean("is_qualified").default(true), // false se reprovou no corte obrigatório
   distanceKm: real("distance_km"), // Distância em km do candidato até o local da vaga
   coverLetter: text("cover_letter"),
+  accessToken: varchar("access_token"), // Token único para acesso público às respostas de requisitos
   appliedAt: timestamp("applied_at").defaultNow(),
   screeningNotes: text("screening_notes"),
   rejectionReason: text("rejection_reason"),
@@ -1465,6 +1467,48 @@ export const applications = pgTable("applications", {
     foreignColumns: [candidates.id],
   }).onDelete('cascade'),
   uniqueApplication: uniqueIndex("unique_application").on(table.jobOpeningId, table.candidateId),
+  accessTokenIndex: index("access_token_idx").on(table.accessToken),
+}));
+
+// Job requirements / Requisitos da vaga
+export const jobRequirements = pgTable("job_requirements", {
+  id: serial("id").primaryKey(),
+  jobOpeningId: integer("job_opening_id").notNull(),
+  title: varchar("title").notNull(), // Ex: "JavaScript", "Liderança", "Experiência mínima"
+  description: text("description"), // Descrição detalhada do requisito
+  category: varchar("category").notNull(), // "hard_skill", "soft_skill", "administrative"
+  requirementType: varchar("requirement_type").notNull(), // "mandatory" (corte), "desirable" (pontuação)
+  weight: integer("weight").default(1), // Peso de 1 a 5 para requisitos desejáveis
+  proficiencyLevels: jsonb("proficiency_levels").notNull(), // [{level: "Básico", points: 1}, {level: "Intermediário", points: 3}, ...]
+  order: integer("order").default(0), // Ordem de exibição
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  jobOpeningReference: foreignKey({
+    columns: [table.jobOpeningId],
+    foreignColumns: [jobOpenings.id],
+  }).onDelete('cascade'),
+  jobOpeningIndex: index("job_requirements_job_opening_idx").on(table.jobOpeningId),
+}));
+
+// Application requirement responses / Respostas dos candidatos aos requisitos
+export const applicationRequirementResponses = pgTable("application_requirement_responses", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull(),
+  requirementId: integer("requirement_id").notNull(),
+  proficiencyLevel: varchar("proficiency_level").notNull(), // Nível declarado pelo candidato
+  pointsEarned: integer("points_earned").default(0), // Pontos ganhos neste requisito
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  applicationReference: foreignKey({
+    columns: [table.applicationId],
+    foreignColumns: [applications.id],
+  }).onDelete('cascade'),
+  requirementReference: foreignKey({
+    columns: [table.requirementId],
+    foreignColumns: [jobRequirements.id],
+  }).onDelete('cascade'),
+  uniqueResponse: uniqueIndex("unique_requirement_response").on(table.applicationId, table.requirementId),
+  applicationIndex: index("app_requirement_responses_application_idx").on(table.applicationId),
 }));
 
 // Selection stages / Etapas do processo seletivo
@@ -1614,6 +1658,8 @@ export const onboardingFormData = pgTable("onboarding_form_data", {
 export type JobOpening = typeof jobOpenings.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type Application = typeof applications.$inferSelect;
+export type JobRequirement = typeof jobRequirements.$inferSelect;
+export type ApplicationRequirementResponse = typeof applicationRequirementResponses.$inferSelect;
 export type SelectionStage = typeof selectionStages.$inferSelect;
 export type InterviewTemplate = typeof interviewTemplates.$inferSelect;
 export type Interview = typeof interviews.$inferSelect;
@@ -1679,6 +1725,36 @@ export const insertOnboardingFormDataSchema = createInsertSchema(onboardingFormD
   updatedAt: true,
 });
 export type InsertOnboardingFormData = z.infer<typeof insertOnboardingFormDataSchema>;
+
+// Proficiency level schema for job requirements
+export const proficiencyLevelSchema = z.object({
+  level: z.string().min(1, "Nível é obrigatório"),
+  points: z.number().int().min(0, "Pontos devem ser >= 0"),
+});
+
+// Job requirement insert schema with validation
+export const insertJobRequirementSchema = createInsertSchema(jobRequirements).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  category: z.enum(["hard_skill", "soft_skill", "administrative"], {
+    errorMap: () => ({ message: "Categoria deve ser hard_skill, soft_skill ou administrative" }),
+  }),
+  requirementType: z.enum(["mandatory", "desirable"], {
+    errorMap: () => ({ message: "Tipo deve ser mandatory ou desirable" }),
+  }),
+  weight: z.number().int().min(1).max(5).optional().default(1),
+  proficiencyLevels: z.array(proficiencyLevelSchema).min(1, "Deve ter ao menos um nível de proficiência"),
+});
+export type InsertJobRequirement = z.infer<typeof insertJobRequirementSchema>;
+
+// Application requirement response insert schema
+export const insertApplicationRequirementResponseSchema = createInsertSchema(applicationRequirementResponses).omit({
+  id: true,
+  createdAt: true,
+  pointsEarned: true, // Calculado automaticamente
+});
+export type InsertApplicationRequirementResponse = z.infer<typeof insertApplicationRequirementResponseSchema>;
 
 // ========================================================================================
 // OVERTIME & TIME BANK SYSTEM

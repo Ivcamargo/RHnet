@@ -379,6 +379,13 @@ export interface IStorage {
   publishJobOpening(id: number): Promise<any>;
   closeJobOpening(id: number): Promise<any>;
   
+  // Job requirements operations
+  getJobRequirements(jobOpeningId: number): Promise<any[]>;
+  getJobRequirement(id: number): Promise<any | undefined>;
+  createJobRequirement(requirement: any): Promise<any>;
+  updateJobRequirement(id: number, requirement: Partial<any>): Promise<any>;
+  deleteJobRequirement(id: number): Promise<void>;
+  
   // Candidate operations
   getCandidates(companyId: number): Promise<any[]>;
   getCandidate(id: number): Promise<any | undefined>;
@@ -393,6 +400,14 @@ export interface IStorage {
   updateApplication(id: number, application: Partial<any>): Promise<any>;
   getCandidateApplications(candidateId: number): Promise<any[]>;
   getApplicationsByStatus(jobOpeningId: number, status: string): Promise<any[]>;
+  
+  // Application requirement responses operations (atomic transaction)
+  getApplicationRequirementResponses(applicationId: number): Promise<any[]>;
+  submitAndScoreApplication(applicationId: number, responses: any[]): Promise<{ 
+    score: number; 
+    isQualified: boolean; 
+    missingMandatoryRequirements: string[];
+  }>;
   
   // Selection stage operations
   getSelectionStages(jobOpeningId: number): Promise<any[]>;
@@ -2755,14 +2770,60 @@ export class DatabaseStorage implements IStorage {
   async getJobOpenings(companyId: number, status?: string): Promise<any[]> {
     if (status) {
       return await db
-        .select()
+        .select({
+          id: jobOpenings.id,
+          companyId: jobOpenings.companyId,
+          companyName: companies.name,
+          departmentId: jobOpenings.departmentId,
+          title: jobOpenings.title,
+          description: jobOpenings.description,
+          requirements: jobOpenings.requirements,
+          responsibilities: jobOpenings.responsibilities,
+          benefits: jobOpenings.benefits,
+          location: jobOpenings.location,
+          employmentType: jobOpenings.employmentType,
+          salaryRange: jobOpenings.salaryRange,
+          workSchedule: jobOpenings.workSchedule,
+          vacancies: jobOpenings.vacancies,
+          status: jobOpenings.status,
+          publishedAt: jobOpenings.publishedAt,
+          closedAt: jobOpenings.closedAt,
+          expiresAt: jobOpenings.expiresAt,
+          createdBy: jobOpenings.createdBy,
+          createdAt: jobOpenings.createdAt,
+          updatedAt: jobOpenings.updatedAt,
+        })
         .from(jobOpenings)
+        .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(eq(jobOpenings.companyId, companyId), eq(jobOpenings.status, status)))
         .orderBy(desc(jobOpenings.createdAt));
     }
     return await db
-      .select()
+      .select({
+        id: jobOpenings.id,
+        companyId: jobOpenings.companyId,
+        companyName: companies.name,
+        departmentId: jobOpenings.departmentId,
+        title: jobOpenings.title,
+        description: jobOpenings.description,
+        requirements: jobOpenings.requirements,
+        responsibilities: jobOpenings.responsibilities,
+        benefits: jobOpenings.benefits,
+        location: jobOpenings.location,
+        employmentType: jobOpenings.employmentType,
+        salaryRange: jobOpenings.salaryRange,
+        workSchedule: jobOpenings.workSchedule,
+        vacancies: jobOpenings.vacancies,
+        status: jobOpenings.status,
+        publishedAt: jobOpenings.publishedAt,
+        closedAt: jobOpenings.closedAt,
+        expiresAt: jobOpenings.expiresAt,
+        createdBy: jobOpenings.createdBy,
+        createdAt: jobOpenings.createdAt,
+        updatedAt: jobOpenings.updatedAt,
+      })
       .from(jobOpenings)
+      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.companyId, companyId))
       .orderBy(desc(jobOpenings.createdAt));
   }
@@ -2771,8 +2832,31 @@ export class DatabaseStorage implements IStorage {
     // Return only active job openings for public viewing
     if (companyId) {
       return await db
-        .select()
+        .select({
+          id: jobOpenings.id,
+          companyId: jobOpenings.companyId,
+          companyName: companies.name,
+          departmentId: jobOpenings.departmentId,
+          title: jobOpenings.title,
+          description: jobOpenings.description,
+          requirements: jobOpenings.requirements,
+          responsibilities: jobOpenings.responsibilities,
+          benefits: jobOpenings.benefits,
+          location: jobOpenings.location,
+          employmentType: jobOpenings.employmentType,
+          salaryRange: jobOpenings.salaryRange,
+          workSchedule: jobOpenings.workSchedule,
+          vacancies: jobOpenings.vacancies,
+          status: jobOpenings.status,
+          publishedAt: jobOpenings.publishedAt,
+          closedAt: jobOpenings.closedAt,
+          expiresAt: jobOpenings.expiresAt,
+          createdBy: jobOpenings.createdBy,
+          createdAt: jobOpenings.createdAt,
+          updatedAt: jobOpenings.updatedAt,
+        })
         .from(jobOpenings)
+        .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(
           eq(jobOpenings.companyId, companyId),
           eq(jobOpenings.status, 'active')
@@ -2782,14 +2866,63 @@ export class DatabaseStorage implements IStorage {
     
     // Return all active job openings if no company specified
     return await db
-      .select()
+      .select({
+        id: jobOpenings.id,
+        companyId: jobOpenings.companyId,
+        companyName: companies.name,
+        departmentId: jobOpenings.departmentId,
+        title: jobOpenings.title,
+        description: jobOpenings.description,
+        requirements: jobOpenings.requirements,
+        responsibilities: jobOpenings.responsibilities,
+        benefits: jobOpenings.benefits,
+        location: jobOpenings.location,
+        employmentType: jobOpenings.employmentType,
+        salaryRange: jobOpenings.salaryRange,
+        workSchedule: jobOpenings.workSchedule,
+        vacancies: jobOpenings.vacancies,
+        status: jobOpenings.status,
+        publishedAt: jobOpenings.publishedAt,
+        closedAt: jobOpenings.closedAt,
+        expiresAt: jobOpenings.expiresAt,
+        createdBy: jobOpenings.createdBy,
+        createdAt: jobOpenings.createdAt,
+        updatedAt: jobOpenings.updatedAt,
+      })
       .from(jobOpenings)
+      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.status, 'active'))
       .orderBy(desc(jobOpenings.createdAt));
   }
 
   async getJobOpening(id: number): Promise<any | undefined> {
-    const [job] = await db.select().from(jobOpenings).where(eq(jobOpenings.id, id));
+    const [job] = await db
+      .select({
+        id: jobOpenings.id,
+        companyId: jobOpenings.companyId,
+        companyName: companies.name,
+        departmentId: jobOpenings.departmentId,
+        title: jobOpenings.title,
+        description: jobOpenings.description,
+        requirements: jobOpenings.requirements,
+        responsibilities: jobOpenings.responsibilities,
+        benefits: jobOpenings.benefits,
+        location: jobOpenings.location,
+        employmentType: jobOpenings.employmentType,
+        salaryRange: jobOpenings.salaryRange,
+        workSchedule: jobOpenings.workSchedule,
+        vacancies: jobOpenings.vacancies,
+        status: jobOpenings.status,
+        publishedAt: jobOpenings.publishedAt,
+        closedAt: jobOpenings.closedAt,
+        expiresAt: jobOpenings.expiresAt,
+        createdBy: jobOpenings.createdBy,
+        createdAt: jobOpenings.createdAt,
+        updatedAt: jobOpenings.updatedAt,
+      })
+      .from(jobOpenings)
+      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
+      .where(eq(jobOpenings.id, id));
     return job;
   }
 
@@ -2907,6 +3040,162 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .where(and(eq(applications.jobOpeningId, jobOpeningId), eq(applications.status, status)))
       .orderBy(desc(applications.appliedAt));
+  }
+
+  // Job requirements operations
+  async getJobRequirements(jobOpeningId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(jobRequirements)
+      .where(eq(jobRequirements.jobOpeningId, jobOpeningId))
+      .orderBy(jobRequirements.order);
+  }
+
+  async getJobRequirement(id: number): Promise<any | undefined> {
+    const [requirement] = await db
+      .select()
+      .from(jobRequirements)
+      .where(eq(jobRequirements.id, id));
+    return requirement;
+  }
+
+  async createJobRequirement(requirement: any): Promise<any> {
+    const [newReq] = await db
+      .insert(jobRequirements)
+      .values(requirement)
+      .returning();
+    return newReq;
+  }
+
+  async updateJobRequirement(id: number, requirement: Partial<any>): Promise<any> {
+    const [updated] = await db
+      .update(jobRequirements)
+      .set({ ...requirement, updatedAt: new Date() })
+      .where(eq(jobRequirements.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteJobRequirement(id: number): Promise<void> {
+    await db.delete(jobRequirements).where(eq(jobRequirements.id, id));
+  }
+
+  // Application requirement responses operations
+  async getApplicationRequirementResponses(applicationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(applicationRequirementResponses)
+      .where(eq(applicationRequirementResponses.applicationId, applicationId));
+  }
+
+  async submitAndScoreApplication(applicationId: number, responses: any[]): Promise<{ 
+    score: number; 
+    isQualified: boolean; 
+    missingMandatoryRequirements: string[];
+  }> {
+    // Step 1: Get the application to find the job opening
+    const application = await this.getApplication(applicationId);
+    if (!application) {
+      throw new Error('Application not found');
+    }
+
+    // Step 2: Get all requirements for this job opening
+    const allRequirements = await this.getJobRequirements(application.jobOpeningId);
+    
+    // Step 3: Identify mandatory requirements
+    const mandatoryRequirements = allRequirements.filter(
+      req => req.requirementType === 'mandatory'
+    );
+    
+    // Step 4: Check which mandatory requirements have responses
+    const respondedRequirementIds = new Set(responses.map(r => r.requirementId));
+    const missingMandatory = mandatoryRequirements.filter(
+      req => !respondedRequirementIds.has(req.id)
+    );
+    
+    const missingMandatoryRequirements = missingMandatory.map(req => req.title);
+    const isQualified = missingMandatory.length === 0;
+    
+    // Step 5: Upsert responses (delete existing + insert new)
+    await db
+      .delete(applicationRequirementResponses)
+      .where(eq(applicationRequirementResponses.applicationId, applicationId));
+    
+    if (responses.length > 0) {
+      // Step 6: For each response, find the requirement and calculate points earned
+      const responsesWithPoints = await Promise.all(
+        responses.map(async (response) => {
+          const requirement = allRequirements.find(r => r.id === response.requirementId);
+          if (!requirement) {
+            throw new Error(`Requirement ${response.requirementId} not found`);
+          }
+          
+          // Find the points for the selected proficiency level
+          const proficiencyLevels = requirement.proficiencyLevels as any[];
+          const selectedLevel = proficiencyLevels.find(
+            level => level.level === response.proficiencyLevel
+          );
+          
+          if (!selectedLevel) {
+            throw new Error(
+              `Proficiency level "${response.proficiencyLevel}" not found for requirement ${requirement.title}`
+            );
+          }
+          
+          return {
+            applicationId,
+            requirementId: response.requirementId,
+            proficiencyLevel: response.proficiencyLevel,
+            pointsEarned: selectedLevel.points,
+          };
+        })
+      );
+      
+      await db
+        .insert(applicationRequirementResponses)
+        .values(responsesWithPoints);
+      
+      // Step 7: Calculate weighted score: Σ(Pi × Wi)
+      let totalScore = 0;
+      for (const response of responsesWithPoints) {
+        const requirement = allRequirements.find(r => r.id === response.requirementId);
+        if (requirement) {
+          totalScore += response.pointsEarned * requirement.weight;
+        }
+      }
+      
+      // Step 8: Update application with score and qualification status
+      await db
+        .update(applications)
+        .set({ 
+          score: totalScore, 
+          isQualified,
+          updatedAt: new Date()
+        })
+        .where(eq(applications.id, applicationId));
+      
+      return {
+        score: totalScore,
+        isQualified,
+        missingMandatoryRequirements,
+      };
+    } else {
+      // No responses submitted, set score to 0
+      await db
+        .update(applications)
+        .set({ 
+          score: 0, 
+          isQualified,
+          updatedAt: new Date()
+        })
+        .where(eq(applications.id, applicationId));
+      
+      return {
+        score: 0,
+        isQualified,
+        missingMandatoryRequirements,
+      };
+    }
   }
 
   // Selection stage operations

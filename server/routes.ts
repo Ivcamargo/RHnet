@@ -6715,13 +6715,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "You have already applied to this position" });
       }
 
+      // Generate unique access token for this application
+      const crypto = await import('crypto');
+      const accessToken = crypto.randomBytes(32).toString('hex');
+
       // Create application
       const application = await storage.createApplication({
         jobOpeningId: parseInt(jobOpeningId),
         candidateId: candidate.id,
         status: 'applied',
         coverLetter: coverLetter || null,
-        score: 0
+        score: 0,
+        accessToken
       });
 
       // Send notification message to HR and admin
@@ -6834,6 +6839,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Job Requirements Routes
+  app.get('/api/job-openings/:id/requirements', async (req: any, res) => {
+    try {
+      const requirements = await storage.getJobRequirements(parseInt(req.params.id));
+      res.json(requirements);
+    } catch (error) {
+      console.error("Error fetching job requirements:", error);
+      res.status(500).json({ message: "Failed to fetch job requirements" });
+    }
+  });
+
+  app.post('/api/job-openings/:id/requirements', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the job opening belongs to user's company
+      const jobOpening = await storage.getJobOpening(parseInt(req.params.id));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      if (jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot create requirements for other companies' job openings" });
+      }
+
+      // Validate request body with Zod
+      const validationResult = insertJobRequirementSchema.safeParse({
+        ...req.body,
+        jobOpeningId: parseInt(req.params.id),
+      });
+
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid requirement data",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const requirement = await storage.createJobRequirement(validationResult.data);
+      res.status(201).json(requirement);
+    } catch (error) {
+      console.error("Error creating job requirement:", error);
+      res.status(500).json({ message: "Failed to create job requirement" });
+    }
+  });
+
+  app.put('/api/job-requirements/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the requirement's job opening belongs to user's company
+      const requirement = await storage.getJobRequirement(parseInt(req.params.id));
+      if (!requirement) {
+        return res.status(404).json({ message: "Requirement not found" });
+      }
+      
+      const jobOpening = await storage.getJobOpening(requirement.jobOpeningId);
+      if (!jobOpening || jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot update requirements for other companies' job openings" });
+      }
+
+      // Block jobOpeningId changes to prevent moving requirements to other companies' jobs
+      const { jobOpeningId, ...updateData } = req.body;
+      if (jobOpeningId !== undefined) {
+        return res.status(400).json({ message: "Cannot change jobOpeningId of existing requirement" });
+      }
+
+      // Validate request body with Zod (partial update, without jobOpeningId)
+      const validationResult = insertJobRequirementSchema.partial().omit({ jobOpeningId: true }).safeParse(updateData);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid requirement data",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const updated = await storage.updateJobRequirement(parseInt(req.params.id), validationResult.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating job requirement:", error);
+      res.status(500).json({ message: "Failed to update job requirement" });
+    }
+  });
+
+  app.delete('/api/job-requirements/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the requirement's job opening belongs to user's company
+      const requirement = await storage.getJobRequirement(parseInt(req.params.id));
+      if (!requirement) {
+        return res.status(404).json({ message: "Requirement not found" });
+      }
+      
+      const jobOpening = await storage.getJobOpening(requirement.jobOpeningId);
+      if (!jobOpening || jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot delete requirements for other companies' job openings" });
+      }
+
+      await storage.deleteJobRequirement(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting job requirement:", error);
+      res.status(500).json({ message: "Failed to delete job requirement" });
+    }
+  });
+
+  // Application Requirement Responses Routes
+  app.get('/api/applications/:id/requirements', async (req: any, res) => {
+    try {
+      const accessToken = req.headers['x-access-token'] as string;
+      
+      // Verify access token
+      const application = await storage.getApplication(parseInt(req.params.id));
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      if (!accessToken || application.accessToken !== accessToken) {
+        return res.status(403).json({ message: "Invalid access token" });
+      }
+
+      const responses = await storage.getApplicationRequirementResponses(parseInt(req.params.id));
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching application requirement responses:", error);
+      res.status(500).json({ message: "Failed to fetch requirement responses" });
+    }
+  });
+
+  app.post('/api/applications/:id/requirements', async (req: any, res) => {
+    try {
+      const accessToken = req.headers['x-access-token'] as string;
+      const { responses } = req.body;
+      
+      // Verify access token
+      const application = await storage.getApplication(parseInt(req.params.id));
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      if (!accessToken || application.accessToken !== accessToken) {
+        return res.status(403).json({ message: "Invalid access token" });
+      }
+      
+      // Validate that responses is an array
+      if (!Array.isArray(responses)) {
+        return res.status(400).json({ message: "Responses must be an array" });
+      }
+
+      // Validate each response with Zod
+      const responseSchema = z.object({
+        requirementId: z.number().int(),
+        proficiencyLevel: z.string().min(1),
+      });
+
+      for (const response of responses) {
+        const validation = responseSchema.safeParse(response);
+        if (!validation.success) {
+          return res.status(400).json({ 
+            message: "Invalid response data",
+            errors: validation.error.errors 
+          });
+        }
+      }
+
+      const result = await storage.submitAndScoreApplication(
+        parseInt(req.params.id), 
+        responses
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error submitting application requirements:", error);
+      res.status(500).json({ 
+        message: "Failed to submit application requirements",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Candidates Routes
   app.get('/api/candidates', isAuthenticatedHybrid, async (req: any, res) => {
     try {
@@ -6915,7 +7109,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/applications', isAuthenticatedHybrid, async (req: any, res) => {
     try {
-      const application = await storage.createApplication(req.body);
+      // Generate unique access token if not provided
+      const crypto = await import('crypto');
+      const accessToken = req.body.accessToken || crypto.randomBytes(32).toString('hex');
+      
+      const application = await storage.createApplication({
+        ...req.body,
+        accessToken
+      });
       res.status(201).json(application);
     } catch (error) {
       console.error("Error creating application:", error);
