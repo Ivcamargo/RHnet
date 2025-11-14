@@ -2841,7 +2841,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPublicJobOpenings(companyId?: number): Promise<any[]> {
-    // Return only active job openings for public viewing
+    // Return only published job openings for public viewing
     if (companyId) {
       return await db
         .select({
@@ -2871,12 +2871,12 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(
           eq(jobOpenings.companyId, companyId),
-          eq(jobOpenings.status, 'active')
+          eq(jobOpenings.status, 'published')
         ))
         .orderBy(desc(jobOpenings.createdAt));
     }
     
-    // Return all active job openings if no company specified
+    // Return all published job openings if no company specified
     return await db
       .select({
         id: jobOpenings.id,
@@ -2903,7 +2903,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(jobOpenings)
       .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
-      .where(eq(jobOpenings.status, 'active'))
+      .where(eq(jobOpenings.status, 'published'))
       .orderBy(desc(jobOpenings.createdAt));
   }
 
