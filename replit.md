@@ -66,6 +66,14 @@ Preferred communication style: Simple, everyday language.
   - **PDF Generation**: Client-side PDF generation using jsPDF with 200ms setTimeout delay to ensure UI feedback shows loading state ("Gerando PDF..."). PDF includes 8 sections with detailed content and embedded screenshots. If screenshots not available, prompts user to visit screenshot helper page first.
   - **User Flow**: Users access screenshot helper, capture all screens with single click, return to manual page, and export PDF with embedded real screenshots. No backend API calls required - fully client-side operation.
   - **Layout**: Uses internal admin layout (TopBar + Sidebar) instead of public landing layout. Manual now integrated into main application navigation.
+- **Lead Capture System**: Commercial prospecting functionality integrated into landing page for capturing potential customer information with automated email notifications to sales team.
+  - **Database**: `leads` table with contact information (name, email, phone, company), status tracking (new → contacted → meeting_scheduled → proposal_sent → contracted/lost), UTM fields for marketing attribution, and audit timestamps. System-wide scope (companyId nullable) to avoid multi-tenant coupling for pre-sales data.
+  - **Landing Page Integration**: "Começar Agora" button opens LeadCaptureDialog modal. Existing customer login preserved in header button. Clear UX separation between prospects (lead capture) and existing customers (direct login).
+  - **Form Validation**: React Hook Form with Zod validation. Required fields: name (min 3 chars), email (valid format). Optional fields: phone, companyName, message.
+  - **Success Flow**: Form submission → API creates lead → Dialog shows checkmark for 2s → Dialog closes → Toast notification appears on landing page (5s duration). Callback pattern ensures toast survives component unmount.
+  - **Email Notifications**: SendGrid integration sends automated notifications to sales team when new lead is captured. Graceful fallback logging when SENDGRID_API_KEY not configured (lead still saved to database).
+  - **API Endpoints**: Public POST `/api/leads` (no auth), admin-only GET/PATCH endpoints with authentication. Proper Zod validation and error handling.
+  - **Admin Interface**: Future enhancement for lead management dashboard with status updates, assignment, and follow-up notes.
 
 ## External Dependencies
 
