@@ -38,6 +38,8 @@ import {
   insertRotationUserAssignmentSchema,
   insertRotationExceptionSchema,
   insertJobRequirementSchema,
+  insertLeadSchema,
+  updateLeadStatusSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -67,6 +69,7 @@ import multer from "multer";
 import { getBrazilianTime, getBrazilianDateString, convertToLocal, convertLocalToUTC } from "../shared/timezone";
 import { parse } from "csv-parse/sync";
 import { stringify } from "csv-stringify/sync";
+import { sendLeadNotificationEmail } from "./emailService";
 
 // Helper function to create audit logs
 async function createAuditLog(
@@ -6543,6 +6546,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error submitting application:", error);
       res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // ========================================================================================
+  // LEAD CAPTURE ROUTES
+  // ========================================================================================
+
+  // Create lead (public - no authentication required)
+  app.post('/api/leads', async (req, res) => {
+    try {
+      // Validate request body
+      const validationResult = insertLeadSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Dados inválidos",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      // Create lead
+      const lead = await storage.createLead(validationResult.data);
+
+      // Send notification email (non-blocking)
+      sendLeadNotificationEmail(lead).catch(err => {
+        console.error("Failed to send lead notification email:", err);
+      });
+
+      res.status(201).json({ 
+        success: true, 
+        message: "Contato recebido com sucesso! Entraremos em contato em breve.",
+        leadId: lead.id 
+      });
+    } catch (error) {
+      console.error("Error creating lead:", error);
+      res.status(500).json({ message: "Erro ao enviar contato. Tente novamente." });
+    }
+  });
+
+  // Get all leads (admin only)
+  app.get('/api/leads', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const status = req.query.status as string | undefined;
+      const leads = await storage.getLeads({ status });
+      res.json(leads);
+    } catch (error) {
+      console.error("Error fetching leads:", error);
+      res.status(500).json({ message: "Erro ao buscar leads" });
+    }
+  });
+
+  // Get single lead (admin only)
+  app.get('/api/leads/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const lead = await storage.getLead(parseInt(req.params.id));
+      if (!lead) {
+        return res.status(404).json({ message: "Lead não encontrado" });
+      }
+
+      res.json(lead);
+    } catch (error) {
+      console.error("Error fetching lead:", error);
+      res.status(500).json({ message: "Erro ao buscar lead" });
+    }
+  });
+
+  // Update lead status (admin only)
+  app.patch('/api/leads/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Validate request body
+      const validationResult = updateLeadStatusSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Dados inválidos",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const leadId = parseInt(req.params.id);
+      const updateData = {
+        ...validationResult.data,
+        lastContactedAt: validationResult.data.status === 'contacted' ? new Date() : undefined,
+      };
+
+      const lead = await storage.updateLeadStatus(leadId, updateData);
+      res.json(lead);
+    } catch (error) {
+      console.error("Error updating lead:", error);
+      res.status(500).json({ message: "Erro ao atualizar lead" });
     }
   });
 

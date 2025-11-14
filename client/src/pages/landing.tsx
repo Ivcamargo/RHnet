@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +25,11 @@ import {
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
+import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 export default function Landing() {
+  const [leadDialogOpen, setLeadDialogOpen] = useState(false);
+
   const handleLogin = () => {
     window.location.href = "/login";
   };
@@ -101,21 +105,28 @@ export default function Landing() {
             Controle de ponto com geolocalização, mensagens corporativas, gestão de documentos, 
             treinamentos e muito mais, tudo em um único sistema.
           </p>
-          <div className="flex gap-4 justify-center">
-            <Button 
-              onClick={handleLogin} 
-              size="lg"
-              className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Começar Agora
-            </Button>
-            <Button 
-              onClick={handleJobsPage} 
-              size="lg"
-              className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Ver Vagas Disponíveis
-            </Button>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex gap-4 justify-center">
+              <Button 
+                onClick={() => setLeadDialogOpen(true)} 
+                size="lg"
+                className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                data-testid="button-start-now"
+              >
+                Começar Agora
+              </Button>
+              <Button 
+                onClick={handleJobsPage} 
+                size="lg"
+                className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                data-testid="button-see-jobs"
+              >
+                Ver Vagas Disponíveis
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Já é cliente? <button onClick={handleLogin} className="text-[hsl(175,65%,45%)] hover:underline font-semibold" data-testid="link-existing-client">Faça login aqui</button>
+            </p>
           </div>
         </div>
       </section>
@@ -366,6 +377,9 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Lead Capture Dialog */}
+      <LeadCaptureDialog open={leadDialogOpen} onOpenChange={setLeadDialogOpen} />
     </div>
   );
 }
