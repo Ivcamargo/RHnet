@@ -38,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import {
@@ -60,6 +61,10 @@ export default function Recruitment() {
   const [createExperienceLevel, setCreateExperienceLevel] = useState('mid');
   const [editEmploymentType, setEditEmploymentType] = useState('full_time');
   const [editExperienceLevel, setEditExperienceLevel] = useState('mid');
+  const [createRequiresDISC, setCreateRequiresDISC] = useState(false);
+  const [createDiscTiming, setCreateDiscTiming] = useState('during_selection');
+  const [editRequiresDISC, setEditRequiresDISC] = useState(false);
+  const [editDiscTiming, setEditDiscTiming] = useState('during_selection');
   const [isCreateApplicationDialogOpen, setIsCreateApplicationDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isViewApplicationDialogOpen, setIsViewApplicationDialogOpen] = useState(false);
@@ -244,6 +249,14 @@ export default function Recruitment() {
     const formData = new FormData(e.currentTarget);
     
     try {
+      // Prepare DISC profile data
+      const idealDISCProfile = createRequiresDISC ? {
+        D: formData.get('idealD') ? parseInt(formData.get('idealD') as string) : 0,
+        I: formData.get('idealI') ? parseInt(formData.get('idealI') as string) : 0,
+        S: formData.get('idealS') ? parseInt(formData.get('idealS') as string) : 0,
+        C: formData.get('idealC') ? parseInt(formData.get('idealC') as string) : 0,
+      } : null;
+
       // First, create the job opening
       const newJobRes = await apiRequest('/api/job-openings', {
         method: 'POST',
@@ -257,6 +270,9 @@ export default function Recruitment() {
           salaryMax: formData.get('salaryMax') ? parseFloat(formData.get('salaryMax') as string) : null,
           experienceLevel: formData.get('experienceLevel'),
           status: 'draft',
+          requiresDISC: createRequiresDISC,
+          discTiming: createRequiresDISC ? createDiscTiming : null,
+          idealDISCProfile: idealDISCProfile,
         }),
       });
       const newJob = await newJobRes.json();
@@ -289,6 +305,8 @@ export default function Recruitment() {
       await refetch();
       setIsCreateDialogOpen(false);
       setCreateRequirements([]);
+      setCreateRequiresDISC(false);
+      setCreateDiscTiming('during_selection');
       toast({
         title: "Vaga criada com sucesso!",
         description: `A vaga foi adicionada com ${createRequirements.length} requisito(s).`,
@@ -312,6 +330,14 @@ export default function Recruitment() {
     const previousRequirements = [...editRequirements];
     
     try {
+      // Prepare DISC profile data
+      const idealDISCProfile = editRequiresDISC ? {
+        D: formData.get('idealD') ? parseInt(formData.get('idealD') as string) : 0,
+        I: formData.get('idealI') ? parseInt(formData.get('idealI') as string) : 0,
+        S: formData.get('idealS') ? parseInt(formData.get('idealS') as string) : 0,
+        C: formData.get('idealC') ? parseInt(formData.get('idealC') as string) : 0,
+      } : null;
+
       // First, update the job opening
       await apiRequest(`/api/job-openings/${selectedJob.id}`, {
         method: 'PUT',
@@ -324,6 +350,9 @@ export default function Recruitment() {
           salaryMin: formData.get('salaryMin') ? parseFloat(formData.get('salaryMin') as string) : null,
           salaryMax: formData.get('salaryMax') ? parseFloat(formData.get('salaryMax') as string) : null,
           experienceLevel: formData.get('experienceLevel'),
+          requiresDISC: editRequiresDISC,
+          discTiming: editRequiresDISC ? editDiscTiming : null,
+          idealDISCProfile: idealDISCProfile,
         }),
       });
 
@@ -358,6 +387,8 @@ export default function Recruitment() {
     setSelectedJob(job);
     setEditEmploymentType(job.employmentType || 'full_time');
     setEditExperienceLevel(job.experienceLevel || 'mid');
+    setEditRequiresDISC(job.requiresDISC || false);
+    setEditDiscTiming(job.discTiming || 'during_selection');
     
     // Load existing requirements
     try {
@@ -584,6 +615,103 @@ export default function Recruitment() {
                 <input type="hidden" name="experienceLevel" value={createExperienceLevel} />
               </div>
 
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="requiresDISC"
+                    checked={createRequiresDISC}
+                    onCheckedChange={(checked) => setCreateRequiresDISC(checked === true)}
+                    data-testid="checkbox-requires-disc"
+                  />
+                  <Label htmlFor="requiresDISC" className="font-semibold cursor-pointer">
+                    Requer Teste DISC de Personalidade
+                  </Label>
+                </div>
+
+                {createRequiresDISC && (
+                  <>
+                    <div>
+                      <Label htmlFor="discTiming">Momento da Aplicação</Label>
+                      <Select 
+                        value={createDiscTiming} 
+                        onValueChange={setCreateDiscTiming}
+                      >
+                        <SelectTrigger data-testid="select-disc-timing">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="on_application">Durante a candidatura (obrigatório)</SelectItem>
+                          <SelectItem value="during_selection">Durante processo seletivo (opcional)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <input type="hidden" name="discTiming" value={createDiscTiming} />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {createDiscTiming === 'on_application' 
+                          ? 'Candidato deve completar o teste DISC antes de finalizar a candidatura'
+                          : 'RH pode enviar link do teste durante o processo seletivo'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="mb-2 block">Perfil DISC Ideal (0-100%)</Label>
+                      <div className="grid grid-cols-4 gap-3">
+                        <div>
+                          <Label htmlFor="idealD" className="text-xs text-red-600 font-bold">D - Dominância</Label>
+                          <Input
+                            id="idealD"
+                            name="idealD"
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0-100"
+                            data-testid="input-ideal-d"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="idealI" className="text-xs text-yellow-600 font-bold">I - Influência</Label>
+                          <Input
+                            id="idealI"
+                            name="idealI"
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0-100"
+                            data-testid="input-ideal-i"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="idealS" className="text-xs text-green-600 font-bold">S - Estabilidade</Label>
+                          <Input
+                            id="idealS"
+                            name="idealS"
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0-100"
+                            data-testid="input-ideal-s"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="idealC" className="text-xs text-blue-600 font-bold">C - Conformidade</Label>
+                          <Input
+                            id="idealC"
+                            name="idealC"
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0-100"
+                            data-testid="input-ideal-c"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Deixe em branco ou 0 para perfis não relevantes
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
@@ -727,6 +855,107 @@ export default function Recruitment() {
                     </SelectContent>
                   </Select>
                   <input type="hidden" name="experienceLevel" value={editExperienceLevel} />
+                </div>
+
+                <div className="border-t pt-4 space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-requiresDISC"
+                      checked={editRequiresDISC}
+                      onCheckedChange={(checked) => setEditRequiresDISC(checked === true)}
+                      data-testid="checkbox-edit-requires-disc"
+                    />
+                    <Label htmlFor="edit-requiresDISC" className="font-semibold cursor-pointer">
+                      Requer Teste DISC de Personalidade
+                    </Label>
+                  </div>
+
+                  {editRequiresDISC && (
+                    <>
+                      <div>
+                        <Label htmlFor="edit-discTiming">Momento da Aplicação</Label>
+                        <Select 
+                          value={editDiscTiming} 
+                          onValueChange={setEditDiscTiming}
+                        >
+                          <SelectTrigger data-testid="select-edit-disc-timing">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="on_application">Durante a candidatura (obrigatório)</SelectItem>
+                            <SelectItem value="during_selection">Durante processo seletivo (opcional)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <input type="hidden" name="discTiming" value={editDiscTiming} />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {editDiscTiming === 'on_application' 
+                            ? 'Candidato deve completar o teste DISC antes de finalizar a candidatura'
+                            : 'RH pode enviar link do teste durante o processo seletivo'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="mb-2 block">Perfil DISC Ideal (0-100%)</Label>
+                        <div className="grid grid-cols-4 gap-3">
+                          <div>
+                            <Label htmlFor="edit-idealD" className="text-xs text-red-600 font-bold">D - Dominância</Label>
+                            <Input
+                              id="edit-idealD"
+                              name="idealD"
+                              type="number"
+                              min="0"
+                              max="100"
+                              defaultValue={selectedJob.idealDISCProfile?.D || ''}
+                              placeholder="0-100"
+                              data-testid="input-edit-ideal-d"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-idealI" className="text-xs text-yellow-600 font-bold">I - Influência</Label>
+                            <Input
+                              id="edit-idealI"
+                              name="idealI"
+                              type="number"
+                              min="0"
+                              max="100"
+                              defaultValue={selectedJob.idealDISCProfile?.I || ''}
+                              placeholder="0-100"
+                              data-testid="input-edit-ideal-i"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-idealS" className="text-xs text-green-600 font-bold">S - Estabilidade</Label>
+                            <Input
+                              id="edit-idealS"
+                              name="idealS"
+                              type="number"
+                              min="0"
+                              max="100"
+                              defaultValue={selectedJob.idealDISCProfile?.S || ''}
+                              placeholder="0-100"
+                              data-testid="input-edit-ideal-s"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-idealC" className="text-xs text-blue-600 font-bold">C - Conformidade</Label>
+                            <Input
+                              id="edit-idealC"
+                              name="idealC"
+                              type="number"
+                              min="0"
+                              max="100"
+                              defaultValue={selectedJob.idealDISCProfile?.C || ''}
+                              placeholder="0-100"
+                              data-testid="input-edit-ideal-c"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Deixe em branco ou 0 para perfis não relevantes
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2">
