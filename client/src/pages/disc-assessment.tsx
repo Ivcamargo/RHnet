@@ -83,6 +83,12 @@ export default function DISCAssessment() {
   };
 
   const handleNextQuestion = () => {
+    const currentQuestion = data?.questions?.[currentQuestionIndex];
+    if (!currentQuestion || !responses[currentQuestion.id]) {
+      // Cannot advance without answering current question
+      return;
+    }
+    
     if (currentQuestionIndex < (data?.questions?.length || 0) - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     }
@@ -161,8 +167,9 @@ export default function DISCAssessment() {
 
   const questions = data?.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((Object.keys(responses).length / questions.length) * 100);
-  const allQuestionsAnswered = Object.keys(responses).length === questions.length;
+  const answeredCount = Object.keys(responses).length;
+  const progress = questions.length > 0 ? ((answeredCount / questions.length) * 100) : 0;
+  const allQuestionsAnswered = answeredCount === questions.length;
 
   if (currentStep === "welcome") {
     return (
@@ -308,7 +315,7 @@ export default function DISCAssessment() {
                     {currentQuestionIndex < questions.length - 1 ? (
                       <Button
                         onClick={handleNextQuestion}
-                        disabled={!responses[currentQuestion.id]}
+                        disabled={!responses[currentQuestion?.id]}
                         className="flex-1 bg-gradient-to-r from-[#1e3a8a] to-[#06b6d4]"
                         data-testid="button-next"
                       >

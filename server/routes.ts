@@ -7862,6 +7862,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // List all assessments with candidate/job info (admin only)
+  app.get('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { db } = storage as any;
+      const { discAssessments, candidates, jobOpenings } = await import('./db/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const assessments = await db
+        .select({
+          id: discAssessments.id,
+          status: discAssessments.status,
+          accessToken: discAssessments.accessToken,
+          expiresAt: discAssessments.expiresAt,
+          startedAt: discAssessments.startedAt,
+          completedAt: discAssessments.completedAt,
+          dScore: discAssessments.dScore,
+          iScore: discAssessments.iScore,
+          sScore: discAssessments.sScore,
+          cScore: discAssessments.cScore,
+          primaryProfile: discAssessments.primaryProfile,
+          jobOpeningId: discAssessments.jobOpeningId,
+          candidateId: discAssessments.candidateId,
+          candidate: candidates,
+          jobOpening: jobOpenings,
+        })
+        .from(discAssessments)
+        .leftJoin(candidates, eq(discAssessments.candidateId, candidates.id))
+        .leftJoin(jobOpenings, eq(discAssessments.jobOpeningId, jobOpenings.id))
+        .orderBy(discAssessments.id);
+
+      res.json(assessments);
+    } catch (error: any) {
+      console.error("Error fetching all assessments:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliações" });
+    }
+  });
+
   // List assessments by job opening (admin only)
   app.get('/api/disc/assessments/job/:jobOpeningId', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
     try {

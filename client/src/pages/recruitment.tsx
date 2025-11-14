@@ -23,7 +23,9 @@ import {
   UserPlus,
   Clock,
   FileText,
-  Send
+  Send,
+  Brain,
+  Copy
 } from 'lucide-react';
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import {
@@ -46,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RequirementsManager, type JobRequirement } from "@/components/recruitment/RequirementsManager";
+import { DISCAssessmentsPanel } from "@/components/recruitment/DISCAssessmentsPanel";
 
 export default function Recruitment() {
   const [activeTab, setActiveTab] = useState('jobs');
@@ -64,6 +67,11 @@ export default function Recruitment() {
   const [selectedCandidateForApplication, setSelectedCandidateForApplication] = useState<number>(0);
   const [createRequirements, setCreateRequirements] = useState<JobRequirement[]>([]);
   const [editRequirements, setEditRequirements] = useState<JobRequirement[]>([]);
+  const [isCreateDISCDialogOpen, setIsCreateDISCDialogOpen] = useState(false);
+  const [selectedJobForDISC, setSelectedJobForDISC] = useState<number>(0);
+  const [selectedCandidateForDISC, setSelectedCandidateForDISC] = useState<number>(0);
+  const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
+  const [isViewResultsDialogOpen, setIsViewResultsDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -85,6 +93,11 @@ export default function Recruitment() {
   const { data: allApplications = [] } = useQuery<any[]>({
     queryKey: ['/api/applications/all'],
     enabled: activeTab === 'applications',
+  });
+
+  const { data: discAssessments = [] } = useQuery<any[]>({
+    queryKey: ['/api/disc/assessments'],
+    enabled: activeTab === 'disc',
   });
 
   const createJobMutation = useMutation({
@@ -835,7 +848,7 @@ export default function Recruitment() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="jobs" data-testid="tab-jobs">
             <Briefcase className="mr-2 h-4 w-4" />
             Vagas ({jobOpenings.length})
@@ -847,6 +860,10 @@ export default function Recruitment() {
           <TabsTrigger value="applications" data-testid="tab-applications">
             <ClipboardList className="mr-2 h-4 w-4" />
             Candidaturas
+          </TabsTrigger>
+          <TabsTrigger value="disc" data-testid="tab-disc">
+            <Brain className="mr-2 h-4 w-4" />
+            Testes DISC
           </TabsTrigger>
           <TabsTrigger value="onboarding" data-testid="tab-onboarding">
             <LinkIcon className="mr-2 h-4 w-4" />
@@ -1242,6 +1259,15 @@ export default function Recruitment() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="disc" className="space-y-4">
+          <DISCAssessmentsPanel
+            jobOpenings={jobOpenings}
+            candidates={candidates}
+            assessments={discAssessments}
+            isLoading={activeTab === 'disc' && !discAssessments.length}
+          />
         </TabsContent>
 
         <TabsContent value="onboarding" className="space-y-4">
