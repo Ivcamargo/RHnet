@@ -65,6 +65,9 @@ export default function Manual() {
     await captureScreen("screen-recruitment", "recruitment");
     await new Promise(r => setTimeout(r, 500));
     
+    await captureScreen("screen-legalfiles", "legalfiles");
+    await new Promise(r => setTimeout(r, 500));
+    
     await captureScreen("screen-terminal", "terminal");
     
     setCapturing(false);
@@ -246,7 +249,8 @@ export default function Manual() {
         { title: "4. Gestão de Recursos", page: 11 },
         { title: "5. Relatórios", page: 15 },
         { title: "6. Recrutamento e Seleção", page: 18 },
-        { title: "7. Outros Recursos", page: 21 },
+        { title: "7. Arquivos Legais AFD/AEJ", page: 21 },
+        { title: "8. Outros Recursos", page: 24 },
       ];
 
       pdf.setFontSize(12);
@@ -636,12 +640,92 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Seção 7: Outros Recursos
+      // Seção 7: Arquivos Legais AFD/AEJ
       addNewPage();
       pdf.setFontSize(20);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(26, 57, 96);
-      pdf.text("7. Outros Recursos", margin, yPosition);
+      pdf.text("7. Arquivos Legais AFD/AEJ", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const legaisText = [
+        "SOBRE OS ARQUIVOS LEGAIS:",
+        "",
+        "Os arquivos AFD e AEJ são documentos eletrônicos obrigatórios conforme Portaria 671/2021",
+        "do Ministério do Trabalho para empresas que utilizam controle de ponto eletrônico.",
+        "",
+        "AFD - ARQUIVO FONTE DE DADOS:",
+        "",
+        "• Contém todas as marcações de ponto do período",
+        "• Identificação do empregador (CNPJ/CEI)",
+        "• Dados do equipamento REP",
+        "• Validação CRC-16 por registro",
+        "• Hash SHA-256 de integridade",
+        "• Usado para auditorias e fiscalização",
+        "",
+        "AEJ - ARQUIVO ELETRÔNICO DE JORNADA:",
+        "",
+        "• Consolida horários contratuais e jornadas trabalhadas",
+        "• Vínculos empregatícios",
+        "• Horários contratuais por funcionário",
+        "• Marcações consolidadas",
+        "• Resumo de horas trabalhadas",
+      ];
+
+      legaisText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Screenshot de arquivos legais se disponível
+      if (screenshots.legalfiles) {
+        addScreenshot(screenshots.legalfiles, "Tela: Admin - Arquivos Legais AFD/AEJ");
+      }
+
+      const legaisText2 = [
+        "",
+        "COMO EXPORTAR ARQUIVOS:",
+        "",
+        "1. Acesse Admin → Arquivos Legais",
+        "2. Clique em 'Exportar AFD' ou 'Exportar AEJ'",
+        "3. Selecione o período (data inicial e final)",
+        "4. Clique em 'Exportar Arquivo'",
+        "5. O arquivo será gerado em formato .txt",
+        "6. Faça download na tabela de histórico",
+        "",
+        "COMO IMPORTAR AFD:",
+        "",
+        "1. Acesse Admin → Arquivos Legais",
+        "2. Clique em 'Importar AFD'",
+        "3. Selecione arquivo .txt no formato AFD",
+        "4. Sistema valida CRC-16, NSR e estrutura",
+        "5. Se válido, marcações são importadas",
+        "",
+        "QUANDO GERAR:",
+        "",
+        "• Mensalmente para histórico organizado",
+        "• Quando solicitado em fiscalização",
+        "• Como backup dos registros de ponto",
+        "• Para análise interna de jornadas",
+      ];
+
+      legaisText2.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 8: Outros Recursos
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("8. Outros Recursos", margin, yPosition);
       yPosition += 12;
 
       pdf.setFontSize(11);
@@ -767,13 +851,14 @@ export default function Manual() {
         </div>
 
       <Tabs defaultValue="introducao" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-8 mb-6">
           <TabsTrigger value="introducao">Introdução</TabsTrigger>
           <TabsTrigger value="ponto">Ponto</TabsTrigger>
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
           <TabsTrigger value="gestao">Gestão</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           <TabsTrigger value="recrutamento">Recrutamento</TabsTrigger>
+          <TabsTrigger value="legais">Arquivos Legais</TabsTrigger>
           <TabsTrigger value="outros">Outros</TabsTrigger>
         </TabsList>
 
@@ -1680,6 +1765,85 @@ export default function Manual() {
                       </CardContent>
                     </Card>
 
+                    <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-purple-600" />
+                          Exemplo Prático: Escala 4×2
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <p className="text-purple-900 dark:text-purple-100">
+                          <strong>Cenário:</strong> Equipe que trabalha 4 dias consecutivos e folga 2 dias.
+                        </p>
+                        
+                        <div className="bg-white dark:bg-gray-900 p-4 rounded border border-purple-200">
+                          <p className="text-xs font-semibold mb-2">Configuração:</p>
+                          <ul className="space-y-1 text-xs ml-4">
+                            <li>• <strong>Tipo de Rotação:</strong> Customizada</li>
+                            <li>• <strong>Dias de Trabalho:</strong> 4 dias</li>
+                            <li>• <strong>Dias de Folga:</strong> 2 dias</li>
+                            <li>• <strong>Turno Associado:</strong> Comercial (08:00 - 17:00)</li>
+                          </ul>
+                          
+                          <div className="mt-3 pt-3 border-t border-purple-200">
+                            <p className="text-xs font-semibold mb-2">Resultado da Escala (12 dias):</p>
+                            <div className="grid grid-cols-6 gap-1 text-center text-xs">
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D1<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D2<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D3<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D4<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D5<br/>-</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D6<br/>-</div>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                              Repete a cada 6 dias...
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-indigo-600" />
+                          Exemplo Prático: Escala 5×1 (Semana com 1 Folga)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <p className="text-indigo-900 dark:text-indigo-100">
+                          <strong>Cenário:</strong> Trabalho de segunda a sábado com folga aos domingos (varejo).
+                        </p>
+                        
+                        <div className="bg-white dark:bg-gray-900 p-4 rounded border border-indigo-200">
+                          <p className="text-xs font-semibold mb-2">Configuração:</p>
+                          <ul className="space-y-1 text-xs ml-4">
+                            <li>• <strong>Tipo de Rotação:</strong> Semanal Fixa</li>
+                            <li>• <strong>Dias de Trabalho:</strong> Segunda a Sábado</li>
+                            <li>• <strong>Folga:</strong> Domingo</li>
+                            <li>• <strong>Turno Associado:</strong> Comercial (09:00 - 18:00)</li>
+                          </ul>
+                          
+                          <div className="mt-3 pt-3 border-t border-indigo-200">
+                            <p className="text-xs font-semibold mb-2">Resultado da Escala:</p>
+                            <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Seg<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Ter<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Qua<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Qui<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Sex<br/>✓</div>
+                              <div className="bg-green-100 dark:bg-green-900 p-1 rounded">Sáb<br/>✓</div>
+                              <div className="bg-red-100 dark:bg-red-900 p-1 rounded">Dom<br/>-</div>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                              Se repete semanalmente
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     <Card className="bg-muted/30">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base">Como Criar uma Escala de Rotação</CardTitle>
@@ -2106,6 +2270,258 @@ export default function Manual() {
           </div>
         </TabsContent>
 
+        {/* Arquivos Legais (AFD/AEJ) */}
+        <TabsContent value="legais">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileDown className="h-5 w-5" />
+                  Arquivos Legais AFD e AEJ
+                </CardTitle>
+                <CardDescription>
+                  Sistema de geração e importação de arquivos conforme Portaria 671/2021
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">O que são Arquivos Legais?</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Os arquivos AFD e AEJ são documentos eletrônicos obrigatórios exigidos pelo Ministério do Trabalho
+                    para empresas que utilizam sistemas de controle de ponto eletrônico. Eles servem para fiscalização
+                    e garantem a integridade dos registros de jornada de trabalho.
+                  </p>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileDown className="h-4 w-4 text-blue-600" />
+                          AFD - Arquivo Fonte de Dados
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p><strong>O que é:</strong> Arquivo que contém todas as marcações de ponto registradas no período.</p>
+                        <p><strong>Conteúdo:</strong></p>
+                        <ul className="ml-4 space-y-1 text-xs">
+                          <li>• Identificação do empregador (CNPJ/CEI)</li>
+                          <li>• Dados do equipamento (REP)</li>
+                          <li>• Todas as marcações de entrada/saída</li>
+                          <li>• Validação CRC-16 por registro</li>
+                          <li>• Assinatura digital SHA-256</li>
+                        </ul>
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                          ✓ Usado para auditorias e fiscalização
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-green-600" />
+                          AEJ - Arquivo Eletrônico de Jornada
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground space-y-2">
+                        <p><strong>O que é:</strong> Arquivo consolidado com horários contratuais e jornadas trabalhadas.</p>
+                        <p><strong>Conteúdo:</strong></p>
+                        <ul className="ml-4 space-y-1 text-xs">
+                          <li>• Identificação do empregador</li>
+                          <li>• Vínculos empregatícios</li>
+                          <li>• Horários contratuais por funcionário</li>
+                          <li>• Marcações de ponto consolidadas</li>
+                          <li>• Resumo de horas trabalhadas</li>
+                        </ul>
+                        <p className="text-xs text-green-700 dark:text-green-400 mt-2">
+                          ✓ Facilita análise de jornadas
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Download className="h-5 w-5 text-primary" />
+                    Como Exportar Arquivos (Administrador)
+                  </h3>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      <strong>📍 Acesso:</strong> Menu Admin → Arquivos Legais
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Exportar AFD (Marcações)</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        <ol className="space-y-2 list-decimal list-inside text-xs">
+                          <li>Acesse <strong>Admin → Arquivos Legais</strong></li>
+                          <li>Clique no card <strong>"Exportar AFD"</strong></li>
+                          <li>Selecione o período desejado (data inicial e final)</li>
+                          <li>Clique em <strong>"Exportar Arquivo"</strong></li>
+                          <li>O sistema gera o arquivo no formato texto (.txt)</li>
+                          <li>O arquivo aparecerá na tabela de histórico com link para download</li>
+                        </ol>
+                        <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-200">
+                          <p className="text-xs text-amber-900 dark:text-amber-100">
+                            <strong>⚠ Atenção:</strong> O arquivo AFD inclui validação CRC-16 e hash SHA-256
+                            conforme Portaria 671. Não altere o conteúdo manualmente.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-muted/30">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Exportar AEJ (Jornadas)</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        <ol className="space-y-2 list-decimal list-inside text-xs">
+                          <li>Acesse <strong>Admin → Arquivos Legais</strong></li>
+                          <li>Clique no card <strong>"Exportar AEJ"</strong></li>
+                          <li>Selecione o período desejado (normalmente mensal)</li>
+                          <li>Clique em <strong>"Exportar Arquivo"</strong></li>
+                          <li>O sistema consolida horários contratuais e marcações</li>
+                          <li>Faça download do arquivo gerado</li>
+                        </ol>
+                        <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded border border-green-200">
+                          <p className="text-xs text-green-900 dark:text-green-100">
+                            <strong>💡 Dica:</strong> O AEJ é útil para análise interna de jornadas antes da
+                            fiscalização. Ele mostra divergências entre horas contratadas e trabalhadas.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Upload className="h-5 w-5 text-primary" />
+                    Como Importar Arquivo AFD
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Você pode importar arquivos AFD gerados por outros sistemas de ponto para consolidar
+                    dados no RHNet.
+                  </p>
+
+                  <ol className="space-y-3 list-decimal list-inside text-sm text-muted-foreground">
+                    <li>Acesse <strong>Admin → Arquivos Legais</strong></li>
+                    <li>Clique no card <strong>"Importar AFD"</strong></li>
+                    <li>Clique em <strong>"Escolher Arquivo"</strong> e selecione um arquivo .txt no formato AFD</li>
+                    <li>Clique em <strong>"Importar Arquivo"</strong></li>
+                    <li>
+                      O sistema fará validações automáticas:
+                      <ul className="ml-6 mt-2 space-y-1 list-disc text-xs">
+                        <li>Verificação de CRC-16 em cada registro</li>
+                        <li>Validação de sequência NSR (número sequencial)</li>
+                        <li>Conferência de estrutura do arquivo</li>
+                        <li>Validação de CPF/PIS dos funcionários</li>
+                      </ul>
+                    </li>
+                    <li>Se houver erros, o sistema mostrará uma lista detalhada</li>
+                    <li>Se tudo estiver correto, as marcações serão importadas para o banco de dados</li>
+                  </ol>
+
+                  <div className="mt-4 bg-red-50 dark:bg-red-950/30 p-4 rounded-lg border border-red-200">
+                    <p className="text-sm text-red-900 dark:text-red-100">
+                      <strong>⚠ Cuidado:</strong> A importação cria registros novos no sistema. Certifique-se
+                      de que os funcionários do arquivo AFD já estão cadastrados no RHNet para evitar erros
+                      de vinculação.
+                    </p>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Histórico de Arquivos</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Na página de Arquivos Legais, você encontra uma tabela com todos os arquivos gerados:
+                  </p>
+                  
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <Card className="bg-muted/20">
+                      <CardContent className="pt-4 text-xs space-y-1">
+                        <p><strong>• Tipo:</strong> AFD ou AEJ</p>
+                        <p><strong>• Período:</strong> Data inicial e final dos registros</p>
+                        <p><strong>• NSR:</strong> Números sequenciais usados</p>
+                        <p><strong>• Registros:</strong> Quantidade total de linhas no arquivo</p>
+                        <p><strong>• Gerado em:</strong> Data e hora da criação</p>
+                        <p><strong>• Download:</strong> Link para baixar o arquivo</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3">Quando Gerar os Arquivos?</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card className="border-l-4 border-l-primary">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Rotina Mensal</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        <p>Gere os arquivos mensalmente para manter um histórico organizado.
+                        Isso facilita auditorias internas e preparação para fiscalização.</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-amber-500">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Fiscalização</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        <p>Quando solicitado pelo Ministério do Trabalho durante fiscalização,
+                        gere os arquivos do período específico requisitado.</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Backup</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        <p>Use os arquivos AFD como backup adicional dos registros de ponto.
+                        Eles podem ser reimportados em caso de necessidade.</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Análise</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-xs text-muted-foreground">
+                        <p>O arquivo AEJ é excelente para análises de conformidade interna,
+                        mostrando divergências entre jornadas contratadas e realizadas.</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    <strong>📚 Conformidade Legal:</strong> Os arquivos gerados pelo RHNet seguem rigorosamente
+                    o formato estabelecido pela Portaria 671/2021 do Ministério do Trabalho, incluindo validação
+                    CRC-16/KERMIT, encoding ISO 8859-1, e sequenciamento NSR monotônico por empresa.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* Outros Recursos */}
         <TabsContent value="outros">
           <div className="space-y-6">
@@ -2241,9 +2657,9 @@ export default function Manual() {
           <div className="space-y-4">
             <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
               <div>
-                <p className="font-medium">Capturas realizadas: {Object.keys(screenshots).length}/6</p>
+                <p className="font-medium">Capturas realizadas: {Object.keys(screenshots).length}/7</p>
                 <p className="text-sm text-muted-foreground">
-                  Clique em "Capturar Todas" para capturar as 6 telas principais do sistema
+                  Clique em "Capturar Todas" para capturar as 7 telas principais do sistema
                 </p>
               </div>
               <Button 
@@ -2442,6 +2858,68 @@ export default function Manual() {
                     <p className="text-sm text-muted-foreground">Candidatos: 23</p>
                     <p className="text-sm mt-2"><span className="text-green-600">●</span> Aberta</p>
                   </Card>
+                </div>
+              </div>
+
+              {/* Arquivos Legais */}
+              <div id="screen-legalfiles" className="bg-white p-8 rounded-lg shadow-sm border">
+                <div className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white p-4 rounded-t-lg -mx-8 -mt-8 mb-6">
+                  <h2 className="text-2xl font-bold">Admin - Arquivos Legais AFD/AEJ</h2>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <Card className="p-4">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <FileDown className="h-4 w-4" />
+                      Exportar AFD
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-2">Arquivo Fonte de Dados</p>
+                    <Button size="sm" className="mt-3 w-full">Exportar</Button>
+                  </Card>
+                  <Card className="p-4">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Exportar AEJ
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-2">Arquivo Eletrônico de Jornada</p>
+                    <Button size="sm" className="mt-3 w-full">Exportar</Button>
+                  </Card>
+                  <Card className="p-4">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Importar AFD
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-2">Importar arquivo externo</p>
+                    <Button size="sm" variant="outline" className="mt-3 w-full">Importar</Button>
+                  </Card>
+                </div>
+
+                <h3 className="font-semibold mb-3">Histórico de Arquivos Gerados</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Tipo</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Período</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">NSR</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium">Gerado em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="px-4 py-3"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">AFD</span></td>
+                        <td className="px-4 py-3 text-sm">01/01/2025 - 31/01/2025</td>
+                        <td className="px-4 py-3 text-sm">1000-1523</td>
+                        <td className="px-4 py-3 text-sm">05/02/2025 10:30</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="px-4 py-3"><span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">AEJ</span></td>
+                        <td className="px-4 py-3 text-sm">01/01/2025 - 31/01/2025</td>
+                        <td className="px-4 py-3 text-sm">-</td>
+                        <td className="px-4 py-3 text-sm">05/02/2025 10:35</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
