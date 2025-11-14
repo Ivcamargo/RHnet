@@ -1804,16 +1804,65 @@ export default function Manual() {
                       </CardContent>
                     </Card>
 
+                    <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-amber-600" />
+                          Exemplo Prático: Escala 5×1 (Folga Rotativa)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-muted-foreground">
+                        <p className="text-amber-900 dark:text-amber-100">
+                          <strong>Cenário:</strong> Trabalha 5 dias consecutivos e folga 1 dia. A folga roda pelos dias da semana.
+                        </p>
+                        
+                        <div className="bg-white dark:bg-gray-900 p-4 rounded border border-amber-200">
+                          <p className="text-xs font-semibold mb-2">Configuração:</p>
+                          <ul className="space-y-1 text-xs ml-4">
+                            <li>• <strong>Tipo de Rotação:</strong> Customizada</li>
+                            <li>• <strong>Dias de Trabalho:</strong> 5 dias consecutivos</li>
+                            <li>• <strong>Folga:</strong> 1 dia rotativo</li>
+                            <li>• <strong>Turno Associado:</strong> Comercial (08:00 - 17:00)</li>
+                          </ul>
+                          
+                          <div className="mt-3 pt-3 border-t border-amber-200">
+                            <p className="text-xs font-semibold mb-2">Exemplo de Rotação (12 dias):</p>
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-6 gap-1 text-center text-xs">
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D1<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D2<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D3<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D4<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D5<br/>✓</div>
+                                <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D6<br/>-</div>
+                              </div>
+                              <div className="grid grid-cols-6 gap-1 text-center text-xs">
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D7<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D8<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D9<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D10<br/>✓</div>
+                                <div className="bg-green-100 dark:bg-green-900 p-1 rounded">D11<br/>✓</div>
+                                <div className="bg-red-100 dark:bg-red-900 p-1 rounded">D12<br/>-</div>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                              A folga cai em um dia diferente da semana a cada ciclo
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     <Card className="bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-indigo-600" />
-                          Exemplo Prático: Escala 6×1 (Semana com 1 Folga)
+                          Exemplo Prático: Escala 6×1 (Folga Fixa Semanal)
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 text-sm text-muted-foreground">
                         <p className="text-indigo-900 dark:text-indigo-100">
-                          <strong>Cenário:</strong> Trabalho de segunda a sábado com folga aos domingos (varejo).
+                          <strong>Cenário:</strong> Trabalho de segunda a sábado com folga fixa aos domingos (varejo).
                         </p>
                         
                         <div className="bg-white dark:bg-gray-900 p-4 rounded border border-indigo-200">
@@ -1821,7 +1870,7 @@ export default function Manual() {
                           <ul className="space-y-1 text-xs ml-4">
                             <li>• <strong>Tipo de Rotação:</strong> Semanal Fixa</li>
                             <li>• <strong>Dias de Trabalho:</strong> 6 dias (Segunda a Sábado)</li>
-                            <li>• <strong>Folga:</strong> 1 dia (Domingo)</li>
+                            <li>• <strong>Folga:</strong> 1 dia fixo (Domingo)</li>
                             <li>• <strong>Turno Associado:</strong> Comercial (09:00 - 18:00)</li>
                           </ul>
                           
@@ -1837,7 +1886,7 @@ export default function Manual() {
                               <div className="bg-red-100 dark:bg-red-900 p-1 rounded">Dom<br/>-</div>
                             </div>
                             <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
-                              Se repete semanalmente
+                              Folga sempre no mesmo dia (domingo)
                             </p>
                           </div>
                         </div>
