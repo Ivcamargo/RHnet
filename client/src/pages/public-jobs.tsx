@@ -255,24 +255,24 @@ export default function PublicJobs() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {(job.location || job.salaryMin || job.publishedAt) && (
+              {(job.companyName || job.location || job.salaryRange || job.publishedAt) && (
                 <div className="flex gap-4 flex-wrap text-sm text-muted-foreground">
+                  {job.companyName && (
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      <span>{job.companyName}</span>
+                    </div>
+                  )}
                   {job.location && (
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       <span>{job.location}</span>
                     </div>
                   )}
-                  {(job.salaryMin || job.salaryMax) && (
+                  {job.salaryRange && (
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
-                      <span>
-                        {job.salaryMin && job.salaryMax
-                          ? `R$ ${job.salaryMin.toLocaleString()} - R$ ${job.salaryMax.toLocaleString()}`
-                          : job.salaryMin
-                          ? `A partir de R$ ${job.salaryMin.toLocaleString()}`
-                          : `Até R$ ${job.salaryMax.toLocaleString()}`}
-                      </span>
+                      <span>{job.salaryRange}</span>
                     </div>
                   )}
                   {job.publishedAt && (
@@ -542,6 +542,12 @@ export default function PublicJobs() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <CardTitle className="text-2xl mb-2">{job.title}</CardTitle>
+                      {job.companyName && (
+                        <p className="text-sm font-medium text-muted-foreground mb-2">
+                          <Briefcase className="inline h-4 w-4 mr-1" />
+                          {job.companyName}
+                        </p>
+                      )}
                       <CardDescription className="text-base line-clamp-2">
                         {job.description}
                       </CardDescription>
@@ -564,16 +570,10 @@ export default function PublicJobs() {
                         <span>{job.location}</span>
                       </div>
                     )}
-                    {(job.salaryMin || job.salaryMax) && (
+                    {job.salaryRange && (
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4" />
-                        <span>
-                          {job.salaryMin && job.salaryMax
-                            ? `R$ ${job.salaryMin.toLocaleString()} - R$ ${job.salaryMax.toLocaleString()}`
-                            : job.salaryMin
-                            ? `A partir de R$ ${job.salaryMin.toLocaleString()}`
-                            : `Até R$ ${job.salaryMax.toLocaleString()}`}
-                        </span>
+                        <span>{job.salaryRange}</span>
                       </div>
                     )}
                   </div>
