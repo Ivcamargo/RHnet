@@ -407,6 +407,7 @@ export interface IStorage {
   createCandidate(candidate: any): Promise<any>;
   updateCandidate(id: number, candidate: Partial<any>): Promise<any>;
   getCandidateByEmail(companyId: number, email: string): Promise<any | undefined>;
+  findOrCreateCandidateByEmail(email: string, data: any): Promise<any>;
   
   // Application operations
   getApplications(jobOpeningId: number): Promise<any[]>;
@@ -3030,6 +3031,24 @@ export class DatabaseStorage implements IStorage {
       .from(candidates)
       .where(and(eq(candidates.companyId, companyId), eq(candidates.email, email)));
     return candidate;
+  }
+
+  async findOrCreateCandidateByEmail(email: string, data: any): Promise<any> {
+    const normalizedEmail = email.toLowerCase();
+    
+    const [existingCandidate] = await db
+      .select()
+      .from(candidates)
+      .where(and(
+        eq(candidates.companyId, data.companyId),
+        sql`LOWER(${candidates.email}) = ${normalizedEmail}`
+      ));
+    
+    if (existingCandidate) {
+      return existingCandidate;
+    }
+    
+    return await this.createCandidate({ ...data, email: normalizedEmail });
   }
 
   // Application operations

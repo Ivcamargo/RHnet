@@ -19,6 +19,7 @@ export default function DISCAssessment() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
+  const returnJob = urlParams.get("return_job");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/disc/assessments/token", token],
@@ -61,6 +62,16 @@ export default function DISCAssessment() {
       setCurrentStep("completed");
     },
   });
+
+  // Auto-redirect to job application after DISC completion if return_job param present
+  useEffect(() => {
+    if (currentStep === "completed" && returnJob) {
+      const timer = setTimeout(() => {
+        setLocation(`/job-apply/${returnJob}?disc_completed=true`);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, returnJob, setLocation]);
 
   const handleStartAssessment = async () => {
     if (!data?.assessment?.id) return;
@@ -367,13 +378,28 @@ export default function DISCAssessment() {
             <p className="text-slate-600 dark:text-slate-400">
               Obrigado por completar a avaliação DISC.
             </p>
-            <p className="text-slate-600 dark:text-slate-400">
-              Seus resultados foram registrados e serão analisados pela equipe de RH em breve.
-            </p>
-            <div className="pt-4">
-              <p className="text-sm text-slate-500 dark:text-slate-500">
-                Você pode fechar esta página agora.
+            {returnJob ? (
+              <p className="text-slate-600 dark:text-slate-400 font-semibold">
+                Você será redirecionado para finalizar sua candidatura em alguns segundos...
               </p>
+            ) : (
+              <p className="text-slate-600 dark:text-slate-400">
+                Seus resultados foram registrados e serão analisados pela equipe de RH em breve.
+              </p>
+            )}
+            <div className="pt-4">
+              {returnJob ? (
+                <Button
+                  onClick={() => setLocation(`/job-apply/${returnJob}?disc_completed=true`)}
+                  data-testid="button-continue-application"
+                >
+                  Continuar com Candidatura
+                </Button>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-500">
+                  Você pode fechar esta página agora.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

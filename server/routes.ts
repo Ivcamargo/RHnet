@@ -40,8 +40,15 @@ import {
   insertJobRequirementSchema,
   insertLeadSchema,
   updateLeadStatusSchema,
+  insertCandidateSchema,
+  insertApplicationSchema,
+  insertDISCAssessmentSchema,
   type ClockInRequest,
   type ClockOutRequest,
+  type InsertCandidate,
+  type InsertApplication,
+  type Candidate,
+  type DISCAssessment,
   type InsertMessage,
   type InsertMessageCategory,
   type InsertDocument,
@@ -6849,6 +6856,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error submitting application:", error);
       res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // Public candidate creation endpoint
+  app.post('/api/public/candidates', async (req, res) => {
+    try {
+      const { name, email, phone, cpf, city, state, companyId } = req.body;
+
+      if (!name || !email || !companyId) {
+        return res.status(400).json({ 
+          message: "Missing required fields: name, email, and companyId are required" 
+        });
+      }
+
+      const candidateData: InsertCandidate = {
+        companyId,
+        name,
+        email,
+        phone: phone || null,
+        cpf: cpf || null,
+        city: city || null,
+        state: state || null,
+        status: 'active'
+      };
+
+      const candidate = await storage.findOrCreateCandidateByEmail(email, candidateData);
+
+      // Always return 201 since frontend doesn't need to differentiate
+      res.status(201).json(candidate);
+    } catch (error) {
+      console.error("Error creating candidate:", error);
+      res.status(500).json({ message: "Failed to create candidate" });
+    }
+  });
+
+  // Public DISC assessment creation endpoint
+  app.post('/api/public/disc/assessments', async (req, res) => {
+    try {
+      const { candidateId, jobOpeningId } = req.body;
+
+      if (!candidateId || !jobOpeningId) {
+        return res.status(400).json({ 
+          message: "Missing required fields: candidateId and jobOpeningId are required" 
+        });
+      }
+
+      const jobOpening = await storage.getJobOpening(jobOpeningId);
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+
+      if (!jobOpening.requiresDISC) {
+        return res.status(400).json({ 
+          message: "This job opening does not require a DISC assessment" 
+        });
+      }
+
+      const crypto = await import('crypto');
+      const accessToken = crypto.randomBytes(32).toString('hex');
+
+      const assessment: any = {
+        candidateId,
+        jobOpeningId,
+        accessToken,
+        status: 'pending',
+        applicationId: null
+      };
+
+      const createdAssessment = await storage.createDISCAssessment(assessment);
+
+      res.status(201).json({
+        assessmentId: createdAssessment.id,
+        token: createdAssessment.accessToken
+      });
+    } catch (error) {
+      console.error("Error creating DISC assessment:", error);
+      res.status(500).json({ message: "Failed to create DISC assessment" });
+    }
+  });
+
+  // Public application completion endpoint
+  app.post('/api/public/apply/complete', async (req, res) => {
+    try {
+      const { candidateId, jobOpeningId, coverLetter, resumePath } = req.body;
+
+      if (!candidateId || !jobOpeningId) {
+        return res.status(400).json({ 
+          message: "Missing required fields: candidateId and jobOpeningId are required" 
+        });
+      }
+
+      const jobOpening = await storage.getJobOpening(jobOpeningId);
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+
+      if (jobOpening.status !== 'published') {
+        return res.status(400).json({ 
+          message: "This job opening is no longer accepting applications" 
+        });
+      }
+
+      if (jobOpening.requiresDISC && jobOpening.discTiming === 'on_application') {
+        const assessments = await storage.getDISCAssessmentsByCandidate(candidateId);
+        const completedAssessment = assessments.find(
+          a => a.jobOpeningId === jobOpeningId && a.status === 'completed'
+        );
+
+        if (!completedAssessment) {
+          return res.status(400).json({ 
+            message: "DISC assessment must be completed before applying to this position" 
+          });
+        }
+      }
+
+      const existingApplications = await storage.getApplications(jobOpeningId);
+      const existingApplication = existingApplications.find(
+        app => app.candidateId === candidateId
+      );
+
+      if (existingApplication) {
+        return res.status(400).json({ 
+          message: "You have already applied to this position" 
+        });
+      }
+
+      const crypto = await import('crypto');
+      const accessToken = crypto.randomBytes(32).toString('hex');
+
+      const applicationData: any = {
+        jobOpeningId,
+        candidateId,
+        status: 'applied',
+        coverLetter: coverLetter || null,
+        score: 0,
+        accessToken
+      };
+
+      if (resumePath) {
+        await storage.updateCandidate(candidateId, { resumeUrl: resumePath });
+      }
+
+      const application = await storage.createApplication(applicationData);
+
+      res.status(201).json({
+        message: "Application submitted successfully",
+        applicationId: application.id,
+        candidateId: application.candidateId
+      });
+    } catch (error) {
+      console.error("Error completing application:", error);
+      res.status(500).json({ message: "Failed to complete application" });
     }
   });
 
