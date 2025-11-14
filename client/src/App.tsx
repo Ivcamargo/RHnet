@@ -54,21 +54,15 @@ function ProtectedRoute({ component: Component, ...props }: any) {
 }
 
 function Router() {
-  console.log('[RHNet] Router component rendering...');
   const { isAuthenticated, isLoading } = useAuth();
-  
-  console.log('[RHNet] Auth state:', { isAuthenticated, isLoading });
 
   if (isLoading) {
-    console.log('[RHNet] Showing loading state...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
-  
-  console.log('[RHNet] Rendering routes...');
 
   return (
     <Switch>
@@ -116,8 +110,6 @@ function Router() {
 }
 
 function App() {
-  console.log('[RHNet] App component rendering...');
-  
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" storageKey="rhnet-ui-theme">
