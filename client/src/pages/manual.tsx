@@ -1808,7 +1808,7 @@ export default function Manual() {
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-indigo-600" />
-                          Exemplo Prático: Escala 5×1 (Semana com 1 Folga)
+                          Exemplo Prático: Escala 6×1 (Semana com 1 Folga)
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 text-sm text-muted-foreground">
@@ -1820,8 +1820,8 @@ export default function Manual() {
                           <p className="text-xs font-semibold mb-2">Configuração:</p>
                           <ul className="space-y-1 text-xs ml-4">
                             <li>• <strong>Tipo de Rotação:</strong> Semanal Fixa</li>
-                            <li>• <strong>Dias de Trabalho:</strong> Segunda a Sábado</li>
-                            <li>• <strong>Folga:</strong> Domingo</li>
+                            <li>• <strong>Dias de Trabalho:</strong> 6 dias (Segunda a Sábado)</li>
+                            <li>• <strong>Folga:</strong> 1 dia (Domingo)</li>
                             <li>• <strong>Turno Associado:</strong> Comercial (09:00 - 18:00)</li>
                           </ul>
                           
