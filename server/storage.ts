@@ -35,6 +35,7 @@ import {
   candidates,
   applications,
   applicationRequirementResponses,
+  leads,
   selectionStages,
   interviewTemplates,
   interviews,
@@ -106,6 +107,8 @@ import {
   type InsertTimeBank,
   type TimeBankTransaction,
   type InsertTimeBankTransaction,
+  type Lead,
+  type InsertLead,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
@@ -472,6 +475,12 @@ export interface IStorage {
   // Time Bank Transaction operations
   getTimeBankTransactions(userId: string, limit?: number): Promise<TimeBankTransaction[]>;
   createTimeBankTransaction(transaction: InsertTimeBankTransaction): Promise<TimeBankTransaction>;
+  
+  // Lead operations
+  createLead(lead: InsertLead): Promise<Lead>;
+  getLeads(filters?: { status?: string }): Promise<Lead[]>;
+  getLead(id: number): Promise<Lead | undefined>;
+  updateLeadStatus(id: number, update: { status?: string; followUpNotes?: string; assignedTo?: string; lastContactedAt?: Date }): Promise<Lead>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3732,6 +3741,56 @@ export class DatabaseStorage implements IStorage {
         timeEntryId
       );
     }
+  }
+
+  // Lead operations
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const [newLead] = await db
+      .insert(leads)
+      .values({
+        ...lead,
+        status: "new",
+        sourceChannel: "website",
+      })
+      .returning();
+    return newLead;
+  }
+
+  async getLeads(filters?: { status?: string }): Promise<Lead[]> {
+    let query = db
+      .select()
+      .from(leads)
+      .orderBy(desc(leads.createdAt));
+
+    if (filters?.status) {
+      query = query.where(eq(leads.status, filters.status)) as any;
+    }
+
+    return await query;
+  }
+
+  async getLead(id: number): Promise<Lead | undefined> {
+    const results = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.id, id))
+      .limit(1);
+    return results[0];
+  }
+
+  async updateLeadStatus(
+    id: number,
+    update: { status?: string; followUpNotes?: string; assignedTo?: string; lastContactedAt?: Date }
+  ): Promise<Lead> {
+    const [updatedLead] = await db
+      .update(leads)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.id, id))
+      .returning();
+    return updatedLead;
   }
 }
 

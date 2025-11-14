@@ -1945,3 +1945,65 @@ export const insertLegalNsrSequenceSchema = createInsertSchema(legalNsrSequences
   updatedAt: true,
 });
 export type InsertLegalNsrSequence = z.infer<typeof insertLegalNsrSequenceSchema>;
+
+// Leads - Pre-sales contact capture
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
+  companyName: varchar("company_name"),
+  message: text("message"),
+  status: varchar("status").default("new").notNull(), // new, contacted, meeting_scheduled, proposal_sent, contracted, lost
+  sourceChannel: varchar("source_channel").default("website"), // website, referral, etc
+  utmSource: varchar("utm_source"),
+  utmMedium: varchar("utm_medium"),
+  utmCampaign: varchar("utm_campaign"),
+  assignedTo: varchar("assigned_to"), // User ID of sales rep
+  companyId: integer("company_id"), // Nullable - only set if lead converts to customer
+  followUpNotes: text("follow_up_notes"),
+  lastContactedAt: timestamp("last_contacted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  assignedToReference: foreignKey({
+    columns: [table.assignedTo],
+    foreignColumns: [users.id],
+  }),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
+// Types for Leads
+export type Lead = typeof leads.$inferSelect;
+
+// Insert schema for leads
+export const insertLeadSchema = createInsertSchema(leads, {
+  email: z.string().email("Email inválido"),
+  phone: z.string().optional(),
+  companyName: z.string().optional(),
+  message: z.string().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastContactedAt: true,
+  status: true,
+  sourceChannel: true,
+  assignedTo: true,
+  companyId: true,
+  followUpNotes: true,
+  utmSource: true,
+  utmMedium: true,
+  utmCampaign: true,
+});
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+
+// Update schema for lead status management (admin only)
+export const updateLeadStatusSchema = z.object({
+  status: z.enum(["new", "contacted", "meeting_scheduled", "proposal_sent", "contracted", "lost"]),
+  followUpNotes: z.string().optional(),
+  assignedTo: z.string().optional(),
+});
