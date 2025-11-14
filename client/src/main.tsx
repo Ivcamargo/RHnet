@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App-minimal-test";
-import "./index.css";
+// import "./index.css"; // TEMPORARIAMENTE DESABILITADO PARA TESTE
 
 console.log('[RHNet] Starting application...');
 
