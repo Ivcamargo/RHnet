@@ -207,20 +207,64 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Bem-vindo ao RHNet
               </h1>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Mensageria Corporativa Integrada</span>
+            </div>
+          </div>
+
+          {/* Time Clock Quick Access - Prioritized */}
+          <div className="mb-8">
+            <Card className="bg-gradient-to-r from-[hsl(220,40%,96%)] to-[hsl(175,40%,96%)] dark:from-[hsl(220,20%,15%)] dark:to-[hsl(175,20%,18%)] border-[hsl(220,40%,85%)] dark:border-[hsl(220,15%,25%)]">
+              <CardHeader>
+                <CardTitle className="flex items-center text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]">
+                  <Clock className="h-5 w-5 mr-2" />
+                  Controle de Ponto
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button 
+                    className="bg-[hsl(220,65%,18%)] hover:bg-[hsl(220,65%,25%)] dark:bg-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,65%,50%)] text-white"
+                    onClick={() => setLocation('/time-clock')}
+                    data-testid="button-time-clock-access"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Acessar Controle de Ponto
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,95%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
+                    onClick={() => setLocation('/reports')}
+                    data-testid="button-view-entries"
+                  >
+                    <CalendarDays className="h-4 w-4 mr-2" />
+                    Ver Registros
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,95%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
+                    onClick={() => setLocation('/time-clock?tab=manual')}
+                    data-testid="button-manual-entry"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Entrada Manual
+                  </Button>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Gestão Completa de Documentos</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <GraduationCap className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Capacitação e Certificação</span>
-                </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-8">
+            <div className="flex items-center space-x-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Mensageria Corporativa Integrada</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Gestão Completa de Documentos</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <GraduationCap className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Capacitação e Certificação</span>
             </div>
           </div>
 
@@ -338,48 +382,6 @@ export default function Dashboard() {
                   >
                     <UploadCloud className="h-4 w-4 mr-2" />
                     Enviar Documento
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Time Clock Quick Access */}
-          <div className="mb-8">
-            <Card className="bg-gradient-to-r from-[hsl(220,40%,96%)] to-[hsl(175,40%,96%)] dark:from-[hsl(220,20%,15%)] dark:to-[hsl(175,20%,18%)] border-[hsl(220,40%,85%)] dark:border-[hsl(220,15%,25%)]">
-              <CardHeader>
-                <CardTitle className="flex items-center text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]">
-                  <Clock className="h-5 w-5 mr-2" />
-                  Controle de Ponto
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button 
-                    className="bg-[hsl(220,65%,18%)] hover:bg-[hsl(220,65%,25%)] dark:bg-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,65%,50%)] text-white"
-                    onClick={() => setLocation('/time-clock')}
-                    data-testid="button-time-clock-access"
-                  >
-                    <Clock className="h-4 w-4 mr-2" />
-                    Acessar Controle de Ponto
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,95%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
-                    onClick={() => setLocation('/reports')}
-                    data-testid="button-view-entries"
-                  >
-                    <CalendarDays className="h-4 w-4 mr-2" />
-                    Ver Registros
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="border-[hsl(175,65%,45%)] text-[hsl(175,65%,35%)] hover:bg-[hsl(175,40%,95%)] dark:border-[hsl(175,65%,45%)] dark:text-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,20%,20%)]"
-                    onClick={() => setLocation('/time-clock?tab=manual')}
-                    data-testid="button-manual-entry"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Entrada Manual
                   </Button>
                 </div>
               </CardContent>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-RHNet is a comprehensive human resources management system integrating electronic timekeeping, corporate messaging, document management, and employee training. It provides a unified solution for HR-employee communication, featuring geolocation, facial recognition, and extensive reporting. The system is a full-stack web application with a React frontend, Express.js backend, PostgreSQL database, and a hybrid authentication system.
+RHNet is a comprehensive human resources management system designed to streamline HR-employee interactions. It integrates electronic timekeeping with geolocation and facial recognition, corporate messaging, document management, and employee training. Key capabilities include advanced reporting, PWA support, and a dedicated terminal/kiosk mode for time clocking. The system aims to provide a unified, full-stack web solution for efficient HR management, enhancing communication, and ensuring data accuracy. The project's ambition is to offer a robust, all-in-one HR platform that significantly improves operational efficiency and employee engagement.
 
 ## User Preferences
 
@@ -10,104 +10,52 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript
-- **State Management**: TanStack Query for server state, React Hook Form for form state
-- **Routing**: Wouter for client-side routing
-- **UI Components**: shadcn/ui built on Radix UI primitives
-- **Styling**: Tailwind CSS with custom CSS variables (Brand palette: Navy Blue hsl(220, 65%, 18%) primary, Turquoise hsl(175, 65%, 45%) secondary, modernized icon set from lucide-react)
-- **Build Tool**: Vite
+### Frontend
+- **Framework**: React 18 with TypeScript.
+- **State Management**: TanStack Query, React Hook Form.
+- **Routing**: Wouter.
+- **UI/Styling**: shadcn/ui (Radix UI primitives), Tailwind CSS with custom branding (Navy Blue, Turquoise), Lucide React icons.
+- **Visual Identity**: Modern gradient design on headers and primary CTA buttons. Simplified footer.
+- **Build Tool**: Vite.
+- **PWA**: Full offline support, installability, service worker for caching.
 
-### Backend Architecture
-- **Framework**: Express.js with TypeScript
-- **Database ORM**: Drizzle ORM
-- **API Design**: RESTful API endpoints
-- **Session Management**: Express sessions with PostgreSQL session store (production)
-- **File Structure**: Organized into routes, storage layer, and database configuration
-
-### Authentication System
-- **Hybrid Architecture**: Supports local email/password (argon2id hashing) and Replit OIDC (for migration)
-- **Session Management**: Express sessions (memory store for development, persistent store for production)
-- **Authorization**: Role-based access control (superadmin/admin/employee)
-- **Security Features**: Rate limiting, secure password hashing, session-based authentication
+### Backend
+- **Framework**: Express.js with TypeScript.
+- **Database ORM**: Drizzle ORM.
+- **API Design**: RESTful.
+- **Session Management**: Express sessions with PostgreSQL store.
+- **Security**: Rate limiting, argon2id password hashing, role-based access control.
 
 ### Database Schema
-- **Key Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments
-- **User Fields**: Includes passwordHash, mustChangePassword, passwordResetToken, passwordResetExpires, internalId (Registro Interno) for integration with external systems
-- **Shift Assignments**: userShiftAssignments table with userId, shiftId, startDate, endDate for flexible temporal assignments.
+- **Core Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments.
+- **Key Fields**: `passwordHash`, `mustChangePassword`, `passwordResetToken`, `internalId`.
 
-### Features
-- **Progressive Web App (PWA)**: Full offline support, installability, manifest configuration, service worker for intelligent caching, and PWA meta tags. **Service Worker Strategy**: Network-first for API requests (always fetch fresh data, no caching), cache-first for static assets (JS, CSS, images) for optimal performance without stale data issues.
-- **Geolocation & Geofencing**: 
-  - Browser Geolocation API, Haversine formula for distance validation
-  - Interactive map-based geofencing with react-leaflet (click-to-set location, radius adjustment 10-1000m)
-  - Address/CEP search using Nominatim API (OpenStreetMap) for easier location selection
-  - Real-time location status and visual circle overlay showing allowed area
-  - Geofence coordinates stored in sectors table (latitude, longitude, radius)
-- **Sector Management**:
-  - Auto-population of company field for non-superadmin users (uses logged-in user's company)
-  - Backend filtering: superadmin sees all sectors, admin/employee see only their company's sectors, supervisors see assigned sectors
-  - Geofencing configuration integrated into sector creation/editing workflow with landscape dialog layout (max-w-6xl, two-column grid)
-  - Real-time cache invalidation and refetch after mutations ensures immediate UI updates
-- **Time Tracking**: Clock in/out with location/facial verification, break management, automatic calculations. **Enhanced Validation**: Records IP address, validates geofence proximity (non-blocking), and verifies shift schedule compliance with overnight shift support. Validation results displayed to user via toast notifications. **Timezone**: All timestamps saved in UTC (real server time), frontend converts to Brazil timezone (America/Sao_Paulo) for display. Function `getBrazilianTime()` returns current UTC time, `getBrazilianDateString()` returns current date in Brazil timezone.
-  - **IP Tracking**: Captures and normalizes client IP address (handles x-forwarded-for) for both clock-in and clock-out
-  - **Geofence Validation**: Compares user location against sector boundaries, records compliance status and distance
-  - **Shift Compliance**: Validates clock time against assigned shift schedule, handles overnight shifts (e.g., 22:00-06:00), checks day of week and time range
-  - **Validation Messages**: Stores and displays user-friendly messages with ✓/⚠ indicators for location and shift compliance
-- **Shift Management**: Consolidated interface in "Gestão de Setores" with tabbed navigation, advanced interval support (breakStart/breakEnd), and comprehensive CRUD for shifts.
-- **Rotation Management**: Dedicated `/admin/rotation-management` interface for CRUD operations on rotation templates (daily, weekly, monthly, custom cadence), segment configuration, and automatic schedule generation.
-- **Employee-Shift Assignment**: Advanced system for linking employees to shifts with optional start/end dates for flexible rotations, visual indicators, and dedicated assignment management dialogs.
-  - **Superadmin Cross-Company Assignment**: Superadmins can assign employees from any company to any shift (bypasses company validation in routes.ts)
-  - **Cross-Department Flexibility**: Employees can be assigned to shifts in different departments within the same company (storage validates company, not department)
-  - **Validation Hierarchy**: Route-level checks user role and company permissions; storage-level validates company match for data integrity
-- **Password Management**: Self-service password change functionality for users, including backend API, frontend page, and sidebar integration.
-- **Course Management**: Admin interface for managing course quiz questions (CRUD operations), smart validation, radio button selection for correct answers, and security controls.
-- **Messaging System**: Enhanced with `senderDeleted` and `senderDeletedAt` fields for isolated sender-side archiving/deletion, preserving recipient view.
-- **CSV Import/Export**: Bulk employee management via CSV with template download, validation, error reporting, and company-filtered export. Uses semicolon delimiter and UTF-8 BOM for Excel compatibility.
-  - **Template Download**: Pre-formatted CSV template with all employee fields including Registro Interno (internalId) and example data
-  - **Import Validation**: Row-by-row validation with detailed error messages (duplicates, missing fields, company checks)
-  - **Export Filtering**: Exports only employees from logged-in user's company (admin) or all companies (superadmin)
-  - **Internal ID Support**: Registro Interno field can be imported and exported for integration with external systems
-  - **Audit Trail**: All CSV imports logged with source tracking and user attribution
-- **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export capabilities, historical data audit trail. **Inconsistency Reporting**: Displays validation warnings (geofence violations, shift non-compliance) in both admin time entries view and user monthly reports with visual indicators and detailed messages.
-- **Recruitment & Selection Module**: Complete hiring workflow management with four integrated sections accessible via `/recruitment`:
-  - **Job Openings (Vagas)**: Create, edit, publish, and close job postings with detailed descriptions, requirements, location, employment type, salary ranges, and experience levels. Draft/published/closed status workflow.
-  - **Candidates (Candidatos)**: Centralized candidate database with contact information, location, resume storage, and company-scoped access control.
-  - **Applications (Candidaturas)**: Link candidates to specific job openings with comprehensive status tracking through the hiring pipeline:
-    - **Status Flow**: applied → screening → interview → test → approved → rejected → hired
-    - **Visual Status Management**: Color-coded badges using brand palette (navy/turquoise) for instant status recognition
-    - **Action Buttons**: One-click status transitions with validation (e.g., 'hired' only available after 'approved')
-    - **Screening Notes**: Track observations and feedback throughout the evaluation process
-  - **Digital Onboarding (Admissão Digital)**: Generate secure onboarding links for approved candidates with expiration tracking, status monitoring (pending/in_progress/completed/expired), and one-click link copying for easy candidate distribution. Integrated document collection and form submission workflow.
-  - **Company Scoping**: All recruitment data automatically filtered by company, with superadmin having cross-company visibility for system-wide oversight.
+### Core Features
+- **Geolocation & Geofencing**: Browser Geolocation API, Haversine formula, `react-leaflet` for interactive map-based geofencing, Nominatim API for address search.
+- **Time Tracking**: Clock in/out with location/facial verification, break management, IP address tracking, geofence proximity validation, shift schedule compliance, and UTC timestamp storage with Brazil timezone conversion. Admin edits are audited. Configurable time tolerance.
+- **Terminal/Kiosk Mode**: Tablet-optimized interface for fixed time clock stations, device registration, stateless authentication, auto-logout, and data masking.
+- **Shift & Rotation Management**: CRUD for shifts and rotation templates with advanced interval support.
+- **Automatic Break Management**: Configurable automatic breaks (paid/unpaid) per shift, deducted at clock-out. Includes smart deduction logic to prevent errors.
+- **Employee-Shift Assignment**: Flexible system for assigning employees to shifts with optional dates, supporting cross-company and cross-department assignments.
+- **Password Management**: Self-service password change.
+- **Course Management**: Admin interface for quizzes with question CRUD.
+- **Messaging System**: Multi-target messaging (individual, department, broadcast) with contextual messaging from documents.
+- **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files (Portaria 671/2021) with CRC-16 validation and SHA-256 integrity.
+- **CSV Import/Export**: Bulk employee management with template download, validation, and error reporting.
+- **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export, and "Inconsistency Reporting" with irregularity detection.
+- **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding. Includes job postings, candidate database, application tracking, and secure digital onboarding links. Features a weighted scoring system for candidate evaluation based on configurable job requirements. Candidates self-evaluate against requirements.
+- **Overtime & Time Bank System**: Configurable overtime management with percentage rates by department/shift, supporting multiple tiers and dual modes (paid overtime or time bank credits). Includes an administrative interface and automatic calculation.
+- **System User Manual**: In-app documentation with 8 tabbed sections, PDF export functionality with real screenshots captured client-side using `html2canvas` and generated with `jsPDF`.
+- **Lead Capture System**: Commercial prospecting functionality with complete lead lifecycle management. Public-facing form on landing page ("Começar Agora" button) captures contact information (name, email, phone, company, message) and UTM tracking parameters for marketing attribution. Upon submission, system creates lead in database with status "new" and sends automated email notification to sales team (infosis@infosis.com.br) via SendGrid with formatted lead details and next steps. Admin interface at `/admin/leads` provides comprehensive lead management with dashboard cards showing lead counts by status (new → contacted → meeting_scheduled → proposal_sent → contracted/lost), filterable table with click-to-email/call links, details dialog for viewing full lead information and marketing UTM data, and status update functionality with follow-up notes. API endpoints: POST `/api/leads` (public), GET `/api/leads?status=X` (admin), PATCH `/api/leads/:id` (admin). Email service (emailService.ts) uses SendGrid with branded HTML templates and graceful fallback logging when API key not configured. Requires environment variables: SENDGRID_API_KEY, SALES_EMAIL, FROM_EMAIL.
 
 ## External Dependencies
 
-### Database
-- **Neon PostgreSQL**: Serverless PostgreSQL database hosting
-- **@neondatabase/serverless**: Connection pooling for optimized database connections
-
-### UI and Styling
-- **Radix UI**: Accessible component primitives
-- **Tailwind CSS**: Utility-first CSS framework
-- **Lucide React**: Icon library
-
-### Development Tools
-- **TypeScript**: Type safety
-- **ESBuild**: Fast JavaScript bundling
-- **Zod**: Schema validation for API endpoints and forms
-
-### Geolocation Services
-- **Browser Geolocation API**: Native location services
-- **Nominatim API (OpenStreetMap)**: Free geocoding service for address/CEP search with automatic Brazil filtering
-
-### Mapping
-- **react-leaflet**: Interactive maps with Leaflet.js integration
-- **OpenStreetMap**: Tile layer provider for map visualization
-
-### Facial Recognition
-- **MediaDevices API**: Camera access
-- **Canvas API**: Image processing
-
-### Other
-- **WebSocket Constructor**: Custom WebSocket implementation for Neon database.
+- **Database**: Neon PostgreSQL, `@neondatabase/serverless`.
+- **UI**: Radix UI, Tailwind CSS, Lucide React.
+- **Development**: TypeScript, ESBuild, Zod.
+- **Geolocation**: Browser Geolocation API, Nominatim API (OpenStreetMap).
+- **Mapping**: react-leaflet, OpenStreetMap.
+- **Facial Recognition**: MediaDevices API, Canvas API.
+- **PDF Generation**: jsPDF, html2canvas.
+- **Email Notifications**: SendGrid.
+- **Other**: WebSocket Constructor (custom for Neon).

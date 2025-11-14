@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -29,10 +28,19 @@ import CertificateView from "@/pages/certificate-view";
 import Sectors from "@/pages/sectors";
 import TimePeriods from "@/pages/admin/time-periods";
 import AdminTimeEntries from "@/pages/admin/time-entries";
+import Terminals from "@/pages/admin/terminals";
+import ArquivosLegais from "@/pages/admin/arquivos-legais";
 import RotationManagement from "@/pages/rotation-management";
 import Recruitment from "@/pages/recruitment";
+import AdminLeads from "@/pages/admin-leads";
 import PublicJobs from "@/pages/public-jobs";
 import JobApply from "@/pages/job-apply";
+import Manual from "@/pages/manual";
+import TerminalPonto from "@/pages/terminal-ponto";
+import OvertimeConfig from "@/pages/overtime-config";
+import TimeBank from "@/pages/time-bank";
+import ScreenshotHelper from "@/pages/screenshot-helper";
+import DISCAssessment from "@/pages/disc-assessment";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -78,6 +86,15 @@ function Router() {
       <Route path="/vagas" component={PublicJobs} />
       <Route path="/apply/:jobId" component={JobApply} />
       
+      {/* DISC Assessment - acessível para candidatos via token */}
+      <Route path="/disc-assessment" component={DISCAssessment} />
+      
+      {/* Screenshot Helper - ferramenta para capturar telas */}
+      <Route path="/screenshot-helper" component={ScreenshotHelper} />
+      
+      {/* Terminal de ponto - acessível para todos (autenticação própria) */}
+      <Route path="/terminal-ponto" component={TerminalPonto} />
+      
       {/* Landing page - acessível para todos */}
       <Route path="/landing" component={Landing} />
       
@@ -98,11 +115,17 @@ function Router() {
       <Route path="/superadmin" component={() => <ProtectedRoute component={SuperAdmin} />} />
       <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
+      <Route path="/banco-horas" component={() => <ProtectedRoute component={TimeBank} />} />
       <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} />} />
       <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} />} />
       <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
+      <Route path="/admin/terminals" component={() => <ProtectedRoute component={Terminals} />} />
       <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
+      <Route path="/admin/overtime-config" component={() => <ProtectedRoute component={OvertimeConfig} />} />
+      <Route path="/admin/arquivos-legais" component={() => <ProtectedRoute component={ArquivosLegais} />} />
+      <Route path="/admin/leads" component={() => <ProtectedRoute component={AdminLeads} />} />
       <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
+      <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
       
       <Route component={NotFound} />
     </Switch>
@@ -111,16 +134,14 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light" storageKey="rhnet-ui-theme">
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <ThemeProvider defaultTheme="light" storageKey="rhnet-ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

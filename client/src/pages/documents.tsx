@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Upload, Download, Calendar, Loader2, Edit, Trash2, Search, Filter } from "lucide-react";
+import { FileText, Upload, Download, Calendar, Loader2, Edit, Trash2, Search, Filter, MessageCircle } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Document } from "@shared/schema";
+import { useLocation } from "wouter";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -37,6 +38,7 @@ type UploadFormData = z.infer<typeof uploadFormSchema>;
 export default function Documents() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -508,6 +510,21 @@ export default function Documents() {
                           {doc.assignedTo ? 'Atribuído' : 'Pendente'}
                         </span>
                         <div className="flex gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => {
+                              localStorage.setItem('message-doc-context', JSON.stringify({
+                                documentId: doc.id,
+                                documentTitle: doc.title
+                              }));
+                              setLocation('/messages');
+                            }}
+                            title="Tirar dúvida sobre este documento"
+                            data-testid={`button-ask-${index}`}
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                          </Button>
                           <Button 
                             size="sm" 
                             variant="outline" 

@@ -37,6 +37,9 @@ import {
   insertRotationSegmentSchema,
   insertRotationUserAssignmentSchema,
   insertRotationExceptionSchema,
+  insertJobRequirementSchema,
+  insertLeadSchema,
+  updateLeadStatusSchema,
   type ClockInRequest,
   type ClockOutRequest,
   type InsertMessage,
@@ -63,9 +66,10 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { getBrazilianTime, getBrazilianDateString } from "../shared/timezone";
+import { getBrazilianTime, getBrazilianDateString, convertToLocal, convertLocalToUTC } from "../shared/timezone";
 import { parse } from "csv-parse/sync";
 import { stringify } from "csv-stringify/sync";
+import { sendLeadNotificationEmail } from "./emailService";
 
 // Helper function to create audit logs
 async function createAuditLog(
@@ -115,6 +119,48 @@ function calculateHours(start: Date, end: Date): number {
   return Number((diffMs / (1000 * 60 * 60)).toFixed(2));
 }
 
+// Helper function to get user's active shift for a specific date
+async function getUserShiftForDate(
+  userId: string,
+  date: Date,
+  storage: Storage
+): Promise<number | null> {
+  try {
+    // Get all user shift assignments
+    const assignments = await storage.getUserShiftAssignments(userId);
+    
+    // Filter for active assignments valid on the given date
+    const validAssignments = assignments.filter((assignment: any) => {
+      if (!assignment.isActive) return false;
+      
+      const entryDate = new Date(date);
+      entryDate.setHours(0, 0, 0, 0); // Normalize to start of day
+      
+      // Check if assignment is valid on this date
+      const startDate = assignment.startDate ? new Date(assignment.startDate) : null;
+      const endDate = assignment.endDate ? new Date(assignment.endDate) : null;
+      
+      if (startDate) {
+        startDate.setHours(0, 0, 0, 0);
+        if (entryDate < startDate) return false;
+      }
+      
+      if (endDate) {
+        endDate.setHours(0, 0, 0, 0);
+        if (entryDate > endDate) return false;
+      }
+      
+      return true;
+    });
+    
+    // Return the first valid assignment's shiftId (or null if none found)
+    return validAssignments.length > 0 ? validAssignments[0].shiftId : null;
+  } catch (error) {
+    console.error("Error getting user shift for date:", error);
+    return null;
+  }
+}
+
 // Helper function to compute net worked hours considering breaks
 async function computeNetWorkedHours(
   timeEntry: any, // TimeEntry with break entries
@@ -144,12 +190,14 @@ async function computeNetWorkedHours(
     }
   }
   
-  // 2. Subtract automatic unpaid breaks (from department shift configuration)
-  if (timeEntry.departmentId) {
-    const shifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+  // 2. Subtract automatic unpaid breaks (from user's specific shift configuration)
+  if (timeEntry.userId && timeEntry.date) {
+    // Get the user's assigned shift for this date
+    const userShiftId = await getUserShiftForDate(timeEntry.userId, new Date(timeEntry.date), storage);
     
-    for (const shift of shifts) {
-      const shiftBreaks = await storage.getShiftBreaks(shift.id);
+    if (userShiftId) {
+      // Get breaks only for the user's specific shift
+      const shiftBreaks = await storage.getShiftBreaks(userShiftId);
       
       for (const shiftBreak of shiftBreaks) {
         // Only process unpaid breaks that are set to auto-deduct
@@ -164,7 +212,7 @@ async function computeNetWorkedHours(
             if (shiftBreak.scheduledStart && shiftBreak.scheduledEnd) {
               // More sophisticated overlap detection could be implemented here
               // For now, we'll just check if the break names match
-              const matchingManualBreak = manualBreaks.find(mb => 
+              const matchingManualBreak = manualBreaks.find((mb: any) => 
                 mb.type && 
                 (mb.type.toLowerCase().includes('almoço') && shiftBreak.name.toLowerCase().includes('almoço')) ||
                 (mb.type.toLowerCase().includes('lanche') && shiftBreak.name.toLowerCase().includes('lanche'))
@@ -308,6 +356,184 @@ async function calculateOvertimeHours(
   }
 }
 
+// Helper function to compute irregularities for a time entry
+async function computeIrregularities(
+  timeEntry: any,
+  storage: Storage
+): Promise<{
+  expectedHours: number;
+  lateMinutes: number;
+  shortfallMinutes: number;
+  irregularityReasons: string[];
+  status: string;
+}> {
+  const irregularityReasons: string[] = [];
+  let expectedHours = 0;
+  let lateMinutes = 0;
+  let shortfallMinutes = 0;
+  
+  try {
+    // Get user's assigned shift for this entry's date
+    const entryDate = new Date(timeEntry.date);
+    const userShiftAssignment = await storage.getUserActiveShift(timeEntry.userId, entryDate);
+    
+    let shift = userShiftAssignment?.shift;
+    
+    // Fallback: if no user-specific shift, use first department shift
+    if (!shift && timeEntry.departmentId) {
+      const departmentShifts = await storage.getDepartmentShifts(timeEntry.departmentId);
+      if (departmentShifts.length > 0) {
+        shift = departmentShifts[0];
+      }
+    }
+    
+    if (shift) {
+      
+      // Calculate expected hours from the assigned shift
+      if (shift.startTime && shift.endTime) {
+        const [startHour, startMin] = shift.startTime.split(':').map(Number);
+        const [endHour, endMin] = shift.endTime.split(':').map(Number);
+        
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        
+        // Handle shifts that cross midnight
+        const totalShiftMinutes = endMinutes >= startMinutes 
+          ? endMinutes - startMinutes 
+          : (24 * 60) - startMinutes + endMinutes;
+        
+        // Subtract unpaid breaks from expected hours
+        const shiftBreaks = await storage.getShiftBreaks(shift.id);
+        let unpaidBreakMinutes = 0;
+        
+        for (const shiftBreak of shiftBreaks) {
+          if (!shiftBreak.isPaid && shiftBreak.isActive) {
+            unpaidBreakMinutes += shiftBreak.durationMinutes;
+          }
+        }
+        
+        expectedHours = (totalShiftMinutes - unpaidBreakMinutes) / 60;
+      }
+      
+      // Check if employee clocked in
+      if (!timeEntry.clockInTime) {
+        irregularityReasons.push('Falta - Sem registro de entrada');
+      } else if (shift.startTime) {
+        // Convert UTC timestamp to Brazil timezone using toLocaleString
+        const clockInUTC = new Date(timeEntry.clockInTime);
+        
+        // Get time components in Brazil timezone
+        const brasilTime = clockInUTC.toLocaleString('en-US', { 
+          timeZone: 'America/Sao_Paulo',
+          hour12: false
+        });
+        
+        // Parse the time string to get hours and minutes
+        const timeParts = brasilTime.split(' ')[1].split(':');
+        const clockInHour = parseInt(timeParts[0]);
+        const clockInMinute = parseInt(timeParts[1]);
+        const clockInTotalMinutes = clockInHour * 60 + clockInMinute;
+        
+        const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number);
+        const shiftStartTotalMinutes = shiftStartHour * 60 + shiftStartMinute;
+        
+        // Use shift's configured tolerances (default 5 minutes if not set)
+        const toleranceAfter = shift.toleranceAfterMinutes ?? 5;
+        const toleranceBefore = shift.toleranceBeforeMinutes ?? 5;
+        let rawLateMinutes = clockInTotalMinutes - shiftStartTotalMinutes;
+        
+        // Handle overnight shifts (e.g., 22:00-06:00)
+        if (rawLateMinutes < -12 * 60) {
+          // Clock-in is early morning, shift starts late night
+          rawLateMinutes += 24 * 60;
+        }
+        
+        // Check for late arrival (after tolerance)
+        if (rawLateMinutes > toleranceAfter) {
+          lateMinutes = rawLateMinutes;
+          const hours = Math.floor(lateMinutes / 60);
+          const mins = lateMinutes % 60;
+          irregularityReasons.push(
+            `Atraso - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} depois do horário (${shift.startTime})`
+          );
+        }
+        // Check for excessively early arrival (before tolerance)
+        else if (rawLateMinutes < -toleranceBefore) {
+          const earlyMinutes = Math.abs(rawLateMinutes);
+          const hours = Math.floor(earlyMinutes / 60);
+          const mins = earlyMinutes % 60;
+          irregularityReasons.push(
+            `Chegada antecipada - Chegou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} antes do horário (${shift.startTime})`
+          );
+        }
+      }
+      
+      // Check if employee clocked out
+      if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
+        irregularityReasons.push('Registro incompleto - Sem registro de saída');
+      }
+      
+      // Check hours worked vs expected (only if both clock in and out exist)
+      if (timeEntry.clockInTime && timeEntry.clockOutTime && expectedHours > 0) {
+        const workedHours = parseFloat(timeEntry.totalHours || '0');
+        
+        // Allow 15-minute deficit tolerance
+        const DEFICIT_TOLERANCE_MINUTES = 15;
+        const expectedMinutes = expectedHours * 60;
+        const workedMinutes = workedHours * 60;
+        const deficit = expectedMinutes - workedMinutes;
+        
+        if (deficit > DEFICIT_TOLERANCE_MINUTES) {
+          shortfallMinutes = Math.floor(deficit);
+          const hours = Math.floor(shortfallMinutes / 60);
+          const mins = shortfallMinutes % 60;
+          irregularityReasons.push(
+            `Horas insuficientes - Trabalhou ${hours > 0 ? `${hours}h` : ''}${mins > 0 ? `${mins}min` : ''} a menos (esperado: ${expectedHours.toFixed(1)}h)`
+          );
+        }
+      }
+    }
+    
+    // Check shift compliance flags
+    if (timeEntry.clockInShiftCompliant === false) {
+      if (!irregularityReasons.some(r => r.includes('Atraso'))) {
+        irregularityReasons.push('Turno incompatível - Fora do horário do turno na entrada');
+      }
+    }
+    
+    if (timeEntry.clockOutShiftCompliant === false) {
+      irregularityReasons.push('Turno incompatível - Fora do horário do turno na saída');
+    }
+    
+    // Determine status
+    let status = timeEntry.status || 'active';
+    if (irregularityReasons.length > 0) {
+      status = 'irregular';
+    } else if (timeEntry.clockInTime && timeEntry.clockOutTime) {
+      status = 'completed';
+    } else if (timeEntry.clockInTime && !timeEntry.clockOutTime) {
+      status = 'incomplete';
+    }
+    
+    return {
+      expectedHours: Number(expectedHours.toFixed(2)),
+      lateMinutes,
+      shortfallMinutes,
+      irregularityReasons,
+      status
+    };
+  } catch (error) {
+    console.error('Error computing irregularities:', error);
+    return {
+      expectedHours: 0,
+      lateMinutes: 0,
+      shortfallMinutes: 0,
+      irregularityReasons: [],
+      status: timeEntry.status || 'active'
+    };
+  }
+}
+
 // Helper function to get user scope based on role
 async function getUserScope(userId: string) {
   const user = await storage.getUser(userId);
@@ -399,6 +625,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for audit attachment uploads (comprovantes)
+  const auditUploadsDir = path.join(process.cwd(), 'uploads', 'audit-attachments');
+  if (!fs.existsSync(auditUploadsDir)) {
+    fs.mkdirSync(auditUploadsDir, { recursive: true });
+  }
+
+  const auditUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, auditUploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'comprovante-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit for attachments
+    },
+    fileFilter: (req, file, cb) => {
+      // Accept images and PDFs only
+      const allowedTypes = /jpeg|jpg|png|pdf/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Apenas imagens (JPEG, PNG) e PDFs são permitidos'));
+      }
+    }
+  });
+
   // Configure multer for CSV uploads
   const csvUpload = multer({
     storage: multer.memoryStorage(), // Store in memory for parsing
@@ -419,6 +678,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+
+  // Serve static files from uploads directory
+  const express = await import('express');
+  app.use('/uploads', express.default.static(path.join(process.cwd(), 'uploads')));
 
   // Database health check endpoint (no auth required for operational monitoring)
   app.get('/api/db-health', async (req, res) => {
@@ -1620,6 +1883,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple endpoint for getting users by company (for dropdowns/selects)
+  app.get('/api/users/by-company', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only admins and superadmins can use this endpoint
+      if (currentUser.role !== 'admin' && currentUser.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      // Validate admin has a company
+      if (currentUser.role === 'admin' && !currentUser.companyId) {
+        return res.status(400).json({ message: "Admin must be assigned to a company" });
+      }
+      
+      let users;
+      if (currentUser.role === 'superadmin') {
+        users = await storage.getAllUsers();
+      } else {
+        // Regular admins only get users from their company
+        // Safe to use ! here because we validated above that admins have companyId
+        users = await storage.getUsersByCompany(currentUser.companyId!);
+      }
+      
+      // Return minimal user data for dropdowns
+      const simpleUsers = users.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      }));
+      
+      res.json(simpleUsers);
+    } catch (error) {
+      console.error("Error fetching users by company:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   // User management routes (admin and supervisor)
   app.get('/api/admin/users', isAuthenticatedHybrid, async (req: any, res) => {
     try {
@@ -2388,8 +2694,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const shiftDays = shift.daysOfWeek || [];
               
               if (shiftDays.includes(dayOfWeek)) {
-                // Check time range (handle overnight shifts)
-                const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+                // Check time range (handle overnight shifts) - convert UTC to Brazil time
+                const currentTime = now.toLocaleTimeString('pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).slice(0, 5); // "HH:MM"
                 const startTime = shift.startTime;
                 const endTime = shift.endTime;
                 
@@ -2427,8 +2738,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process facial recognition data
+      console.log("🔍 DEBUG - faceRecognitionData received:", JSON.stringify(faceRecognitionData, null, 2));
       const faceRecognitionVerified = !!faceRecognitionData;
       const clockInPhotoUrl = faceRecognitionData?.photoUrl || null;
+      console.log("🔍 DEBUG - clockInPhotoUrl extracted:", clockInPhotoUrl);
 
       const timeEntry = await storage.createTimeEntry({
         userId,
@@ -2569,8 +2882,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (shiftDays.includes(dayOfWeek)) {
                 const now = getBrazilianTime();
-                // Check time range
-                const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+                // Check time range - convert UTC to Brazil time
+                const currentTime = now.toLocaleTimeString('pt-BR', {
+                  timeZone: 'America/Sao_Paulo',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).slice(0, 5); // "HH:MM"
                 const startTime = shift.startTime;
                 const endTime = shift.endTime;
                 
@@ -2858,15 +3176,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/reports/monthly', isAuthenticatedHybrid, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { year, month } = req.query;
+      const currentUserId = req.user.claims.sub;
+      const { year, month, userId: requestedUserId } = req.query;
       
       if (!year || !month) {
         return res.status(400).json({ message: "Year and month are required" });
       }
       
+      // Determine which user's report to fetch
+      let targetUserId = currentUserId;
+      
+      // If a specific userId is requested, verify the current user is an admin
+      if (requestedUserId && requestedUserId !== currentUserId) {
+        const currentUser = await storage.getUser(currentUserId);
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
+          return res.status(403).json({ message: "Only admins can view other users' reports" });
+        }
+        
+        // Verify the requested user exists and is in the same company (for admin)
+        const requestedUser = await storage.getUser(requestedUserId as string);
+        if (!requestedUser) {
+          return res.status(404).json({ message: "Requested user not found" });
+        }
+        
+        // For regular admins, verify same company
+        if (currentUser.role === 'admin' && currentUser.companyId !== requestedUser.companyId) {
+          return res.status(403).json({ message: "Cannot view reports from other companies" });
+        }
+        
+        targetUserId = requestedUserId as string;
+      }
+      
       const stats = await storage.getUserMonthlyStats(
-        userId, 
+        targetUserId, 
         parseInt(year as string), 
         parseInt(month as string)
       );
@@ -2874,11 +3216,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get detailed entries for the month
       const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
       const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
-      const entries = await storage.getTimeEntriesByUser(userId, startDate, endDate);
+      const entries = await storage.getTimeEntriesByUser(targetUserId, startDate, endDate);
+      
+      // Enrich each entry with irregularity data
+      const enrichedEntries = await Promise.all(
+        entries.map(async (entry) => {
+          const irregularityData = await computeIrregularities(entry, storage);
+          return {
+            ...entry,
+            expectedHours: irregularityData.expectedHours.toString(),
+            lateMinutes: irregularityData.lateMinutes,
+            shortfallMinutes: irregularityData.shortfallMinutes,
+            irregularityReasons: irregularityData.irregularityReasons,
+            status: irregularityData.status,
+          };
+        })
+      );
       
       res.json({
         stats,
-        entries,
+        entries: enrichedEntries,
       });
     } catch (error) {
       console.error("Error generating monthly report:", error);
@@ -2935,25 +3292,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Image data is required" });
       }
       
-      // Create uploads directory if it doesn't exist
-      const fs = require('fs');
-      const path = require('path');
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'face-captures');
-      
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      
-      // Generate unique filename
-      const filename = `face_${userId}_${Date.now()}.jpg`;
-      const filepath = path.join(uploadsDir, filename);
-      
-      // Convert base64 to buffer and save file
-      const imageBuffer = Buffer.from(image, 'base64');
-      fs.writeFileSync(filepath, imageBuffer);
-      
-      // Generate photo URL (relative path for serving)
-      const photoUrl = `/uploads/face-captures/${filename}`;
+      // Store image as data URL directly (no file system needed)
+      // This works in all environments including Replit
+      const photoUrl = `data:image/jpeg;base64,${image}`;
+      console.log("📸 Photo saved as data URL, length:", photoUrl.length);
       
       // Mock face recognition processing
       // In a real implementation, this would analyze the image for facial features
@@ -3166,6 +3508,388 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================================================================
+  // TERMINAL/KIOSK ROUTES
+  // ========================================================================================
+
+  // Validate device code (public endpoint)
+  app.get('/api/terminals/:deviceCode/validate', async (req, res) => {
+    try {
+      const { deviceCode } = req.params;
+      const device = await storage.getAuthorizedDeviceByCode(deviceCode);
+      
+      if (!device) {
+        return res.status(404).json({ 
+          valid: false,
+          message: "Dispositivo não autorizado" 
+        });
+      }
+
+      if (!device.isActive) {
+        return res.status(403).json({ 
+          valid: false,
+          message: "Dispositivo desativado" 
+        });
+      }
+
+      // Get company name
+      const company = await storage.getCompany(device.companyId);
+
+      res.json({ 
+        valid: true,
+        device: {
+          id: device.id,
+          deviceName: device.deviceName,
+          location: device.location,
+          companyId: device.companyId,
+          companyName: company?.name || 'Empresa'
+        }
+      });
+    } catch (error) {
+      console.error("Error validating device:", error);
+      res.status(500).json({ message: "Falha ao validar dispositivo" });
+    }
+  });
+
+  // Temporary token store for terminal sessions (in-memory, valid for 10 minutes)
+  const terminalTokens = new Map<string, { userId: string, deviceId: number, expiresAt: number }>();
+
+  // Cleanup expired tokens every minute
+  setInterval(() => {
+    const now = Date.now();
+    for (const [token, data] of terminalTokens.entries()) {
+      if (data.expiresAt < now) {
+        terminalTokens.delete(token);
+      }
+    }
+  }, 60000);
+
+  // Login employee on terminal (public endpoint)
+  app.post('/api/terminals/:deviceCode/login', async (req, res) => {
+    try {
+      const { deviceCode } = req.params;
+      const { identifier, password } = req.body;
+
+      // Validate device
+      const device = await storage.getAuthorizedDeviceByCode(deviceCode);
+      if (!device || !device.isActive) {
+        return res.status(403).json({ message: "Dispositivo não autorizado" });
+      }
+
+      // Find user by CPF, email, or internal ID
+      const allUsers = await storage.getUsersByCompany(device.companyId);
+      const user = allUsers.find(u => 
+        u.cpf === identifier || 
+        u.email === identifier || 
+        u.internalId === identifier
+      );
+
+      if (!user) {
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Usuário inativo" });
+      }
+
+      // Verify password
+      if (!user.passwordHash) {
+        return res.status(401).json({ message: "Usuário sem senha configurada" });
+      }
+
+      const argon2 = await import('argon2');
+      const isValid = await argon2.verify(user.passwordHash, password);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+
+      // Update device last used
+      await storage.updateDeviceLastUsed(device.id);
+
+      // Generate temporary token (valid for 10 minutes)
+      const crypto = await import('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      
+      terminalTokens.set(token, {
+        userId: user.id,
+        deviceId: device.id,
+        expiresAt
+      });
+
+      // Return user info with temporary token
+      res.json({
+        token,
+        userId: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        cpf: user.cpf ? `***.***.***-${user.cpf.slice(-2)}` : null,
+        email: user.email ? `${user.email.slice(0, 3)}***@***` : null,
+        departmentId: user.departmentId,
+        deviceId: device.id
+      });
+    } catch (error) {
+      console.error("Error logging in on terminal:", error);
+      res.status(500).json({ message: "Falha no login" });
+    }
+  });
+
+  // Clock in/out via terminal (public endpoint)
+  app.post('/api/terminals/:deviceCode/clock', async (req, res) => {
+    try {
+      const { deviceCode } = req.params;
+      const { token, location, photoUrl, latitude, longitude } = req.body;
+
+      // Validate device
+      const device = await storage.getAuthorizedDeviceByCode(deviceCode);
+      if (!device || !device.isActive) {
+        return res.status(403).json({ message: "Dispositivo não autorizado" });
+      }
+
+      // Validate token
+      const tokenData = terminalTokens.get(token);
+      if (!tokenData) {
+        return res.status(401).json({ message: "Token inválido ou expirado" });
+      }
+
+      // Check if token expired
+      if (tokenData.expiresAt < Date.now()) {
+        terminalTokens.delete(token);
+        return res.status(401).json({ message: "Token expirado. Faça login novamente." });
+      }
+
+      // Verify token device matches request device
+      if (tokenData.deviceId !== device.id) {
+        return res.status(403).json({ message: "Token não corresponde ao dispositivo" });
+      }
+
+      // Get user
+      const user = await storage.getUser(tokenData.userId);
+      if (!user || !user.isActive || user.companyId !== device.companyId) {
+        return res.status(403).json({ message: "Usuário não autorizado" });
+      }
+
+      // DUAL GEOFENCE VALIDATION
+      const validationMessages: string[] = [];
+      let isTerminalLocationValid = true;
+      let isEmployeeLocationValid = true;
+
+      // 1. Validate TERMINAL location (if configured)
+      if (device.latitude && device.longitude && latitude && longitude) {
+        const terminalDistance = calculateDistance(
+          device.latitude,
+          device.longitude,
+          latitude,
+          longitude
+        );
+        const terminalRadius = device.radius || 100;
+        
+        if (terminalDistance > terminalRadius) {
+          isTerminalLocationValid = false;
+          validationMessages.push(
+            `⚠ Terminal fora da área autorizada (${Math.round(terminalDistance)}m de distância, máximo ${terminalRadius}m)`
+          );
+        } else {
+          validationMessages.push(
+            `✓ Terminal dentro da área autorizada (${Math.round(terminalDistance)}m)`
+          );
+        }
+      }
+
+      // 2. Validate EMPLOYEE sector location (if configured)
+      if (user.departmentId && latitude && longitude) {
+        const department = await storage.getDepartment(user.departmentId);
+        if (department && department.sectorId) {
+          const sector = await storage.getSector(department.sectorId);
+          if (sector && sector.latitude && sector.longitude) {
+            const sectorDistance = calculateDistance(
+              sector.latitude,
+              sector.longitude,
+              latitude,
+              longitude
+            );
+            const sectorRadius = sector.radius || 100;
+            
+            if (sectorDistance > sectorRadius) {
+              isEmployeeLocationValid = false;
+              validationMessages.push(
+                `⚠ Funcionário fora do setor autorizado (${Math.round(sectorDistance)}m de distância, máximo ${sectorRadius}m)`
+              );
+            } else {
+              validationMessages.push(
+                `✓ Funcionário dentro do setor autorizado (${Math.round(sectorDistance)}m)`
+              );
+            }
+          }
+        }
+      }
+
+      // BLOCK registration only if TERMINAL validation fails
+      // Employee sector validation is informative only when using terminal
+      if (!isTerminalLocationValid) {
+        return res.status(403).json({ 
+          message: "Registro bloqueado: terminal fora da área autorizada",
+          validationMessages 
+        });
+      }
+
+      // Get client IP
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+                       req.socket.remoteAddress || 
+                       'unknown';
+
+      // Check if user is already clocked in
+      const activeEntry = await storage.getActiveTimeEntry(tokenData.userId);
+      const now = getBrazilianTime();
+      const today = getBrazilianDateString();
+
+      if (!activeEntry) {
+        // Clock in - create new entry
+        const timeEntry = await storage.createTimeEntry({
+          userId: tokenData.userId,
+          date: today,
+          clockInTime: now,
+          clockInPhotoUrl: photoUrl || null,
+          clockInIp: clientIp,
+          clockInLocation: location,
+          departmentId: user.departmentId || null,
+          deviceId: device.id,
+          status: 'active',
+          clockInLatitude: latitude,
+          clockInLongitude: longitude,
+          clockInValidationMessages: validationMessages.join('\n'),
+        });
+
+        res.json({
+          action: 'clock_in',
+          time: now.toISOString(),
+          message: 'Entrada registrada com sucesso',
+          validationMessages
+        });
+      } else {
+        // Clock out - update existing entry
+        // Calculate total hours
+        const clockInDate = new Date(activeEntry.clockInTime);
+        const totalHours = calculateHours(clockInDate, now).toString();
+        
+        const updated = await storage.updateTimeEntry(activeEntry.id, {
+          clockOutTime: now,
+          clockOutPhotoUrl: photoUrl || null,
+          clockOutIp: clientIp,
+          clockOutLocation: location,
+          status: 'completed',
+          totalHours,
+          clockOutLatitude: latitude,
+          clockOutLongitude: longitude,
+          clockOutValidationMessages: validationMessages.join('\n'),
+        });
+
+        res.json({
+          action: 'clock_out',
+          time: now.toISOString(),
+          message: 'Saída registrada com sucesso',
+          validationMessages
+        });
+      }
+    } catch (error) {
+      console.error("Error clocking on terminal:", error);
+      res.status(500).json({ message: "Falha ao registrar ponto" });
+    }
+  });
+
+  // Admin terminal management routes
+  app.get('/api/terminals', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+
+      const devices = await storage.getAuthorizedDevices(companyId);
+      res.json(devices);
+    } catch (error) {
+      console.error("Error fetching terminals:", error);
+      res.status(500).json({ message: "Failed to fetch terminals" });
+    }
+  });
+
+  app.post('/api/terminals', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+      if (!companyId) {
+        return res.status(400).json({ message: "Company ID required" });
+      }
+
+      const { deviceCode, deviceName, location, latitude, longitude, radius } = req.body;
+
+      // Check if device code already exists
+      const existing = await storage.getAuthorizedDeviceByCode(deviceCode);
+      if (existing) {
+        return res.status(400).json({ message: "Código de dispositivo já existe" });
+      }
+
+      const device = await storage.createAuthorizedDevice({
+        companyId,
+        deviceCode,
+        deviceName,
+        location,
+        latitude,
+        longitude,
+        radius,
+        isActive: true,
+      });
+
+      res.status(201).json(device);
+    } catch (error) {
+      console.error("Error creating terminal:", error);
+      res.status(500).json({ message: "Failed to create terminal" });
+    }
+  });
+
+  app.patch('/api/terminals/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const companyId = req.user.claims.companyId;
+      
+      const device = await storage.getAuthorizedDevice(parseInt(id));
+      if (!device) {
+        return res.status(404).json({ message: "Terminal não encontrado" });
+      }
+
+      if (device.companyId !== companyId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const updated = await storage.updateAuthorizedDevice(parseInt(id), req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating terminal:", error);
+      res.status(500).json({ message: "Failed to update terminal" });
+    }
+  });
+
+  app.delete('/api/terminals/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const companyId = req.user.claims.companyId;
+      
+      const device = await storage.getAuthorizedDevice(parseInt(id));
+      if (!device) {
+        return res.status(404).json({ message: "Terminal não encontrado" });
+      }
+
+      if (device.companyId !== companyId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      await storage.deleteAuthorizedDevice(parseInt(id));
+      res.json({ message: "Terminal removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting terminal:", error);
+      res.status(500).json({ message: "Failed to delete terminal" });
+    }
+  });
+
   // Admin Time Entries Management Routes
   
   // Get time entries for a specific date (admin only)
@@ -3179,13 +3903,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
-      const { date } = req.query;
-      if (!date) {
-        return res.status(400).json({ message: "Date parameter is required" });
+      const { startDate, endDate } = req.query;
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date parameters are required" });
       }
 
-      // Get all time entries for the specified date within the admin's company
-      const timeEntries = await storage.getTimeEntriesByDate(date as string, currentUser.companyId);
+      console.log("📅 Buscando registros de", startDate, "até", endDate, "| Empresa:", currentUser.companyId);
+
+      // Get all time entries for the specified period within the admin's company
+      const timeEntries = await storage.getTimeEntriesByDateRange(startDate as string, endDate as string, currentUser.companyId);
+      
+      console.log("📊 Registros encontrados:", timeEntries.length);
       
       // Enrich entries with user and department information
       const enrichedEntries = await Promise.all(
@@ -3214,6 +3942,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload attachment for time entry audit
+  app.post('/api/admin/time-entry-attachment', isAuthenticatedHybrid, auditUpload.single('attachment'), async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Return the file path relative to uploads directory
+      const fileUrl = `/uploads/audit-attachments/${req.file.filename}`;
+      
+      res.json({ 
+        success: true, 
+        url: fileUrl,
+        filename: req.file.originalname
+      });
+    } catch (error) {
+      console.error("Error uploading attachment:", error);
+      res.status(500).json({ message: "Failed to upload attachment" });
+    }
+  });
+
   // Edit time entry (admin only)
   app.put('/api/admin/time-entries/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
@@ -3226,7 +3980,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const entryId = parseInt(req.params.id);
-      const { clockInTime, clockOutTime, justification } = req.body;
+      const { clockInTime, clockOutTime, justification, attachmentUrl } = req.body;
 
       if (!justification || justification.length < 5) {
         return res.status(400).json({ message: "Justification is required and must be at least 5 characters long" });
@@ -3253,16 +4007,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Prepare update data
+      // Get client IP address
+      const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+      const clientIp = typeof ipAddress === 'string' ? ipAddress.split(',')[0].trim() : 'unknown';
+
+      // Prepare update data - converter de hora local (Brasil) para UTC
       const updateData: any = {
-        clockInTime: new Date(clockInTime),
+        clockInTime: convertLocalToUTC(clockInTime),
         justification: `${existingEntry.justification || ''}\n[EDITADO ADMIN]: ${justification}`.trim(),
         lastModifiedBy: currentUser.id,
         lastModifiedAt: getBrazilianTime(),
       };
 
       if (clockOutTime && clockOutTime.trim() !== '') {
-        updateData.clockOutTime = new Date(clockOutTime);
+        updateData.clockOutTime = convertLocalToUTC(clockOutTime);
         updateData.status = 'completed';
         
         // Recalculate total hours
@@ -3291,6 +4049,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update the time entry
       const updatedEntry = await storage.updateTimeEntry(entryId, updateData);
+
+      // Save detailed change history in timeEntryAudit table
+      // Track clockInTime changes
+      if (existingEntry.clockInTime && updateData.clockInTime) {
+        const oldTime = existingEntry.clockInTime.toISOString();
+        const newTime = updateData.clockInTime.toISOString();
+        if (oldTime !== newTime) {
+          await storage.createTimeEntryAudit({
+            timeEntryId: entryId,
+            fieldName: 'clockInTime',
+            oldValue: oldTime,
+            newValue: newTime,
+            justification,
+            attachmentUrl: attachmentUrl || null,
+            editedBy: currentUser.id,
+            ipAddress: clientIp,
+          });
+        }
+      }
+
+      // Track clockOutTime changes
+      if (existingEntry.clockOutTime || updateData.clockOutTime) {
+        const oldTime = existingEntry.clockOutTime ? existingEntry.clockOutTime.toISOString() : null;
+        const newTime = updateData.clockOutTime ? updateData.clockOutTime.toISOString() : null;
+        if (oldTime !== newTime) {
+          await storage.createTimeEntryAudit({
+            timeEntryId: entryId,
+            fieldName: 'clockOutTime',
+            oldValue: oldTime,
+            newValue: newTime,
+            justification,
+            attachmentUrl: attachmentUrl || null,
+            editedBy: currentUser.id,
+            ipAddress: clientIp,
+          });
+        }
+      }
 
       // Create detailed audit log
       await createAuditLog(
@@ -3326,6 +4121,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to edit time entry" });
+    }
+  });
+
+  // Get time entry audit history
+  app.get('/api/admin/time-entries/:id/history', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const entryId = parseInt(req.params.id);
+      
+      // Get the time entry to verify access
+      const timeEntry = await storage.getTimeEntry(entryId);
+      if (!timeEntry) {
+        return res.status(404).json({ message: "Time entry not found" });
+      }
+
+      // Verify the entry belongs to the admin's company
+      const entryUser = await storage.getUser(timeEntry.userId);
+      if (!entryUser || entryUser.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get audit history
+      const history = await storage.getTimeEntryAuditHistory(entryId);
+      
+      // Enrich with editor information
+      const enrichedHistory = await Promise.all(
+        history.map(async (entry) => {
+          const editor = await storage.getUser(entry.editedBy);
+          return {
+            ...entry,
+            editor: editor ? {
+              firstName: editor.firstName,
+              lastName: editor.lastName,
+              email: editor.email,
+            } : null,
+          };
+        })
+      );
+
+      res.json(enrichedHistory);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+      res.status(500).json({ message: "Failed to fetch audit history" });
     }
   });
 
@@ -4047,31 +4889,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const message = await storage.createMessage(messageData);
       
-      // Handle mass messages or specific recipient
-      if (messageData.recipientId === 'all' || messageData.isMassMessage) {
-        // Get all employees in the company
-        const employees = await storage.getCompanyEmployees(user.companyId);
-        for (const employee of employees) {
-          if (employee.id !== userId) { // Don't send to sender
-            await storage.createMessageRecipient({
-              messageId: message.id,
-              userId: employee.id,
-              isDelivered: true,
-              deliveredAt: new Date()
-            });
-          }
-        }
-      } else if (messageData.recipientId) {
+      // Determine recipients based on targetType
+      let recipients: any[] = [];
+      const targetType = messageData.targetType || (messageData.recipientId === 'all' || messageData.isMassMessage ? 'all' : 'individual');
+      
+      if (targetType === 'all' || messageData.recipientId === 'all' || messageData.isMassMessage) {
+        // Send to all employees in the company
+        recipients = await storage.getCompanyEmployees(user.companyId);
+      } else if (targetType === 'department' && messageData.targetId) {
+        // Send to all employees in a specific department
+        const allEmployees = await storage.getCompanyEmployees(user.companyId);
+        recipients = allEmployees.filter(emp => emp.departmentId === messageData.targetId);
+      } else if (targetType === 'sector' && messageData.targetId) {
+        // Send to all employees in departments of a specific sector
+        const allEmployees = await storage.getCompanyEmployees(user.companyId);
+        const departments = await storage.getDepartments();
+        const sectorDepts = departments.filter(dept => dept.sectorId === messageData.targetId);
+        const sectorDeptIds = sectorDepts.map(d => d.id);
+        recipients = allEmployees.filter(emp => sectorDeptIds.includes(emp.departmentId!));
+      } else if (targetType === 'position' && messageData.targetValue) {
+        // Send to all employees with a specific position/cargo
+        const allEmployees = await storage.getCompanyEmployees(user.companyId);
+        recipients = allEmployees.filter(emp => 
+          emp.position?.toLowerCase() === messageData.targetValue?.toLowerCase()
+        );
+      } else if (targetType === 'individual' && messageData.recipientId) {
         // Send to specific recipient
-        await storage.createMessageRecipient({
-          messageId: message.id,
-          userId: messageData.recipientId,
-          isDelivered: true,
-          deliveredAt: new Date()
-        });
+        const recipient = await storage.getUser(messageData.recipientId);
+        if (recipient) recipients = [recipient];
+      }
+      
+      // Create message recipients
+      for (const employee of recipients) {
+        if (employee.id !== userId) { // Don't send to sender
+          await storage.createMessageRecipient({
+            messageId: message.id,
+            userId: employee.id,
+            isDelivered: true,
+            deliveredAt: new Date()
+          });
+        }
       }
 
-      res.status(201).json(message);
+      res.status(201).json({ ...message, recipientsCount: recipients.length - (recipients.some(r => r.id === userId) ? 1 : 0) });
     } catch (error) {
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Failed to send message" });
@@ -4239,6 +5099,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Supervisor has no assigned sectors" });
       }
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Get unique positions/cargos (for message targeting)
+  app.get('/api/positions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (scope.type !== 'admin' && scope.type !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can access this resource" });
+      }
+
+      // Get all employees from company and extract unique positions
+      const employees = await storage.getCompanyEmployees(scope.companyId!);
+      const positionsSet = new Set<string>();
+      
+      employees.forEach(emp => {
+        if (emp.position && emp.position.trim()) {
+          positionsSet.add(emp.position.trim());
+        }
+      });
+
+      const positions = Array.from(positionsSet).sort();
+      res.json(positions);
+    } catch (error) {
+      console.error("Error fetching positions:", error);
+      res.status(500).json({ message: "Failed to fetch positions" });
     }
   });
 
@@ -5611,50 +6502,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Submit job application (public)
-  app.post('/api/public/apply', async (req, res) => {
+  // NOTE: Public job application endpoint is now defined later in the file with multipart support
+
+  // ========================================================================================
+  // LEAD CAPTURE ROUTES
+  // ========================================================================================
+
+  // Create lead (public - no authentication required)
+  app.post('/api/leads', async (req, res) => {
     try {
-      const { jobOpeningId, name, email, phone, resume, coverLetter } = req.body;
-
-      if (!jobOpeningId || !name || !email || !phone) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Get job to verify it exists and get company
-      const job = await storage.getJobOpening(jobOpeningId);
-      if (!job) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-
-      // Create or get candidate
-      let candidate = await storage.getCandidateByEmail(job.companyId, email);
-      if (!candidate) {
-        candidate = await storage.createCandidate({
-          companyId: job.companyId,
-          name,
-          email,
-          phone,
-          resume,
+      // Validate request body
+      const validationResult = insertLeadSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Dados inválidos",
+          errors: validationResult.error.errors 
         });
       }
 
-      // Create application
-      const application = await storage.createApplication({
-        jobOpeningId,
-        candidateId: candidate.id,
-        status: 'pending',
-        coverLetter,
-        appliedAt: new Date(),
+      // Create lead
+      const lead = await storage.createLead(validationResult.data);
+
+      // Send notification email (non-blocking)
+      sendLeadNotificationEmail(lead).catch(err => {
+        console.error("Failed to send lead notification email:", err);
       });
 
       res.status(201).json({ 
         success: true, 
-        message: "Application submitted successfully",
-        applicationId: application.id 
+        message: "Contato recebido com sucesso! Entraremos em contato em breve.",
+        leadId: lead.id 
       });
     } catch (error) {
-      console.error("Error submitting application:", error);
-      res.status(500).json({ message: "Failed to submit application" });
+      console.error("Error creating lead:", error);
+      res.status(500).json({ message: "Erro ao enviar contato. Tente novamente." });
+    }
+  });
+
+  // Get all leads (admin only)
+  app.get('/api/leads', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const status = req.query.status as string | undefined;
+      const leads = await storage.getLeads({ status });
+      res.json(leads);
+    } catch (error) {
+      console.error("Error fetching leads:", error);
+      res.status(500).json({ message: "Erro ao buscar leads" });
+    }
+  });
+
+  // Get single lead (admin only)
+  app.get('/api/leads/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const lead = await storage.getLead(parseInt(req.params.id));
+      if (!lead) {
+        return res.status(404).json({ message: "Lead não encontrado" });
+      }
+
+      res.json(lead);
+    } catch (error) {
+      console.error("Error fetching lead:", error);
+      res.status(500).json({ message: "Erro ao buscar lead" });
+    }
+  });
+
+  // Update lead status (admin only)
+  app.patch('/api/leads/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Validate request body
+      const validationResult = updateLeadStatusSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Dados inválidos",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const leadId = parseInt(req.params.id);
+      const updateData = {
+        ...validationResult.data,
+        lastContactedAt: validationResult.data.status === 'contacted' ? new Date() : undefined,
+      };
+
+      const lead = await storage.updateLeadStatus(leadId, updateData);
+      res.json(lead);
+    } catch (error) {
+      console.error("Error updating lead:", error);
+      res.status(500).json({ message: "Erro ao atualizar lead" });
     }
   });
 
@@ -5728,12 +6677,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get public job openings (active only)
+  // Get public job openings (published only)
   app.get('/api/public/jobs', async (req, res) => {
     try {
       const { companyId } = req.query;
       
-      // Get all active job openings
+      // Get all published job openings
       const jobOpenings = await storage.getPublicJobOpenings(companyId ? parseInt(companyId as string) : undefined);
       res.json(jobOpenings);
     } catch (error) {
@@ -5752,8 +6701,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Job opening not found" });
       }
       
-      if (jobOpening.status !== 'active') {
-        return res.status(404).json({ message: "This job opening is no longer active" });
+      if (jobOpening.status !== 'published') {
+        return res.status(404).json({ message: "This job opening is no longer available" });
       }
       
       res.json(jobOpening);
@@ -5763,29 +6712,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public job application with resume upload
-  app.post('/api/public/apply', resumeUpload.fields([{ name: 'resume', maxCount: 1 }]), async (req, res) => {
+  // Public job application (accepting multipart form data for future file uploads)
+  // Using resumeUpload with .fields() but allowing empty file fields
+  app.post('/api/public/apply', resumeUpload.fields([
+    { name: 'resume', maxCount: 1 }  // Optional file upload
+  ]), async (req, res) => {
     try {
       console.log("=== PUBLIC APPLY DEBUG ===");
       console.log("req.body:", req.body);
-      console.log("req.files:", req.files);
+      console.log("req.body keys:", Object.keys(req.body));
       console.log("req.body.jobOpeningId:", req.body.jobOpeningId);
       console.log("=========================");
       
-      const { jobOpeningId, name, email, phone, cpf, coverLetter, city, state } = req.body;
+      let { jobOpeningId, name, email, phone, cpf, coverLetter, city, state, requirementResponses } = req.body;
+      
+      // Parse requirementResponses if it's a JSON string (from FormData)
+      if (typeof requirementResponses === 'string') {
+        try {
+          requirementResponses = JSON.parse(requirementResponses);
+        } catch (e) {
+          console.error("Failed to parse requirementResponses:", e);
+          return res.status(400).json({ message: "Invalid requirement responses format" });
+        }
+      }
+      
+      console.log("Parsed requirementResponses:", requirementResponses);
       
       if (!jobOpeningId || !name || !email) {
-        console.error("Missing required fields. jobOpeningId:", jobOpeningId, "name:", name, "email:", email);
-        return res.status(400).json({ message: "Missing required fields", details: { jobOpeningId: !!jobOpeningId, name: !!name, email: !!email } });
+        console.error("Missing required fields!");
+        console.error("req.body:", JSON.stringify(req.body));
+        console.error("jobOpeningId:", jobOpeningId);
+        console.error("name:", name);
+        console.error("email:", email);
+        return res.status(400).json({ 
+          message: "Missing required fields", 
+          debug: {
+            body: req.body,
+            jobOpeningId: !!jobOpeningId,
+            name: !!name,
+            email: !!email
+          }
+        });
       }
 
-      // Validate job opening exists and is active
+      // Validate job opening exists and is published
       const jobOpening = await storage.getJobOpening(parseInt(jobOpeningId));
       if (!jobOpening) {
         return res.status(404).json({ message: "Job opening not found" });
       }
       
-      if (jobOpening.status !== 'active') {
+      if (jobOpening.status !== 'published') {
         return res.status(400).json({ message: "This job opening is no longer accepting applications" });
       }
 
@@ -5828,44 +6804,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "You have already applied to this position" });
       }
 
+      // Generate unique access token for this application
+      const crypto = await import('crypto');
+      const accessToken = crypto.randomBytes(32).toString('hex');
+
       // Create application
       const application = await storage.createApplication({
         jobOpeningId: parseInt(jobOpeningId),
         candidateId: candidate.id,
         status: 'applied',
         coverLetter: coverLetter || null,
-        score: 0
+        score: 0,
+        accessToken
       });
 
-      // Send notification message to HR and admin
-      try {
-        // Get all HR users and admins from the company
-        const companyUsers = await storage.getUsersByCompany(jobOpening.companyId);
-        const hrAndAdmins = companyUsers.filter(u => 
-          u.role === 'admin' || u.role === 'superadmin'
-        );
-
-        const messageContent = `📋 Nova Candidatura Recebida!\n\nVaga: ${jobOpening.title}\nCandidato: ${name}\nEmail: ${email}\n${phone ? `Telefone: ${phone}\n` : ''}${coverLetter ? `\nCarta de Apresentação:\n${coverLetter}` : ''}`;
-
-        // Send message to each HR/admin user
-        for (const hrUser of hrAndAdmins) {
-          await storage.createMessage({
-            senderId: candidate.id, // Use candidate ID as sender
-            recipientId: hrUser.id,
-            subject: `Nova candidatura: ${jobOpening.title}`,
-            content: messageContent,
-            isRead: false
+      // Process requirement responses and calculate score if provided
+      let scoreResult = null;
+      if (requirementResponses && Array.isArray(requirementResponses) && requirementResponses.length > 0) {
+        try {
+          scoreResult = await storage.submitAndScoreApplication(application.id, requirementResponses);
+          
+          // Update application with calculated score
+          await storage.updateApplication(application.id, {
+            score: scoreResult.score,
+            status: scoreResult.isQualified ? 'applied' : 'rejected'
           });
+        } catch (scoreError) {
+          console.error("Error scoring application:", scoreError);
+          // Don't fail the application if scoring fails
         }
-      } catch (messageError) {
-        console.error("Error sending notification messages:", messageError);
-        // Don't fail the application if message sending fails
       }
+
+      // NOTE: In-app message notifications removed as candidates are not system users
+      // Admins can view new applications in the Recruitment & Selection dashboard
+      console.log(`New application submitted for ${jobOpening.title} by ${name} (${email}) with score: ${scoreResult?.score || 0}`);
 
       res.status(201).json({ 
         message: "Application submitted successfully",
         applicationId: application.id,
-        candidateId: candidate.id
+        candidateId: candidate.id,
+        score: scoreResult?.score || 0,
+        isQualified: scoreResult?.isQualified ?? true
       });
     } catch (error) {
       console.error("Error submitting application:", error);
@@ -5944,6 +6923,237 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error publishing job opening:", error);
       res.status(500).json({ message: "Failed to publish job opening" });
+    }
+  });
+
+  // Job Requirements Routes
+  app.get('/api/job-openings/:id/requirements', async (req: any, res) => {
+    try {
+      const requirements = await storage.getJobRequirements(parseInt(req.params.id));
+      res.json(requirements);
+    } catch (error) {
+      console.error("Error fetching job requirements:", error);
+      res.status(500).json({ message: "Failed to fetch job requirements" });
+    }
+  });
+
+  app.post('/api/job-openings/:id/requirements/bulk', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the job opening belongs to user's company
+      const jobOpening = await storage.getJobOpening(parseInt(req.params.id));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      if (user.role === 'admin' && jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot update requirements for other companies' job openings" });
+      }
+
+      // Validate array of requirements
+      const requirementsArray = Array.isArray(req.body) ? req.body : [];
+      const jobOpeningId = parseInt(req.params.id);
+      
+      const validated = requirementsArray.map(reqData => {
+        // Remove auto-generated fields and add jobOpeningId from URL
+        const { id, createdAt, updatedAt, jobOpeningId: _, ...rest } = reqData;
+        const validationResult = insertJobRequirementSchema.safeParse({
+          ...rest,
+          jobOpeningId, // Add jobOpeningId from route parameter
+        });
+        if (!validationResult.success) {
+          throw new Error(`Invalid requirement data: ${JSON.stringify(validationResult.error.errors)}`);
+        }
+        return validationResult.data;
+      });
+
+      // Atomically replace all requirements using transaction
+      const newRequirements = await storage.bulkReplaceJobRequirements(jobOpeningId, validated);
+      res.json(newRequirements);
+    } catch (error: any) {
+      console.error("Error bulk replacing job requirements:", error);
+      res.status(500).json({ message: "Failed to bulk replace requirements", error: error.message });
+    }
+  });
+
+  app.post('/api/job-openings/:id/requirements', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the job opening belongs to user's company
+      const jobOpening = await storage.getJobOpening(parseInt(req.params.id));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      if (jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot create requirements for other companies' job openings" });
+      }
+
+      // Validate request body with Zod
+      const validationResult = insertJobRequirementSchema.safeParse({
+        ...req.body,
+        jobOpeningId: parseInt(req.params.id),
+      });
+
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid requirement data",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const requirement = await storage.createJobRequirement(validationResult.data);
+      res.status(201).json(requirement);
+    } catch (error) {
+      console.error("Error creating job requirement:", error);
+      res.status(500).json({ message: "Failed to create job requirement" });
+    }
+  });
+
+  app.put('/api/job-requirements/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the requirement's job opening belongs to user's company
+      const requirement = await storage.getJobRequirement(parseInt(req.params.id));
+      if (!requirement) {
+        return res.status(404).json({ message: "Requirement not found" });
+      }
+      
+      const jobOpening = await storage.getJobOpening(requirement.jobOpeningId);
+      if (!jobOpening || jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot update requirements for other companies' job openings" });
+      }
+
+      // Block jobOpeningId changes to prevent moving requirements to other companies' jobs
+      const { jobOpeningId, ...updateData } = req.body;
+      if (jobOpeningId !== undefined) {
+        return res.status(400).json({ message: "Cannot change jobOpeningId of existing requirement" });
+      }
+
+      // Validate request body with Zod (partial update, without jobOpeningId)
+      const validationResult = insertJobRequirementSchema.partial().omit({ jobOpeningId: true }).safeParse(updateData);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid requirement data",
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const updated = await storage.updateJobRequirement(parseInt(req.params.id), validationResult.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating job requirement:", error);
+      res.status(500).json({ message: "Failed to update job requirement" });
+    }
+  });
+
+  app.delete('/api/job-requirements/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the requirement's job opening belongs to user's company
+      const requirement = await storage.getJobRequirement(parseInt(req.params.id));
+      if (!requirement) {
+        return res.status(404).json({ message: "Requirement not found" });
+      }
+      
+      const jobOpening = await storage.getJobOpening(requirement.jobOpeningId);
+      if (!jobOpening || jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot delete requirements for other companies' job openings" });
+      }
+
+      await storage.deleteJobRequirement(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting job requirement:", error);
+      res.status(500).json({ message: "Failed to delete job requirement" });
+    }
+  });
+
+  // Application Requirement Responses Routes
+  app.get('/api/applications/:id/requirements', async (req: any, res) => {
+    try {
+      const accessToken = req.headers['x-access-token'] as string;
+      
+      // Verify access token
+      const application = await storage.getApplication(parseInt(req.params.id));
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      if (!accessToken || application.accessToken !== accessToken) {
+        return res.status(403).json({ message: "Invalid access token" });
+      }
+
+      const responses = await storage.getApplicationRequirementResponses(parseInt(req.params.id));
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching application requirement responses:", error);
+      res.status(500).json({ message: "Failed to fetch requirement responses" });
+    }
+  });
+
+  app.post('/api/applications/:id/requirements', async (req: any, res) => {
+    try {
+      const accessToken = req.headers['x-access-token'] as string;
+      const { responses } = req.body;
+      
+      // Verify access token
+      const application = await storage.getApplication(parseInt(req.params.id));
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      if (!accessToken || application.accessToken !== accessToken) {
+        return res.status(403).json({ message: "Invalid access token" });
+      }
+      
+      // Validate that responses is an array
+      if (!Array.isArray(responses)) {
+        return res.status(400).json({ message: "Responses must be an array" });
+      }
+
+      // Validate each response with Zod
+      const responseSchema = z.object({
+        requirementId: z.number().int(),
+        proficiencyLevel: z.string().min(1),
+      });
+
+      for (const response of responses) {
+        const validation = responseSchema.safeParse(response);
+        if (!validation.success) {
+          return res.status(400).json({ 
+            message: "Invalid response data",
+            errors: validation.error.errors 
+          });
+        }
+      }
+
+      const result = await storage.submitAndScoreApplication(
+        parseInt(req.params.id), 
+        responses
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error submitting application requirements:", error);
+      res.status(500).json({ 
+        message: "Failed to submit application requirements",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -6028,7 +7238,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/applications', isAuthenticatedHybrid, async (req: any, res) => {
     try {
-      const application = await storage.createApplication(req.body);
+      // Generate unique access token if not provided
+      const crypto = await import('crypto');
+      const accessToken = req.body.accessToken || crypto.randomBytes(32).toString('hex');
+      
+      const application = await storage.createApplication({
+        ...req.body,
+        accessToken
+      });
       res.status(201).json(application);
     } catch (error) {
       console.error("Error creating application:", error);
@@ -6128,6 +7345,593 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Note: Static file serving for uploads will be added separately
+
+  // ========================================================================================
+  // OVERTIME & TIME BANK ROUTES
+  // ========================================================================================
+
+  // Get overtime rules for a department
+  app.get('/api/overtime-rules/:departmentId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const departmentId = parseInt(req.params.departmentId);
+      const rules = await storage.getOvertimeRules(departmentId);
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching overtime rules:", error);
+      res.status(500).json({ message: "Failed to fetch overtime rules" });
+    }
+  });
+
+  // Create overtime rule
+  app.post('/api/overtime-rules', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const rule = await storage.createOvertimeRule(req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error("Error creating overtime rule:", error);
+      res.status(500).json({ message: "Failed to create overtime rule" });
+    }
+  });
+
+  // Update overtime rule
+  app.put('/api/overtime-rules/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rule = await storage.updateOvertimeRule(id, req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error("Error updating overtime rule:", error);
+      res.status(500).json({ message: "Failed to update overtime rule" });
+    }
+  });
+
+  // Delete overtime rule
+  app.delete('/api/overtime-rules/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteOvertimeRule(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting overtime rule:", error);
+      res.status(500).json({ message: "Failed to delete overtime rule" });
+    }
+  });
+
+  // Get overtime tiers for a rule
+  app.get('/api/overtime-tiers/:ruleId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const ruleId = parseInt(req.params.ruleId);
+      const tiers = await storage.getOvertimeTiers(ruleId);
+      res.json(tiers);
+    } catch (error) {
+      console.error("Error fetching overtime tiers:", error);
+      res.status(500).json({ message: "Failed to fetch overtime tiers" });
+    }
+  });
+
+  // Create overtime tier
+  app.post('/api/overtime-tiers', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const tier = await storage.createOvertimeTier(req.body);
+      res.json(tier);
+    } catch (error) {
+      console.error("Error creating overtime tier:", error);
+      res.status(500).json({ message: "Failed to create overtime tier" });
+    }
+  });
+
+  // Update overtime tier
+  app.put('/api/overtime-tiers/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tier = await storage.updateOvertimeTier(id, req.body);
+      res.json(tier);
+    } catch (error) {
+      console.error("Error updating overtime tier:", error);
+      res.status(500).json({ message: "Failed to update overtime tier" });
+    }
+  });
+
+  // Delete overtime tier
+  app.delete('/api/overtime-tiers/:id', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteOvertimeTier(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting overtime tier:", error);
+      res.status(500).json({ message: "Failed to delete overtime tier" });
+    }
+  });
+
+  // Get current user's time bank (simplified endpoint)
+  app.get('/api/my-time-bank', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const timeBank = await storage.getTimeBank(userId);
+      
+      if (!timeBank) {
+        // Initialize time bank if doesn't exist
+        await storage.updateTimeBankBalance(userId, 0, 'credit', 'initial', 'Initial balance', undefined, userId);
+        const newTimeBank = await storage.getTimeBank(userId);
+        return res.json(newTimeBank || { userId, balance: 0, lastUpdated: new Date().toISOString() });
+      }
+      
+      res.json(timeBank);
+    } catch (error) {
+      console.error("Error fetching time bank:", error);
+      res.status(500).json({ message: "Failed to fetch time bank" });
+    }
+  });
+
+  // Get current user's time bank transactions (simplified endpoint)
+  app.get('/api/my-time-bank-transactions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getTimeBankTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching time bank transactions:", error);
+      res.status(500).json({ message: "Failed to fetch time bank transactions" });
+    }
+  });
+
+  // Get time bank for user
+  app.get('/api/time-bank/:userId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = req.user.claims.sub;
+      
+      // Check permissions
+      if (currentUser !== userId && req.user.claims.role === 'employee') {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const timeBank = await storage.getTimeBank(userId);
+      const balance = await storage.getTimeBankBalance(userId);
+      
+      res.json({ 
+        timeBank, 
+        balance 
+      });
+    } catch (error) {
+      console.error("Error fetching time bank:", error);
+      res.status(500).json({ message: "Failed to fetch time bank" });
+    }
+  });
+
+  // Get time bank transactions
+  app.get('/api/time-bank/:userId/transactions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      // Check permissions
+      if (currentUser !== userId && req.user.claims.role === 'employee') {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const transactions = await storage.getTimeBankTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching time bank transactions:", error);
+      res.status(500).json({ message: "Failed to fetch time bank transactions" });
+    }
+  });
+
+  // Manual time bank adjustment (admin only)
+  app.post('/api/time-bank/:userId/adjust', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = req.user.claims.sub;
+      const { hours, type, reason, description } = req.body;
+      
+      const timeBank = await storage.updateTimeBankBalance(
+        userId,
+        hours,
+        type,
+        reason,
+        description,
+        undefined,
+        currentUser
+      );
+      
+      res.json(timeBank);
+    } catch (error) {
+      console.error("Error adjusting time bank:", error);
+      res.status(500).json({ message: "Failed to adjust time bank" });
+    }
+  });
+
+  // ===== LEGAL FILES (AFD/AEJ) ROUTES =====
+  
+  // Export AFD file
+  app.post('/api/legal-files/afd/export', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { periodStart, periodEnd } = req.body;
+      const companyId = req.user.claims.companyId;
+      const userId = req.user.claims.sub;
+
+      if (!periodStart || !periodEnd) {
+        return res.status(400).json({ message: "Período obrigatório" });
+      }
+
+      const { exportAFD } = await import('./services/legalFiles/legalFileService');
+      const result = await exportAFD({
+        companyId,
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        userId
+      });
+
+      res.json({ 
+        success: true, 
+        fileId: result.id,
+        fileName: result.filePath 
+      });
+    } catch (error: any) {
+      console.error("Error exporting AFD:", error);
+      res.status(500).json({ message: error.message || "Failed to export AFD" });
+    }
+  });
+
+  // Export AEJ file
+  app.post('/api/legal-files/aej/export', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { periodStart, periodEnd } = req.body;
+      const companyId = req.user.claims.companyId;
+      const userId = req.user.claims.sub;
+
+      if (!periodStart || !periodEnd) {
+        return res.status(400).json({ message: "Período obrigatório" });
+      }
+
+      const { exportAEJ } = await import('./services/legalFiles/legalFileService');
+      const result = await exportAEJ({
+        companyId,
+        periodStart: new Date(periodStart),
+        periodEnd: new Date(periodEnd),
+        userId
+      });
+
+      res.json({ 
+        success: true, 
+        fileId: result.id,
+        fileName: result.filePath 
+      });
+    } catch (error: any) {
+      console.error("Error exporting AEJ:", error);
+      res.status(500).json({ message: error.message || "Failed to export AEJ" });
+    }
+  });
+
+  // List legal files
+  app.get('/api/legal-files', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const companyId = req.user.claims.companyId;
+
+      const { listLegalFiles } = await import('./services/legalFiles/legalFileService');
+      const files = await listLegalFiles(companyId);
+
+      res.json(files);
+    } catch (error: any) {
+      console.error("Error listing legal files:", error);
+      res.status(500).json({ message: error.message || "Failed to list legal files" });
+    }
+  });
+
+  // Download legal file
+  app.get('/api/legal-files/:id/download', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const companyId = req.user.claims.companyId;
+
+      const { getLegalFile } = await import('./services/legalFiles/legalFileService');
+      const filePath = await getLegalFile(fileId, companyId);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      res.download(filePath);
+    } catch (error: any) {
+      console.error("Error downloading legal file:", error);
+      res.status(500).json({ message: error.message || "Failed to download file" });
+    }
+  });
+
+  // Import AFD file
+  app.post('/api/legal-files/afd/import', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { fileContent } = req.body;
+      const companyId = req.user.claims.companyId;
+      const userId = req.user.claims.sub;
+
+      if (!fileContent) {
+        return res.status(400).json({ message: "Conteúdo do arquivo obrigatório" });
+      }
+
+      const { importAFD } = await import('./services/legalFiles/legalFileService');
+      const result = await importAFD({
+        companyId,
+        fileContent,
+        userId
+      });
+
+      res.json({ 
+        success: true, 
+        imported: result.imported,
+        errors: result.errors 
+      });
+    } catch (error: any) {
+      console.error("Error importing AFD:", error);
+      res.status(500).json({ message: error.message || "Failed to import AFD" });
+    }
+  });
+
+  // ========================================================================================
+  // DISC ASSESSMENT ROUTES
+  // ========================================================================================
+
+  // Get all DISC questions (for admins)
+  app.get('/api/disc/questions', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const questions = await storage.getActiveDISCQuestions();
+      res.json(questions);
+    } catch (error: any) {
+      console.error("Error fetching DISC questions:", error);
+      res.status(500).json({ message: "Erro ao carregar questões DISC" });
+    }
+  });
+
+  // Create a new DISC assessment (admin only - for sending to candidates)
+  app.post('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { candidateId, jobOpeningId, applicationId } = req.body;
+      const userId = req.user.claims.userId;
+
+      if (!candidateId || !jobOpeningId) {
+        return res.status(400).json({ message: "candidateId e jobOpeningId são obrigatórios" });
+      }
+
+      const { generateAccessToken } = await import('./services/discAssessmentService');
+      const accessToken = generateAccessToken();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const assessment = await storage.createDISCAssessment({
+        candidateId,
+        jobOpeningId,
+        applicationId: applicationId || null,
+        accessToken,
+        status: 'pending',
+        expiresAt,
+        createdBy: userId,
+      });
+
+      res.json(assessment);
+    } catch (error: any) {
+      console.error("Error creating DISC assessment:", error);
+      res.status(500).json({ message: "Erro ao criar avaliação DISC" });
+    }
+  });
+
+  // Get assessment by token (public route for candidates)
+  app.get('/api/disc/assessments/token/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const assessment = await storage.getDISCAssessmentByToken(token);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada ou link expirado" });
+      }
+
+      if (assessment.expiresAt && new Date() > assessment.expiresAt) {
+        return res.status(410).json({ message: "Link expirado" });
+      }
+
+      if (assessment.status === 'completed') {
+        return res.status(400).json({ message: "Avaliação já concluída" });
+      }
+
+      const questions = await storage.getActiveDISCQuestions();
+
+      res.json({
+        assessment,
+        questions,
+      });
+    } catch (error: any) {
+      console.error("Error fetching assessment by token:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliação" });
+    }
+  });
+
+  // Start assessment (mark as in_progress)
+  app.post('/api/disc/assessments/:id/start', async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      const assessment = await storage.getDISCAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      if (assessment.status !== 'pending') {
+        return res.status(400).json({ message: "Avaliação já iniciada" });
+      }
+
+      const updated = await storage.updateDISCAssessment(assessmentId, {
+        status: 'in_progress',
+        startedAt: new Date(),
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error starting assessment:", error);
+      res.status(500).json({ message: "Erro ao iniciar avaliação" });
+    }
+  });
+
+  // Submit responses and complete assessment
+  app.post('/api/disc/assessments/:id/submit', async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      const { responses } = req.body;
+
+      if (!Array.isArray(responses) || responses.length === 0) {
+        return res.status(400).json({ message: "Respostas são obrigatórias" });
+      }
+
+      const assessment = await storage.getDISCAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      if (assessment.status === 'completed') {
+        return res.status(400).json({ message: "Avaliação já concluída" });
+      }
+
+      for (const response of responses) {
+        await storage.createDISCResponse({
+          assessmentId,
+          questionId: response.questionId,
+          selectedValue: response.selectedValue,
+        });
+      }
+
+      const questions = await storage.getActiveDISCQuestions();
+      const savedResponses = await storage.getDISCResponses(assessmentId);
+
+      const { calculateDISCScores } = await import('./services/discAssessmentService');
+      const scores = calculateDISCScores(questions, savedResponses);
+
+      const completedAssessment = await storage.finalizeDISCAssessment(assessmentId, scores);
+
+      res.json(completedAssessment);
+    } catch (error: any) {
+      console.error("Error submitting assessment:", error);
+      res.status(500).json({ message: "Erro ao enviar respostas" });
+    }
+  });
+
+  // Get assessment results (admin only)
+  app.get('/api/disc/assessments/:id/results', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      const assessment = await storage.getDISCAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      const responses = await storage.getDISCResponses(assessmentId);
+
+      const { getProfileDescription, calculateCompatibility } = await import('./services/discAssessmentService');
+      
+      let compatibility = null;
+      if (assessment.jobOpeningId) {
+        const jobOpening = await storage.getJobOpening(assessment.jobOpeningId);
+        if (jobOpening && jobOpening.idealDISCProfile) {
+          compatibility = calculateCompatibility(
+            {
+              dScore: assessment.dScore || 0,
+              iScore: assessment.iScore || 0,
+              sScore: assessment.sScore || 0,
+              cScore: assessment.cScore || 0,
+            },
+            jobOpening.idealDISCProfile as any
+          );
+        }
+      }
+
+      const profileDescription = assessment.primaryProfile 
+        ? getProfileDescription(assessment.primaryProfile as any)
+        : null;
+
+      res.json({
+        assessment,
+        responses,
+        profileDescription,
+        compatibility,
+      });
+    } catch (error: any) {
+      console.error("Error fetching assessment results:", error);
+      res.status(500).json({ message: "Erro ao carregar resultados" });
+    }
+  });
+
+  // List all assessments with candidate/job info (admin only)
+  app.get('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { db } = storage as any;
+      const { discAssessments, candidates, jobOpenings } = await import('./db/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const assessments = await db
+        .select({
+          id: discAssessments.id,
+          status: discAssessments.status,
+          accessToken: discAssessments.accessToken,
+          expiresAt: discAssessments.expiresAt,
+          startedAt: discAssessments.startedAt,
+          completedAt: discAssessments.completedAt,
+          dScore: discAssessments.dScore,
+          iScore: discAssessments.iScore,
+          sScore: discAssessments.sScore,
+          cScore: discAssessments.cScore,
+          primaryProfile: discAssessments.primaryProfile,
+          jobOpeningId: discAssessments.jobOpeningId,
+          candidateId: discAssessments.candidateId,
+          candidate: candidates,
+          jobOpening: jobOpenings,
+        })
+        .from(discAssessments)
+        .leftJoin(candidates, eq(discAssessments.candidateId, candidates.id))
+        .leftJoin(jobOpenings, eq(discAssessments.jobOpeningId, jobOpenings.id))
+        .orderBy(discAssessments.id);
+
+      res.json(assessments);
+    } catch (error: any) {
+      console.error("Error fetching all assessments:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliações" });
+    }
+  });
+
+  // List assessments by job opening (admin only)
+  app.get('/api/disc/assessments/job/:jobOpeningId', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const jobOpeningId = parseInt(req.params.jobOpeningId);
+      const assessments = await storage.getDISCAssessmentsByJobOpening(jobOpeningId);
+      res.json(assessments);
+    } catch (error: any) {
+      console.error("Error fetching assessments:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliações" });
+    }
+  });
+
+  // List assessments by candidate (admin only)
+  app.get('/api/disc/assessments/candidate/:candidateId', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const candidateId = parseInt(req.params.candidateId);
+      const assessments = await storage.getDISCAssessmentsByCandidate(candidateId);
+      res.json(assessments);
+    } catch (error: any) {
+      console.error("Error fetching assessments:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliações" });
+    }
+  });
+
+  // Temporary endpoint to download database dump
+  app.get('/download-dump', (req, res) => {
+    const dumpPath = path.join(process.cwd(), 'rhnet-database-dump.sql.gz');
+    if (fs.existsSync(dumpPath)) {
+      res.download(dumpPath, 'rhnet-database-dump.sql.gz');
+    } else {
+      res.status(404).send('Dump file not found');
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

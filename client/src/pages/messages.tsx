@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,11 @@ const messageFormSchema = z.object({
   subject: z.string().min(1, "Assunto é obrigatório"),
   content: z.string().min(1, "Conteúdo é obrigatório"),
   priority: z.enum(["low", "normal", "high"]).default("normal"),
-  isMassMessage: z.boolean().default(false)
+  isMassMessage: z.boolean().default(false),
+  targetType: z.enum(["individual", "all", "department", "sector", "position"]).optional(),
+  targetId: z.number().optional(),
+  targetValue: z.string().optional(),
+  relatedDocumentId: z.number().optional()
 });
 
 const categoryFormSchema = z.object({
@@ -47,6 +51,7 @@ export default function Messages() {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [showEditMessageDialog, setShowEditMessageDialog] = useState(false);
   const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
+  const [selectedTargetType, setSelectedTargetType] = useState<string>("individual");
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -68,6 +73,21 @@ export default function Messages() {
     queryKey: ["/api/users"],
   });
 
+  // Fetch departments for message targeting
+  const { data: departments = [] } = useQuery({
+    queryKey: ["/api/departments"],
+  });
+
+  // Fetch sectors for message targeting
+  const { data: sectors = [] } = useQuery({
+    queryKey: ["/api/sectors"],
+  });
+
+  // Fetch positions for message targeting
+  const { data: positions = [] } = useQuery({
+    queryKey: ["/api/positions"],
+  });
+
   // Message form
   const messageForm = useForm<MessageFormData>({
     resolver: zodResolver(messageFormSchema),
@@ -76,6 +96,25 @@ export default function Messages() {
       isMassMessage: false
     }
   });
+
+  // Check for document context from localStorage on component mount
+  useEffect(() => {
+    const docContext = localStorage.getItem('message-doc-context');
+    if (docContext) {
+      try {
+        const context = JSON.parse(docContext);
+        if (context.documentId && context.documentTitle) {
+          setShowNewMessageDialog(true);
+          messageForm.setValue('subject', `Dúvida sobre documento: ${context.documentTitle}`);
+          messageForm.setValue('relatedDocumentId', Number(context.documentId));
+          localStorage.removeItem('message-doc-context');
+        }
+      } catch (e) {
+        console.error('Error parsing document context:', e);
+        localStorage.removeItem('message-doc-context');
+      }
+    }
+  }, []);
 
   // Category form
   const categoryForm = useForm<CategoryFormData>({
@@ -94,7 +133,7 @@ export default function Messages() {
           ...data,
           companyId: user?.companyId,
           senderId: user?.id,
-          isMassMessage: data.recipientId === "all" || data.isMassMessage
+          isMassMessage: data.recipientId === "all" || data.isMassMessage || data.targetType === "all"
         }) 
       }),
     onSuccess: () => {
@@ -106,6 +145,7 @@ export default function Messages() {
       queryClient.invalidateQueries({ queryKey: ["/api/messages/sent"] });
       setShowNewMessageDialog(false);
       messageForm.reset();
+      setSelectedTargetType("individual");
     },
     onError: (error: any) => {
       toast({
@@ -469,56 +509,163 @@ export default function Messages() {
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={messageForm.control}
-                          name="recipientId"
+                          name="targetType"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Destinatário</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <FormLabel>Enviar para</FormLabel>
+                              <Select onValueChange={(value) => { field.onChange(value); setSelectedTargetType(value); }} value={field.value || "individual"}>
                                 <FormControl>
-                                  <SelectTrigger data-testid="select-recipient">
-                                    <SelectValue placeholder="Selecione o destinatário" />
+                                  <SelectTrigger data-testid="select-target-type">
+                                    <SelectValue placeholder="Tipo de destinatário" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="all">
-                                    <Users className="h-4 w-4 mr-2" />
-                                    Todos os funcionários
-                                  </SelectItem>
-                                  {Array.isArray(users) ? users.map((user: any) => (
-                                    <SelectItem key={user.id} value={user.id}>
-                                      {user.firstName} {user.lastName}
-                                    </SelectItem>
-                                  )) : null}
+                                  <SelectItem value="individual">Pessoa específica</SelectItem>
+                                  <SelectItem value="all">Todos os funcionários</SelectItem>
+                                  <SelectItem value="department">Departamento</SelectItem>
+                                  <SelectItem value="sector">Setor</SelectItem>
+                                  <SelectItem value="position">Função/Cargo</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={messageForm.control}
-                          name="categoryId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Categoria</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value ? field.value.toString() : ""}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-category">
-                                    <SelectValue placeholder="Selecione a categoria" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {Array.isArray(categories) ? categories.map((category: any) => (
-                                    <SelectItem key={category.id} value={category.id.toString()}>
-                                      {category.name}
-                                    </SelectItem>
-                                  )) : null}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        
+                        {selectedTargetType === "individual" && (
+                          <FormField
+                            control={messageForm.control}
+                            name="recipientId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Funcionário</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-recipient">
+                                      <SelectValue placeholder="Selecione a pessoa" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.isArray(users) ? users.map((user: any) => (
+                                      <SelectItem key={user.id} value={user.id}>
+                                        {user.firstName} {user.lastName}
+                                      </SelectItem>
+                                    )) : null}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        
+                        {selectedTargetType === "department" && (
+                          <FormField
+                            control={messageForm.control}
+                            name="targetId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Departamento</FormLabel>
+                                <Select onValueChange={(val) => field.onChange(parseInt(val))} value={field.value?.toString()}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-department">
+                                      <SelectValue placeholder="Selecione o departamento" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.isArray(departments) ? departments.map((dept: any) => (
+                                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                                        {dept.name}
+                                      </SelectItem>
+                                    )) : null}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        
+                        {selectedTargetType === "sector" && (
+                          <FormField
+                            control={messageForm.control}
+                            name="targetId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Setor</FormLabel>
+                                <Select onValueChange={(val) => field.onChange(parseInt(val))} value={field.value?.toString()}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-sector">
+                                      <SelectValue placeholder="Selecione o setor" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.isArray(sectors) ? sectors.map((sector: any) => (
+                                      <SelectItem key={sector.id} value={sector.id.toString()}>
+                                        {sector.name}
+                                      </SelectItem>
+                                    )) : null}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        
+                        {selectedTargetType === "position" && (
+                          <FormField
+                            control={messageForm.control}
+                            name="targetValue"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Função/Cargo</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-position">
+                                      <SelectValue placeholder="Selecione o cargo" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.isArray(positions) ? positions.map((position: string) => (
+                                      <SelectItem key={position} value={position}>
+                                        {position}
+                                      </SelectItem>
+                                    )) : null}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        
+                        {selectedTargetType !== "all" && (
+                          <FormField
+                            control={messageForm.control}
+                            name="categoryId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Categoria</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value ? field.value.toString() : ""}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-category">
+                                      <SelectValue placeholder="Selecione a categoria" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.isArray(categories) ? categories.map((category: any) => (
+                                      <SelectItem key={category.id} value={category.id.toString()}>
+                                        {category.name}
+                                      </SelectItem>
+                                    )) : null}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
