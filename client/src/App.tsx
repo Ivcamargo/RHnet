@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -110,14 +111,16 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="rhnet-ui-theme">
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light" storageKey="rhnet-ui-theme">
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
