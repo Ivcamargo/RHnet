@@ -4885,31 +4885,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const message = await storage.createMessage(messageData);
       
-      // Handle mass messages or specific recipient
-      if (messageData.recipientId === 'all' || messageData.isMassMessage) {
-        // Get all employees in the company
-        const employees = await storage.getCompanyEmployees(user.companyId);
-        for (const employee of employees) {
-          if (employee.id !== userId) { // Don't send to sender
-            await storage.createMessageRecipient({
-              messageId: message.id,
-              userId: employee.id,
-              isDelivered: true,
-              deliveredAt: new Date()
-            });
-          }
-        }
-      } else if (messageData.recipientId) {
+      // Determine recipients based on targetType
+      let recipients: any[] = [];
+      const targetType = messageData.targetType || (messageData.recipientId === 'all' || messageData.isMassMessage ? 'all' : 'individual');
+      
+      if (targetType === 'all' || messageData.recipientId === 'all' || messageData.isMassMessage) {
+        // Send to all employees in the company
+        recipients = await storage.getCompanyEmployees(user.companyId);
+      } else if (targetType === 'department' && messageData.targetId) {
+        // Send to all employees in a specific department
+        const allEmployees = await storage.getCompanyEmployees(user.companyId);
+        recipients = allEmployees.filter(emp => emp.departmentId === messageData.targetId);
+      } else if (targetType === 'sector' && messageData.targetId) {
+        // Send to all employees in departments of a specific sector
+        const allEmployees = await storage.getCompanyEmployees(user.companyId);
+        const departments = await storage.getDepartments();
+        const sectorDepts = departments.filter(dept => dept.sectorId === messageData.targetId);
+        const sectorDeptIds = sectorDepts.map(d => d.id);
+        recipients = allEmployees.filter(emp => sectorDeptIds.includes(emp.departmentId!));
+      } else if (targetType === 'position' && messageData.targetValue) {
+        // Send to all employees with a specific position/cargo
+        const allEmployees = await storage.getCompanyEmployees(user.companyId);
+        recipients = allEmployees.filter(emp => 
+          emp.position?.toLowerCase() === messageData.targetValue?.toLowerCase()
+        );
+      } else if (targetType === 'individual' && messageData.recipientId) {
         // Send to specific recipient
-        await storage.createMessageRecipient({
-          messageId: message.id,
-          userId: messageData.recipientId,
-          isDelivered: true,
-          deliveredAt: new Date()
-        });
+        const recipient = await storage.getUser(messageData.recipientId);
+        if (recipient) recipients = [recipient];
+      }
+      
+      // Create message recipients
+      for (const employee of recipients) {
+        if (employee.id !== userId) { // Don't send to sender
+          await storage.createMessageRecipient({
+            messageId: message.id,
+            userId: employee.id,
+            isDelivered: true,
+            deliveredAt: new Date()
+          });
+        }
       }
 
-      res.status(201).json(message);
+      res.status(201).json({ ...message, recipientsCount: recipients.length - (recipients.some(r => r.id === userId) ? 1 : 0) });
     } catch (error) {
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Failed to send message" });
@@ -5077,6 +5095,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Supervisor has no assigned sectors" });
       }
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Get unique positions/cargos (for message targeting)
+  app.get('/api/positions', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const scope = await getUserScope(req.user.claims.sub);
+      
+      if (!scope.user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (scope.type !== 'admin' && scope.type !== 'superadmin') {
+        return res.status(403).json({ message: "Only administrators can access this resource" });
+      }
+
+      // Get all employees from company and extract unique positions
+      const employees = await storage.getCompanyEmployees(scope.companyId!);
+      const positionsSet = new Set<string>();
+      
+      employees.forEach(emp => {
+        if (emp.position && emp.position.trim()) {
+          positionsSet.add(emp.position.trim());
+        }
+      });
+
+      const positions = Array.from(positionsSet).sort();
+      res.json(positions);
+    } catch (error) {
+      console.error("Error fetching positions:", error);
+      res.status(500).json({ message: "Failed to fetch positions" });
     }
   });
 

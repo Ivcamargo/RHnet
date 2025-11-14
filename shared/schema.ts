@@ -420,6 +420,10 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   isMassMessage: boolean("is_mass_message").default(false),
   priority: varchar("priority").default("normal"), // low, normal, high
+  targetType: varchar("target_type"), // 'individual' | 'all' | 'department' | 'sector' | 'position'
+  targetId: integer("target_id"), // ID do departamento, setor (quando aplicável)
+  targetValue: varchar("target_value"), // Valor específico como nome do cargo
+  relatedDocumentId: integer("related_document_id"), // Link para documento relacionado
   senderDeleted: boolean("sender_deleted").default(false), // Sender archived/deleted (doesn't affect recipients)
   senderDeletedAt: timestamp("sender_deleted_at"), // When sender deleted/archived
   createdAt: timestamp("created_at").defaultNow(),
