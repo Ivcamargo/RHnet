@@ -40,6 +40,7 @@ import TerminalPonto from "@/pages/terminal-ponto";
 import OvertimeConfig from "@/pages/overtime-config";
 import TimeBank from "@/pages/time-bank";
 import ScreenshotHelper from "@/pages/screenshot-helper";
+import DISCAssessment from "@/pages/disc-assessment";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -84,6 +85,9 @@ function Router() {
       <Route path="/vagas/:id" component={PublicJobs} />
       <Route path="/vagas" component={PublicJobs} />
       <Route path="/apply/:jobId" component={JobApply} />
+      
+      {/* DISC Assessment - acessível para candidatos via token */}
+      <Route path="/disc-assessment" component={DISCAssessment} />
       
       {/* Screenshot Helper - ferramenta para capturar telas */}
       <Route path="/screenshot-helper" component={ScreenshotHelper} />

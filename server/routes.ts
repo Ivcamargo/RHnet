@@ -7671,6 +7671,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================================================================
+  // DISC ASSESSMENT ROUTES
+  // ========================================================================================
+
+  // Get all DISC questions (for admins)
+  app.get('/api/disc/questions', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const questions = await storage.getActiveDISCQuestions();
+      res.json(questions);
+    } catch (error: any) {
+      console.error("Error fetching DISC questions:", error);
+      res.status(500).json({ message: "Erro ao carregar questões DISC" });
+    }
+  });
+
+  // Create a new DISC assessment (admin only - for sending to candidates)
+  app.post('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { candidateId, jobOpeningId, applicationId } = req.body;
+      const userId = req.user.claims.userId;
+
+      if (!candidateId || !jobOpeningId) {
+        return res.status(400).json({ message: "candidateId e jobOpeningId são obrigatórios" });
+      }
+
+      const { generateAccessToken } = await import('./services/discAssessmentService');
+      const accessToken = generateAccessToken();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const assessment = await storage.createDISCAssessment({
+        candidateId,
+        jobOpeningId,
+        applicationId: applicationId || null,
+        accessToken,
+        status: 'pending',
+        expiresAt,
+        createdBy: userId,
+      });
+
+      res.json(assessment);
+    } catch (error: any) {
+      console.error("Error creating DISC assessment:", error);
+      res.status(500).json({ message: "Erro ao criar avaliação DISC" });
+    }
+  });
+
+  // Get assessment by token (public route for candidates)
+  app.get('/api/disc/assessments/token/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const assessment = await storage.getDISCAssessmentByToken(token);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada ou link expirado" });
+      }
+
+      if (assessment.expiresAt && new Date() > assessment.expiresAt) {
+        return res.status(410).json({ message: "Link expirado" });
+      }
+
+      if (assessment.status === 'completed') {
+        return res.status(400).json({ message: "Avaliação já concluída" });
+      }
+
+      const questions = await storage.getActiveDISCQuestions();
+
+      res.json({
+        assessment,
+        questions,
+      });
+    } catch (error: any) {
+      console.error("Error fetching assessment by token:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliação" });
+    }
+  });
+
+  // Start assessment (mark as in_progress)
+  app.post('/api/disc/assessments/:id/start', async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      const assessment = await storage.getDISCAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      if (assessment.status !== 'pending') {
+        return res.status(400).json({ message: "Avaliação já iniciada" });
+      }
+
+      const updated = await storage.updateDISCAssessment(assessmentId, {
+        status: 'in_progress',
+        startedAt: new Date(),
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error starting assessment:", error);
+      res.status(500).json({ message: "Erro ao iniciar avaliação" });
+    }
+  });
+
+  // Submit responses and complete assessment
+  app.post('/api/disc/assessments/:id/submit', async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      const { responses } = req.body;
+
+      if (!Array.isArray(responses) || responses.length === 0) {
+        return res.status(400).json({ message: "Respostas são obrigatórias" });
+      }
+
+      const assessment = await storage.getDISCAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      if (assessment.status === 'completed') {
+        return res.status(400).json({ message: "Avaliação já concluída" });
+      }
+
+      for (const response of responses) {
+        await storage.createDISCResponse({
+          assessmentId,
+          questionId: response.questionId,
+          selectedValue: response.selectedValue,
+        });
+      }
+
+      const questions = await storage.getActiveDISCQuestions();
+      const savedResponses = await storage.getDISCResponses(assessmentId);
+
+      const { calculateDISCScores } = await import('./services/discAssessmentService');
+      const scores = calculateDISCScores(questions, savedResponses);
+
+      const completedAssessment = await storage.finalizeDISCAssessment(assessmentId, scores);
+
+      res.json(completedAssessment);
+    } catch (error: any) {
+      console.error("Error submitting assessment:", error);
+      res.status(500).json({ message: "Erro ao enviar respostas" });
+    }
+  });
+
+  // Get assessment results (admin only)
+  app.get('/api/disc/assessments/:id/results', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      const assessment = await storage.getDISCAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Avaliação não encontrada" });
+      }
+
+      const responses = await storage.getDISCResponses(assessmentId);
+
+      const { getProfileDescription, calculateCompatibility } = await import('./services/discAssessmentService');
+      
+      let compatibility = null;
+      if (assessment.jobOpeningId) {
+        const jobOpening = await storage.getJobOpening(assessment.jobOpeningId);
+        if (jobOpening && jobOpening.idealDISCProfile) {
+          compatibility = calculateCompatibility(
+            {
+              dScore: assessment.dScore || 0,
+              iScore: assessment.iScore || 0,
+              sScore: assessment.sScore || 0,
+              cScore: assessment.cScore || 0,
+            },
+            jobOpening.idealDISCProfile as any
+          );
+        }
+      }
+
+      const profileDescription = assessment.primaryProfile 
+        ? getProfileDescription(assessment.primaryProfile as any)
+        : null;
+
+      res.json({
+        assessment,
+        responses,
+        profileDescription,
+        compatibility,
+      });
+    } catch (error: any) {
+      console.error("Error fetching assessment results:", error);
+      res.status(500).json({ message: "Erro ao carregar resultados" });
+    }
+  });
+
+  // List assessments by job opening (admin only)
+  app.get('/api/disc/assessments/job/:jobOpeningId', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const jobOpeningId = parseInt(req.params.jobOpeningId);
+      const assessments = await storage.getDISCAssessmentsByJobOpening(jobOpeningId);
+      res.json(assessments);
+    } catch (error: any) {
+      console.error("Error fetching assessments:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliações" });
+    }
+  });
+
+  // List assessments by candidate (admin only)
+  app.get('/api/disc/assessments/candidate/:candidateId', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const candidateId = parseInt(req.params.candidateId);
+      const assessments = await storage.getDISCAssessmentsByCandidate(candidateId);
+      res.json(assessments);
+    } catch (error: any) {
+      console.error("Error fetching assessments:", error);
+      res.status(500).json({ message: "Erro ao carregar avaliações" });
+    }
+  });
+
   // Temporary endpoint to download database dump
   app.get('/download-dump', (req, res) => {
     const dumpPath = path.join(process.cwd(), 'rhnet-database-dump.sql.gz');

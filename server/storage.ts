@@ -46,6 +46,9 @@ import {
   overtimeTiers,
   timeBank,
   timeBankTransactions,
+  discQuestions,
+  discAssessments,
+  discResponses,
   type User,
   type UpsertUser,
   type Department,
@@ -109,6 +112,9 @@ import {
   type InsertTimeBankTransaction,
   type Lead,
   type InsertLead,
+  type DISCQuestion,
+  type DISCAssessment,
+  type DISCResponse,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
@@ -119,6 +125,9 @@ type BreakEntry = typeof breakEntries.$inferSelect;
 type InsertBreakEntry = typeof breakEntries.$inferInsert;
 type FaceProfile = typeof faceProfiles.$inferSelect;
 type InsertFaceProfile = typeof faceProfiles.$inferInsert;
+type InsertDISCQuestion = typeof discQuestions.$inferInsert;
+type InsertDISCAssessment = typeof discAssessments.$inferInsert;
+type InsertDISCResponse = typeof discResponses.$inferInsert;
 
 // Supervisor scope type for access control
 type SupervisorScope = {
@@ -481,6 +490,19 @@ export interface IStorage {
   getLeads(filters?: { status?: string }): Promise<Lead[]>;
   getLead(id: number): Promise<Lead | undefined>;
   updateLeadStatus(id: number, update: { status?: string; followUpNotes?: string; assignedTo?: string; lastContactedAt?: Date }): Promise<Lead>;
+  
+  // DISC assessment operations
+  getDISCQuestions(): Promise<DISCQuestion[]>;
+  getActiveDISCQuestions(): Promise<DISCQuestion[]>;
+  createDISCAssessment(assessment: InsertDISCAssessment): Promise<DISCAssessment>;
+  getDISCAssessment(id: number): Promise<DISCAssessment | undefined>;
+  getDISCAssessmentByToken(token: string): Promise<DISCAssessment | undefined>;
+  getDISCAssessmentsByJobOpening(jobOpeningId: number): Promise<DISCAssessment[]>;
+  getDISCAssessmentsByCandidate(candidateId: number): Promise<DISCAssessment[]>;
+  updateDISCAssessment(id: number, assessment: Partial<InsertDISCAssessment>): Promise<DISCAssessment>;
+  createDISCResponse(response: InsertDISCResponse): Promise<DISCResponse>;
+  getDISCResponses(assessmentId: number): Promise<DISCResponse[]>;
+  finalizeDISCAssessment(assessmentId: number, scores: { dScore: number; iScore: number; sScore: number; cScore: number; primaryProfile: string }): Promise<DISCAssessment>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3791,6 +3813,106 @@ export class DatabaseStorage implements IStorage {
       .where(eq(leads.id, id))
       .returning();
     return updatedLead;
+  }
+
+  // DISC assessment operations
+  async getDISCQuestions(): Promise<DISCQuestion[]> {
+    return await db.select().from(discQuestions).orderBy(discQuestions.order);
+  }
+
+  async getActiveDISCQuestions(): Promise<DISCQuestion[]> {
+    return await db
+      .select()
+      .from(discQuestions)
+      .where(eq(discQuestions.isActive, true))
+      .orderBy(discQuestions.order);
+  }
+
+  async createDISCAssessment(assessment: InsertDISCAssessment): Promise<DISCAssessment> {
+    const [newAssessment] = await db
+      .insert(discAssessments)
+      .values(assessment)
+      .returning();
+    return newAssessment;
+  }
+
+  async getDISCAssessment(id: number): Promise<DISCAssessment | undefined> {
+    const results = await db
+      .select()
+      .from(discAssessments)
+      .where(eq(discAssessments.id, id))
+      .limit(1);
+    return results[0];
+  }
+
+  async getDISCAssessmentByToken(token: string): Promise<DISCAssessment | undefined> {
+    const results = await db
+      .select()
+      .from(discAssessments)
+      .where(eq(discAssessments.accessToken, token))
+      .limit(1);
+    return results[0];
+  }
+
+  async getDISCAssessmentsByJobOpening(jobOpeningId: number): Promise<DISCAssessment[]> {
+    return await db
+      .select()
+      .from(discAssessments)
+      .where(eq(discAssessments.jobOpeningId, jobOpeningId))
+      .orderBy(desc(discAssessments.createdAt));
+  }
+
+  async getDISCAssessmentsByCandidate(candidateId: number): Promise<DISCAssessment[]> {
+    return await db
+      .select()
+      .from(discAssessments)
+      .where(eq(discAssessments.candidateId, candidateId))
+      .orderBy(desc(discAssessments.createdAt));
+  }
+
+  async updateDISCAssessment(id: number, assessment: Partial<InsertDISCAssessment>): Promise<DISCAssessment> {
+    const [updated] = await db
+      .update(discAssessments)
+      .set(assessment)
+      .where(eq(discAssessments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async createDISCResponse(response: InsertDISCResponse): Promise<DISCResponse> {
+    const [newResponse] = await db
+      .insert(discResponses)
+      .values(response)
+      .returning();
+    return newResponse;
+  }
+
+  async getDISCResponses(assessmentId: number): Promise<DISCResponse[]> {
+    return await db
+      .select()
+      .from(discResponses)
+      .where(eq(discResponses.assessmentId, assessmentId))
+      .orderBy(discResponses.questionId);
+  }
+
+  async finalizeDISCAssessment(
+    assessmentId: number,
+    scores: { dScore: number; iScore: number; sScore: number; cScore: number; primaryProfile: string }
+  ): Promise<DISCAssessment> {
+    const [updated] = await db
+      .update(discAssessments)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        dScore: scores.dScore,
+        iScore: scores.iScore,
+        sScore: scores.sScore,
+        cScore: scores.cScore,
+        primaryProfile: scores.primaryProfile,
+      })
+      .where(eq(discAssessments.id, assessmentId))
+      .returning();
+    return updated;
   }
 }
 
