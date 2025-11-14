@@ -72,11 +72,19 @@ export default function PublicJobs() {
   });
 
   const applyMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest('/api/public/apply', {
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/public/apply', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Application submission failed:', errorData);
+        throw new Error(errorData.message || 'Failed to submit application');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       setApplicationSuccess(true);
@@ -105,21 +113,20 @@ export default function PublicJobs() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Construir array de respostas aos requisitos
+    // Adicionar jobOpeningId
+    formData.append('jobOpeningId', selectedJob.id.toString());
+    
+    // Construir array de respostas aos requisitos e adicionar como JSON string
     const responses = Object.entries(requirementResponses).map(([requirementId, proficiencyLevel]) => ({
       requirementId: parseInt(requirementId),
       proficiencyLevel,
     }));
     
-    applyMutation.mutate({
-      jobOpeningId: selectedJob.id,
-      name: formData.get('name'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      resume: formData.get('resume'),
-      coverLetter: formData.get('coverLetter'),
-      requirementResponses: responses,
-    });
+    if (responses.length > 0) {
+      formData.append('requirementResponses', JSON.stringify(responses));
+    }
+    
+    applyMutation.mutate(formData);
   };
 
   const getEmploymentTypeLabel = (type: string) => {

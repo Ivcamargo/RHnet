@@ -6502,52 +6502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Submit job application (public)
-  app.post('/api/public/apply', async (req, res) => {
-    try {
-      const { jobOpeningId, name, email, phone, resume, coverLetter } = req.body;
-
-      if (!jobOpeningId || !name || !email || !phone) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Get job to verify it exists and get company
-      const job = await storage.getJobOpening(jobOpeningId);
-      if (!job) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-
-      // Create or get candidate
-      let candidate = await storage.getCandidateByEmail(job.companyId, email);
-      if (!candidate) {
-        candidate = await storage.createCandidate({
-          companyId: job.companyId,
-          name,
-          email,
-          phone,
-          resume,
-        });
-      }
-
-      // Create application
-      const application = await storage.createApplication({
-        jobOpeningId,
-        candidateId: candidate.id,
-        status: 'pending',
-        coverLetter,
-        appliedAt: new Date(),
-      });
-
-      res.status(201).json({ 
-        success: true, 
-        message: "Application submitted successfully",
-        applicationId: application.id 
-      });
-    } catch (error) {
-      console.error("Error submitting application:", error);
-      res.status(500).json({ message: "Failed to submit application" });
-    }
-  });
+  // NOTE: Public job application endpoint is now defined later in the file with multipart support
 
   // ========================================================================================
   // LEAD CAPTURE ROUTES
@@ -6757,20 +6712,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public job application with resume upload
-  app.post('/api/public/apply', resumeUpload.fields([{ name: 'resume', maxCount: 1 }]), async (req, res) => {
+  // Public job application (accepting multipart form data for future file uploads)
+  // Using resumeUpload with .fields() but allowing empty file fields
+  app.post('/api/public/apply', resumeUpload.fields([
+    { name: 'resume', maxCount: 1 }  // Optional file upload
+  ]), async (req, res) => {
     try {
       console.log("=== PUBLIC APPLY DEBUG ===");
       console.log("req.body:", req.body);
-      console.log("req.files:", req.files);
+      console.log("req.body keys:", Object.keys(req.body));
       console.log("req.body.jobOpeningId:", req.body.jobOpeningId);
       console.log("=========================");
       
-      const { jobOpeningId, name, email, phone, cpf, coverLetter, city, state, requirementResponses } = req.body;
+      let { jobOpeningId, name, email, phone, cpf, coverLetter, city, state, requirementResponses } = req.body;
+      
+      // Parse requirementResponses if it's a JSON string (from FormData)
+      if (typeof requirementResponses === 'string') {
+        try {
+          requirementResponses = JSON.parse(requirementResponses);
+        } catch (e) {
+          console.error("Failed to parse requirementResponses:", e);
+          return res.status(400).json({ message: "Invalid requirement responses format" });
+        }
+      }
+      
+      console.log("Parsed requirementResponses:", requirementResponses);
       
       if (!jobOpeningId || !name || !email) {
-        console.error("Missing required fields. jobOpeningId:", jobOpeningId, "name:", name, "email:", email);
-        return res.status(400).json({ message: "Missing required fields", details: { jobOpeningId: !!jobOpeningId, name: !!name, email: !!email } });
+        console.error("Missing required fields!");
+        console.error("req.body:", JSON.stringify(req.body));
+        console.error("jobOpeningId:", jobOpeningId);
+        console.error("name:", name);
+        console.error("email:", email);
+        return res.status(400).json({ 
+          message: "Missing required fields", 
+          debug: {
+            body: req.body,
+            jobOpeningId: !!jobOpeningId,
+            name: !!name,
+            email: !!email
+          }
+        });
       }
 
       // Validate job opening exists and is published
@@ -6853,32 +6835,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Send notification message to HR and admin
-      try {
-        // Get all HR users and admins from the company
-        const companyUsers = await storage.getUsersByCompany(jobOpening.companyId);
-        const hrAndAdmins = companyUsers.filter(u => 
-          u.role === 'admin' || u.role === 'superadmin'
-        );
-
-        const scoreInfo = scoreResult ? `\n\n🎯 Pontuação: ${scoreResult.score}\nStatus: ${scoreResult.isQualified ? '✅ Qualificado' : '❌ Não qualificado'}${scoreResult.missingMandatoryRequirements.length > 0 ? `\nRequisitos obrigatórios faltantes: ${scoreResult.missingMandatoryRequirements.join(', ')}` : ''}` : '';
-        
-        const messageContent = `📋 Nova Candidatura Recebida!\n\nVaga: ${jobOpening.title}\nCandidato: ${name}\nEmail: ${email}\n${phone ? `Telefone: ${phone}\n` : ''}${scoreInfo}${coverLetter ? `\n\nCarta de Apresentação:\n${coverLetter}` : ''}`;
-
-        // Send message to each HR/admin user
-        for (const hrUser of hrAndAdmins) {
-          await storage.createMessage({
-            senderId: candidate.id, // Use candidate ID as sender
-            recipientId: hrUser.id,
-            subject: `Nova candidatura: ${jobOpening.title}`,
-            content: messageContent,
-            isRead: false
-          });
-        }
-      } catch (messageError) {
-        console.error("Error sending notification messages:", messageError);
-        // Don't fail the application if message sending fails
-      }
+      // NOTE: In-app message notifications removed as candidates are not system users
+      // Admins can view new applications in the Recruitment & Selection dashboard
+      console.log(`New application submitted for ${jobOpening.title} by ${name} (${email}) with score: ${scoreResult?.score || 0}`);
 
       res.status(201).json({ 
         message: "Application submitted successfully",
