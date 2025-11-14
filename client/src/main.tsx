@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import App from "./App-minimal-test";
-// import "./index.css"; // TEMPORARIAMENTE DESABILITADO PARA TESTE
+import App from "./App";
+import "./index.css";
 
 console.log('[RHNet] Starting application...');
 
@@ -34,15 +34,14 @@ try {
   `;
 }
 
+// DESABILITADO TEMPORARIAMENTE - Service Worker pode estar causando problemas
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('ServiceWorker registration successful:', registration.scope);
-      })
-      .catch((error) => {
-        console.log('ServiceWorker registration failed:', error);
-      });
+  // Desregistrar todos os service workers existentes
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+      console.log('[RHNet] Service Worker desregistrado:', registration.scope);
+    }
   });
 }
