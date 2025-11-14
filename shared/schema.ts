@@ -1388,6 +1388,9 @@ export const jobOpenings = pgTable("job_openings", {
   workSchedule: varchar("work_schedule"), // "Segunda a Sexta, 8h-17h"
   vacancies: integer("vacancies").default(1), // Número de vagas
   status: varchar("status").default("draft"), // draft, published, closed, filled
+  requiresDISC: boolean("requires_disc").default(false), // Se a vaga exige teste DISC
+  discTiming: varchar("disc_timing"), // "on_application" ou "during_selection"
+  idealDISCProfile: jsonb("ideal_disc_profile"), // {d: 30, i: 25, s: 25, c: 20} percentuais do perfil ideal
   publishedAt: timestamp("published_at"),
   closedAt: timestamp("closed_at"),
   expiresAt: timestamp("expires_at"),
@@ -1654,6 +1657,79 @@ export const onboardingFormData = pgTable("onboarding_form_data", {
 }));
 
 // ========================================================================================
+// DISC PERSONALITY ASSESSMENT
+// ========================================================================================
+
+// DISC questions / Questões do teste DISC
+export const discQuestions = pgTable("disc_questions", {
+  id: serial("id").primaryKey(),
+  questionText: text("question_text").notNull(), // Texto da questão
+  profileType: varchar("profile_type").notNull(), // "D", "I", "S", "C"
+  order: integer("order").notNull(), // Ordem de exibição
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// DISC assessments / Avaliações DISC aplicadas
+export const discAssessments = pgTable("disc_assessments", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id"), // Vinculado a candidatura (pode ser null se enviado antes)
+  candidateId: integer("candidate_id"), // Vinculado a candidato
+  jobOpeningId: integer("job_opening_id").notNull(), // Vaga relacionada
+  accessToken: varchar("access_token").notNull().unique(), // Token único para acesso público
+  status: varchar("status").default("pending"), // pending, in_progress, completed
+  dScore: integer("d_score").default(0), // Pontuação Dominância (0-100%)
+  iScore: integer("i_score").default(0), // Pontuação Influência (0-100%)
+  sScore: integer("s_score").default(0), // Pontuação Estabilidade (0-100%)
+  cScore: integer("c_score").default(0), // Pontuação Conformidade (0-100%)
+  primaryProfile: varchar("primary_profile"), // Perfil predominante: "D", "I", "S", "C"
+  sentAt: timestamp("sent_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"), // Data de expiração do link
+  createdBy: varchar("created_by").notNull(), // Quem enviou o teste
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  applicationReference: foreignKey({
+    columns: [table.applicationId],
+    foreignColumns: [applications.id],
+  }).onDelete('cascade'),
+  candidateReference: foreignKey({
+    columns: [table.candidateId],
+    foreignColumns: [candidates.id],
+  }).onDelete('cascade'),
+  jobOpeningReference: foreignKey({
+    columns: [table.jobOpeningId],
+    foreignColumns: [jobOpenings.id],
+  }).onDelete('cascade'),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+  accessTokenIndex: index("disc_access_token_idx").on(table.accessToken),
+}));
+
+// DISC responses / Respostas do candidato
+export const discResponses = pgTable("disc_responses", {
+  id: serial("id").primaryKey(),
+  assessmentId: integer("assessment_id").notNull(),
+  questionId: integer("question_id").notNull(),
+  selectedValue: integer("selected_value").notNull(), // Escala 1-5 (Discordo totalmente a Concordo totalmente)
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  assessmentReference: foreignKey({
+    columns: [table.assessmentId],
+    foreignColumns: [discAssessments.id],
+  }).onDelete('cascade'),
+  questionReference: foreignKey({
+    columns: [table.questionId],
+    foreignColumns: [discQuestions.id],
+  }),
+  uniqueResponse: uniqueIndex("unique_disc_response").on(table.assessmentId, table.questionId),
+  assessmentIndex: index("disc_responses_assessment_idx").on(table.assessmentId),
+}));
+
+// ========================================================================================
 // RECRUITMENT & SELECTION TYPES AND VALIDATION
 // ========================================================================================
 
@@ -1668,6 +1744,9 @@ export type Interview = typeof interviews.$inferSelect;
 export type OnboardingLink = typeof onboardingLinks.$inferSelect;
 export type OnboardingDocument = typeof onboardingDocuments.$inferSelect;
 export type OnboardingFormData = typeof onboardingFormData.$inferSelect;
+export type DISCQuestion = typeof discQuestions.$inferSelect;
+export type DISCAssessment = typeof discAssessments.$inferSelect;
+export type DISCResponse = typeof discResponses.$inferSelect;
 
 export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({
   id: true,
@@ -1768,6 +1847,37 @@ export const insertApplicationRequirementResponseSchema = createInsertSchema(app
   pointsEarned: true, // Calculado automaticamente
 });
 export type InsertApplicationRequirementResponse = z.infer<typeof insertApplicationRequirementResponseSchema>;
+
+// DISC question insert schema
+export const insertDISCQuestionSchema = createInsertSchema(discQuestions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertDISCQuestion = z.infer<typeof insertDISCQuestionSchema>;
+
+// DISC assessment insert schema
+export const insertDISCAssessmentSchema = createInsertSchema(discAssessments).omit({
+  id: true,
+  sentAt: true,
+  createdAt: true,
+  dScore: true,
+  iScore: true,
+  sScore: true,
+  cScore: true,
+  primaryProfile: true,
+  startedAt: true,
+  completedAt: true,
+});
+export type InsertDISCAssessment = z.infer<typeof insertDISCAssessmentSchema>;
+
+// DISC response insert schema
+export const insertDISCResponseSchema = createInsertSchema(discResponses).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  selectedValue: z.number().int().min(1).max(5, "Valor deve ser entre 1 e 5"),
+});
+export type InsertDISCResponse = z.infer<typeof insertDISCResponseSchema>;
 
 // ========================================================================================
 // OVERTIME & TIME BANK SYSTEM
