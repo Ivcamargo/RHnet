@@ -207,20 +207,6 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Bem-vindo ao RHNet
               </h1>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Mensageria Corporativa Integrada</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Gestão Completa de Documentos</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <GraduationCap className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Capacitação e Certificação</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -264,6 +250,22 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-8">
+            <div className="flex items-center space-x-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Mensageria Corporativa Integrada</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Gestão Completa de Documentos</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <GraduationCap className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Capacitação e Certificação</span>
+            </div>
           </div>
 
           {/* Stats Cards */}
