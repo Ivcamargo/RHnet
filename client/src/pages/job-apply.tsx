@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -10,9 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, MapPin, DollarSign, Clock, Building, FileText, CheckCircle, Upload, Brain } from "lucide-react";
+import { Briefcase, MapPin, DollarSign, Clock, Building, FileText, CheckCircle, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Job opening interface
 interface JobOpening {
@@ -26,8 +25,6 @@ interface JobOpening {
   employmentType: string;
   salaryRange?: string;
   status: string;
-  requiresDISC?: boolean;
-  discTiming?: 'on_application' | 'during_selection';
 }
 
 // Form schema for job application
@@ -46,10 +43,9 @@ type ApplicationForm = z.infer<typeof applicationSchema>;
 
 export default function JobApply() {
   const { jobId } = useParams<{ jobId: string }>();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
-  const [isProcessingDISC, setIsProcessingDISC] = useState(false);
 
   // Fetch job details
   const { data: job, isLoading } = useQuery<JobOpening>({
@@ -68,61 +64,6 @@ export default function JobApply() {
       coverLetter: "",
     },
   });
-
-  // Check if returning from DISC completion
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('disc_completed') === 'true' && jobId) {
-      handleDISCCompletion();
-    }
-  }, [jobId]);
-
-  // Handle DISC completion and finalize application
-  const handleDISCCompletion = async () => {
-    const storedData = localStorage.getItem(`disc_application_${jobId}`);
-    if (!storedData) {
-      toast({
-        title: "Erro",
-        description: "Dados da candidatura não encontrados. Por favor, preencha o formulário novamente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const data = JSON.parse(storedData);
-
-    try {
-      const response = await fetch("/api/public/apply/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          candidateId: data.candidateId,
-          jobOpeningId: parseInt(jobId!),
-          coverLetter: data.coverLetter,
-          resumePath: data.resumePath || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao finalizar candidatura");
-      }
-
-      localStorage.removeItem(`disc_application_${jobId}`);
-      setApplicationSubmitted(true);
-      toast({
-        title: "Candidatura enviada!",
-        description: "Sua candidatura foi enviada com sucesso após completar o teste DISC.",
-      });
-
-    } catch (error: any) {
-      toast({
-        title: "Erro ao finalizar candidatura",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   // Submit application mutation
   const submitApplicationMutation = useMutation({
@@ -175,87 +116,8 @@ export default function JobApply() {
     },
   });
 
-  const onSubmit = async (data: ApplicationForm) => {
-    // Check if DISC is required on application
-    if (job?.requiresDISC && job?.discTiming === 'on_application') {
-      setIsProcessingDISC(true);
-
-      try {
-        // 1. Create or find candidate
-        const candidateRes = await fetch("/api/public/candidates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: data.name,
-            email: data.email,
-            phone: data.phone || null,
-            cpf: data.cpf || null,
-            city: data.city || null,
-            state: data.state || null,
-            companyId: 1, // Default company
-          }),
-        });
-
-        if (!candidateRes.ok) {
-          const error = await candidateRes.json();
-          throw new Error(error.message || "Erro ao criar candidato");
-        }
-
-        const candidate = await candidateRes.json();
-
-        // 2. Create DISC assessment
-        const assessmentRes = await fetch("/api/public/disc/assessments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            candidateId: candidate.id,
-            jobOpeningId: parseInt(jobId!),
-          }),
-        });
-
-        if (!assessmentRes.ok) {
-          const error = await assessmentRes.json();
-          throw new Error(error.message || "Erro ao criar avaliação DISC");
-        }
-
-        const assessment = await assessmentRes.json();
-
-        // 3. Save application data to localStorage (without resume file)
-        localStorage.setItem(`disc_application_${jobId}`, JSON.stringify({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          cpf: data.cpf,
-          city: data.city,
-          state: data.state,
-          coverLetter: data.coverLetter,
-          candidateId: candidate.id,
-          resumePath: null, // User will need to re-upload after DISC
-        }));
-
-        // 4. Show toast and redirect to DISC assessment
-        toast({
-          title: "Teste DISC Obrigatório",
-          description: "Você será redirecionado para completar o teste de personalidade DISC antes de finalizar sua candidatura.",
-        });
-
-        // Small delay to show toast before redirect
-        setTimeout(() => {
-          setLocation(`/disc-assessment/${assessment.token}?return_job=${jobId}`);
-        }, 1500);
-
-      } catch (error: any) {
-        toast({
-          title: "Erro ao iniciar avaliação DISC",
-          description: error.message,
-          variant: "destructive",
-        });
-        setIsProcessingDISC(false);
-      }
-    } else {
-      // Original flow for non-DISC or during_selection jobs
-      submitApplicationMutation.mutate(data);
-    }
+  const onSubmit = (data: ApplicationForm) => {
+    submitApplicationMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -389,17 +251,6 @@ export default function JobApply() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* DISC Warning Alert */}
-            {job.requiresDISC && job.discTiming === 'on_application' && (
-              <Alert className="mb-4 border-blue-200 bg-blue-50">
-                <Brain className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-900">
-                  <strong>Atenção:</strong> Esta vaga requer a conclusão do teste de personalidade DISC.
-                  Após preencher o formulário, você será redirecionado para completar o teste antes de finalizar sua candidatura.
-                </AlertDescription>
-              </Alert>
-            )}
-            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -539,17 +390,16 @@ export default function JobApply() {
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={submitApplicationMutation.isPending || isProcessingDISC}
+                    disabled={submitApplicationMutation.isPending}
                     data-testid="button-submit-application"
                   >
-                    {isProcessingDISC ? "Preparando DISC..." : submitApplicationMutation.isPending ? "Enviando..." : "Enviar Candidatura"}
+                    {submitApplicationMutation.isPending ? "Enviando..." : "Enviar Candidatura"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setLocation("/")}
                     data-testid="button-cancel"
-                    disabled={isProcessingDISC}
                   >
                     Cancelar
                   </Button>

@@ -40,7 +40,6 @@ export default function PublicJobs() {
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
-  const [requirementResponses, setRequirementResponses] = useState<Record<number, string>>({});
   const { toast } = useToast();
   
   // Filtros
@@ -59,32 +58,12 @@ export default function PublicJobs() {
     refetchOnMount: 'always',
   });
 
-  // Buscar requisitos da vaga selecionada
-  const { data: jobRequirements = [], isLoading: requirementsLoading } = useQuery<any[]>({
-    queryKey: ['/api/job-openings', selectedJob?.id, 'requirements'],
-    queryFn: async () => {
-      if (!selectedJob?.id) return [];
-      const res = await fetch(`/api/job-openings/${selectedJob.id}/requirements`);
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: !!selectedJob?.id && isApplyDialogOpen,
-  });
-
   const applyMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/public/apply', {
+    mutationFn: async (data: any) => {
+      return await apiRequest('/api/public/apply', {
         method: 'POST',
-        body: formData,
+        body: JSON.stringify(data),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Application submission failed:', errorData);
-        throw new Error(errorData.message || 'Failed to submit application');
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       setApplicationSuccess(true);
@@ -105,7 +84,6 @@ export default function PublicJobs() {
   const handleApply = (job: any) => {
     setSelectedJob(job);
     setApplicationSuccess(false);
-    setRequirementResponses({});
     setIsApplyDialogOpen(true);
   };
 
@@ -113,20 +91,14 @@ export default function PublicJobs() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Adicionar jobOpeningId
-    formData.append('jobOpeningId', selectedJob.id.toString());
-    
-    // Construir array de respostas aos requisitos e adicionar como JSON string
-    const responses = Object.entries(requirementResponses).map(([requirementId, proficiencyLevel]) => ({
-      requirementId: parseInt(requirementId),
-      proficiencyLevel,
-    }));
-    
-    if (responses.length > 0) {
-      formData.append('requirementResponses', JSON.stringify(responses));
-    }
-    
-    applyMutation.mutate(formData);
+    applyMutation.mutate({
+      jobOpeningId: selectedJob.id,
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      resume: formData.get('resume'),
+      coverLetter: formData.get('coverLetter'),
+    });
   };
 
   const getEmploymentTypeLabel = (type: string) => {
@@ -283,24 +255,24 @@ export default function PublicJobs() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {(job.companyName || job.location || job.salaryRange || job.publishedAt) && (
+              {(job.location || job.salaryMin || job.publishedAt) && (
                 <div className="flex gap-4 flex-wrap text-sm text-muted-foreground">
-                  {job.companyName && (
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4" />
-                      <span>{job.companyName}</span>
-                    </div>
-                  )}
                   {job.location && (
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       <span>{job.location}</span>
                     </div>
                   )}
-                  {job.salaryRange && (
+                  {(job.salaryMin || job.salaryMax) && (
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
-                      <span>{job.salaryRange}</span>
+                      <span>
+                        {job.salaryMin && job.salaryMax
+                          ? `R$ ${job.salaryMin.toLocaleString()} - R$ ${job.salaryMax.toLocaleString()}`
+                          : job.salaryMin
+                          ? `A partir de R$ ${job.salaryMin.toLocaleString()}`
+                          : `Até R$ ${job.salaryMax.toLocaleString()}`}
+                      </span>
                     </div>
                   )}
                   {job.publishedAt && (
@@ -414,67 +386,6 @@ export default function PublicJobs() {
                     data-testid="input-cover-letter"
                   />
                 </div>
-
-                {/* Seção de Requisitos */}
-                {requirementsLoading ? (
-                  <div className="py-4 text-center text-sm text-muted-foreground">
-                    Carregando requisitos...
-                  </div>
-                ) : jobRequirements.length > 0 && (
-                  <div className="border-t pt-4 space-y-4">
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Requisitos da Vaga</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Avalie seu nível de conhecimento em cada requisito abaixo. Isso nos ajudará a entender melhor seu perfil.
-                      </p>
-                    </div>
-
-                    {jobRequirements.map((requirement: any) => {
-                      const levels = requirement.proficiencyLevels || [];
-                      const isMandatory = requirement.requirementType === 'mandatory';
-                      
-                      return (
-                        <div key={requirement.id} className="space-y-2">
-                          <Label htmlFor={`requirement-${requirement.id}`}>
-                            {requirement.title}
-                            {isMandatory && <span className="text-red-500 ml-1">*</span>}
-                          </Label>
-                          {requirement.description && (
-                            <p className="text-sm text-muted-foreground">{requirement.description}</p>
-                          )}
-                          <Select
-                            value={requirementResponses[requirement.id] || ''}
-                            onValueChange={(value) => {
-                              setRequirementResponses(prev => ({
-                                ...prev,
-                                [requirement.id]: value
-                              }));
-                            }}
-                            required={isMandatory}
-                          >
-                            <SelectTrigger 
-                              id={`requirement-${requirement.id}`}
-                              data-testid={`select-requirement-${requirement.id}`}
-                            >
-                              <SelectValue placeholder="Selecione seu nível" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {levels.map((level: any, idx: number) => (
-                                <SelectItem 
-                                  key={idx} 
-                                  value={level.level}
-                                  data-testid={`requirement-${requirement.id}-level-${level.level}`}
-                                >
-                                  {level.level} ({level.points} pontos)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
 
                 <div className="flex justify-end gap-2 pt-4">
                   <Button
@@ -631,12 +542,6 @@ export default function PublicJobs() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <CardTitle className="text-2xl mb-2">{job.title}</CardTitle>
-                      {job.companyName && (
-                        <p className="text-sm font-medium text-muted-foreground mb-2">
-                          <Briefcase className="inline h-4 w-4 mr-1" />
-                          {job.companyName}
-                        </p>
-                      )}
                       <CardDescription className="text-base line-clamp-2">
                         {job.description}
                       </CardDescription>
@@ -659,10 +564,16 @@ export default function PublicJobs() {
                         <span>{job.location}</span>
                       </div>
                     )}
-                    {job.salaryRange && (
+                    {(job.salaryMin || job.salaryMax) && (
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4" />
-                        <span>{job.salaryRange}</span>
+                        <span>
+                          {job.salaryMin && job.salaryMax
+                            ? `R$ ${job.salaryMin.toLocaleString()} - R$ ${job.salaryMax.toLocaleString()}`
+                            : job.salaryMin
+                            ? `A partir de R$ ${job.salaryMin.toLocaleString()}`
+                            : `Até R$ ${job.salaryMax.toLocaleString()}`}
+                        </span>
                       </div>
                     )}
                   </div>

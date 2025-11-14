@@ -35,21 +35,21 @@ export default function TopBar({ title }: TopBarProps) {
   const locationStatus = getLocationStatus();
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm">
+    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-50 to-teal-50 shadow-sm border-b border-blue-200">
       <div className="flex items-center">
         <Button
           variant="ghost"
           size="sm"
-          className="lg:hidden p-2 text-white/80 hover:text-white hover:bg-white/10"
+          className="lg:hidden p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100"
           onClick={toggleMobileMenu}
         >
           <Menu className="h-5 w-5" />
         </Button>
         
         <div className="flex flex-col">
-          <h2 className="text-xl font-semibold text-white" data-testid="page-title">{title}</h2>
+          <h2 className="text-xl font-semibold text-blue-800" data-testid="page-title">{title}</h2>
           {user && (user as any).company && (
-            <p className="text-sm text-white/90 font-medium" data-testid="company-name">
+            <p className="text-sm text-blue-600 font-medium" data-testid="company-name">
               {(user as any).company.name}
             </p>
           )}
@@ -64,7 +64,7 @@ export default function TopBar({ title }: TopBarProps) {
         </div>
         
         {/* Notifications */}
-        <Button variant="ghost" size="sm" className="p-2 text-white/80 hover:text-white hover:bg-white/10 relative">
+        <Button variant="ghost" size="sm" className="p-2 text-gray-400 hover:text-gray-500 relative">
           <Bell className="h-5 w-5" />
           <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
             0
@@ -81,7 +81,7 @@ export default function TopBar({ title }: TopBarProps) {
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-gray-700">
                 {(user as any).firstName} {(user as any).lastName}
               </p>
               <div className="flex items-center space-x-2">

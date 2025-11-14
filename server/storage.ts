@@ -9,7 +9,6 @@ import {
   timeEntries,
   breakEntries,
   faceProfiles,
-  authorizedDevices,
   companies,
   holidays,
   messages,
@@ -22,7 +21,6 @@ import {
   employeeCourses,
   certificates,
   auditLog,
-  timeEntryAudit,
   timePeriods,
   rotationTemplates,
   rotationSegments,
@@ -31,24 +29,14 @@ import {
   rotationExceptions,
   rotationAudit,
   jobOpenings,
-  jobRequirements,
   candidates,
   applications,
-  applicationRequirementResponses,
-  leads,
   selectionStages,
   interviewTemplates,
   interviews,
   onboardingLinks,
   onboardingDocuments,
   onboardingFormData,
-  overtimeRules,
-  overtimeTiers,
-  timeBank,
-  timeBankTransactions,
-  discQuestions,
-  discAssessments,
-  discResponses,
   type User,
   type UpsertUser,
   type Department,
@@ -90,8 +78,6 @@ import {
   type InsertAuditLog,
   type TimePeriod,
   type InsertTimePeriod,
-  type AuthorizedDevice,
-  type InsertAuthorizedDevice,
   type RotationTemplate,
   type InsertRotationTemplate,
   type RotationSegment,
@@ -102,22 +88,9 @@ import {
   type RotationException,
   type InsertRotationException,
   type RotationAudit,
-  type OvertimeRule,
-  type InsertOvertimeRule,
-  type OvertimeTier,
-  type InsertOvertimeTier,
-  type TimeBank,
-  type InsertTimeBank,
-  type TimeBankTransaction,
-  type InsertTimeBankTransaction,
-  type Lead,
-  type InsertLead,
-  type DISCQuestion,
-  type DISCAssessment,
-  type DISCResponse,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
+import { eq, and, or, isNull, desc, gte, lte, sql, ne } from "drizzle-orm";
 
 // Local type aliases for tables that don't have exported types
 type InsertTimeEntry = typeof timeEntries.$inferInsert;
@@ -125,9 +98,6 @@ type BreakEntry = typeof breakEntries.$inferSelect;
 type InsertBreakEntry = typeof breakEntries.$inferInsert;
 type FaceProfile = typeof faceProfiles.$inferSelect;
 type InsertFaceProfile = typeof faceProfiles.$inferInsert;
-type InsertDISCQuestion = typeof discQuestions.$inferInsert;
-type InsertDISCAssessment = typeof discAssessments.$inferInsert;
-type InsertDISCResponse = typeof discResponses.$inferInsert;
 
 // Supervisor scope type for access control
 type SupervisorScope = {
@@ -321,15 +291,6 @@ export interface IStorage {
   reopenTimePeriod(id: number, reopenedBy: string, reason: string): Promise<TimePeriod>;
   canModifyTimeEntries(companyId: number, date: string): Promise<boolean>;
   
-  // Authorized device operations
-  getAuthorizedDevices(companyId: number): Promise<AuthorizedDevice[]>;
-  getAuthorizedDevice(id: number): Promise<AuthorizedDevice | undefined>;
-  getAuthorizedDeviceByCode(deviceCode: string): Promise<AuthorizedDevice | undefined>;
-  createAuthorizedDevice(device: InsertAuthorizedDevice): Promise<AuthorizedDevice>;
-  updateAuthorizedDevice(id: number, device: Partial<InsertAuthorizedDevice>): Promise<AuthorizedDevice>;
-  deleteAuthorizedDevice(id: number): Promise<void>;
-  updateDeviceLastUsed(id: number): Promise<void>;
-  
   // Enhanced user shift assignment operations with sequential validation
   validateSequentialAssignment(userId: string, shiftId: number, startDate?: string, endDate?: string, excludeAssignmentId?: number): Promise<{ valid: boolean; conflictingAssignments?: SelectUserShiftAssignment[] }>;
   createUserShiftAssignmentWithValidation(assignment: InsertUserShiftAssignment): Promise<SelectUserShiftAssignment>;
@@ -393,21 +354,12 @@ export interface IStorage {
   publishJobOpening(id: number): Promise<any>;
   closeJobOpening(id: number): Promise<any>;
   
-  // Job requirements operations
-  getJobRequirements(jobOpeningId: number): Promise<any[]>;
-  getJobRequirement(id: number): Promise<any | undefined>;
-  createJobRequirement(requirement: any): Promise<any>;
-  updateJobRequirement(id: number, requirement: Partial<any>): Promise<any>;
-  deleteJobRequirement(id: number): Promise<void>;
-  bulkReplaceJobRequirements(jobOpeningId: number, requirements: any[]): Promise<any[]>;
-  
   // Candidate operations
   getCandidates(companyId: number): Promise<any[]>;
   getCandidate(id: number): Promise<any | undefined>;
   createCandidate(candidate: any): Promise<any>;
   updateCandidate(id: number, candidate: Partial<any>): Promise<any>;
   getCandidateByEmail(companyId: number, email: string): Promise<any | undefined>;
-  findOrCreateCandidateByEmail(email: string, data: any): Promise<any>;
   
   // Application operations
   getApplications(jobOpeningId: number): Promise<any[]>;
@@ -416,14 +368,6 @@ export interface IStorage {
   updateApplication(id: number, application: Partial<any>): Promise<any>;
   getCandidateApplications(candidateId: number): Promise<any[]>;
   getApplicationsByStatus(jobOpeningId: number, status: string): Promise<any[]>;
-  
-  // Application requirement responses operations (atomic transaction)
-  getApplicationRequirementResponses(applicationId: number): Promise<any[]>;
-  submitAndScoreApplication(applicationId: number, responses: any[]): Promise<{ 
-    score: number; 
-    isQualified: boolean; 
-    missingMandatoryRequirements: string[];
-  }>;
   
   // Selection stage operations
   getSelectionStages(jobOpeningId: number): Promise<any[]>;
@@ -461,49 +405,6 @@ export interface IStorage {
   // Onboarding form data operations
   getOnboardingFormData(onboardingLinkId: number): Promise<any | undefined>;
   upsertOnboardingFormData(formData: any): Promise<any>;
-  
-  // Overtime Rules operations
-  getOvertimeRules(departmentId: number): Promise<OvertimeRule[]>;
-  getOvertimeRule(id: number): Promise<OvertimeRule | undefined>;
-  createOvertimeRule(rule: InsertOvertimeRule): Promise<OvertimeRule>;
-  updateOvertimeRule(id: number, rule: Partial<InsertOvertimeRule>): Promise<OvertimeRule>;
-  deleteOvertimeRule(id: number): Promise<void>;
-  getApplicableOvertimeRule(departmentId: number, shiftId: number | null, date: Date): Promise<(OvertimeRule & { tiers: OvertimeTier[] }) | undefined>;
-  
-  // Overtime Tiers operations
-  getOvertimeTiers(overtimeRuleId: number): Promise<OvertimeTier[]>;
-  createOvertimeTier(tier: InsertOvertimeTier): Promise<OvertimeTier>;
-  updateOvertimeTier(id: number, tier: Partial<InsertOvertimeTier>): Promise<OvertimeTier>;
-  deleteOvertimeTier(id: number): Promise<void>;
-  
-  // Time Bank operations
-  getTimeBank(userId: string): Promise<TimeBank | undefined>;
-  createTimeBank(timeBank: InsertTimeBank): Promise<TimeBank>;
-  updateTimeBankBalance(userId: string, hours: number, type: 'credit' | 'debit', reason: string, description?: string, timeEntryId?: number, createdBy?: string): Promise<TimeBank>;
-  getTimeBankBalance(userId: string): Promise<number>;
-  
-  // Time Bank Transaction operations
-  getTimeBankTransactions(userId: string, limit?: number): Promise<TimeBankTransaction[]>;
-  createTimeBankTransaction(transaction: InsertTimeBankTransaction): Promise<TimeBankTransaction>;
-  
-  // Lead operations
-  createLead(lead: InsertLead): Promise<Lead>;
-  getLeads(filters?: { status?: string }): Promise<Lead[]>;
-  getLead(id: number): Promise<Lead | undefined>;
-  updateLeadStatus(id: number, update: { status?: string; followUpNotes?: string; assignedTo?: string; lastContactedAt?: Date }): Promise<Lead>;
-  
-  // DISC assessment operations
-  getDISCQuestions(): Promise<DISCQuestion[]>;
-  getActiveDISCQuestions(): Promise<DISCQuestion[]>;
-  createDISCAssessment(assessment: InsertDISCAssessment): Promise<DISCAssessment>;
-  getDISCAssessment(id: number): Promise<DISCAssessment | undefined>;
-  getDISCAssessmentByToken(token: string): Promise<DISCAssessment | undefined>;
-  getDISCAssessmentsByJobOpening(jobOpeningId: number): Promise<DISCAssessment[]>;
-  getDISCAssessmentsByCandidate(candidateId: number): Promise<DISCAssessment[]>;
-  updateDISCAssessment(id: number, assessment: Partial<InsertDISCAssessment>): Promise<DISCAssessment>;
-  createDISCResponse(response: InsertDISCResponse): Promise<DISCResponse>;
-  getDISCResponses(assessmentId: number): Promise<DISCResponse[]>;
-  finalizeDISCAssessment(assessmentId: number, scores: { dScore: number; iScore: number; sScore: number; cScore: number; primaryProfile: string }): Promise<DISCAssessment>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1193,28 +1094,6 @@ export class DatabaseStorage implements IStorage {
     return updatedEntry;
   }
 
-  async createTimeEntryAudit(audit: {
-    timeEntryId: number;
-    fieldName: string;
-    oldValue: string | null;
-    newValue: string | null;
-    justification: string;
-    attachmentUrl?: string | null;
-    editedBy: string;
-    ipAddress?: string;
-  }) {
-    const [newAudit] = await db.insert(timeEntryAudit).values(audit).returning();
-    return newAudit;
-  }
-
-  async getTimeEntryAuditHistory(timeEntryId: number) {
-    return await db
-      .select()
-      .from(timeEntryAudit)
-      .where(eq(timeEntryAudit.timeEntryId, timeEntryId))
-      .orderBy(desc(timeEntryAudit.createdAt));
-  }
-
   async getTimeEntriesByUser(userId: string, startDate?: string, endDate?: string): Promise<TimeEntry[]> {
     let conditions = [eq(timeEntries.userId, userId)];
     
@@ -1230,32 +1109,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(timeEntries.date));
   }
 
-  async getTimeEntriesByDateRange(startDate: string, endDate: string, companyId?: number): Promise<TimeEntry[]> {
-    // If companyId is provided, filter by company users
-    if (companyId) {
-      const companyUsers = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.companyId, companyId));
-      
-      const userIds = companyUsers.map(u => u.id);
-      
-      if (userIds.length === 0) {
-        return [];
-      }
-      
-      return await db
-        .select()
-        .from(timeEntries)
-        .where(and(
-          gte(timeEntries.date, startDate),
-          lte(timeEntries.date, endDate),
-          inArray(timeEntries.userId, userIds)
-        ))
-        .orderBy(desc(timeEntries.date));
-    }
-    
-    // Otherwise return all entries in the date range
+  async getTimeEntriesByDateRange(startDate: string, endDate: string): Promise<TimeEntry[]> {
     return await db
       .select()
       .from(timeEntries)
@@ -1264,25 +1118,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeEntriesByDate(date: string, companyId: number): Promise<TimeEntry[]> {
-    // Get user IDs from the company first
-    const companyUsers = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.companyId, companyId));
-    
-    const userIds = companyUsers.map(u => u.id);
-    
-    if (userIds.length === 0) {
-      return [];
-    }
-    
-    // Then get time entries for those users on the specific date
     return await db
       .select()
       .from(timeEntries)
+      .leftJoin(users, eq(timeEntries.userId, users.id))
       .where(and(
         eq(timeEntries.date, date),
-        inArray(timeEntries.userId, userIds)
+        eq(users.companyId, companyId)
       ))
       .orderBy(desc(timeEntries.clockInTime));
   }
@@ -1412,10 +1254,9 @@ export class DatabaseStorage implements IStorage {
     const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
     
     const entries = await this.getTimeEntriesByUser(userId, startDate, endDate);
-    const completedEntries = entries.filter(entry => entry.status === 'completed');
+    const completedEntries = entries.filter(entry => entry.status === 'completed' && entry.totalHours);
     
     const totalHours = completedEntries.reduce((sum, entry) => {
-      if (!entry.totalHours) return sum;
       return sum + (parseFloat(entry.totalHours || '0'));
     }, 0);
     
@@ -2259,61 +2100,6 @@ export class DatabaseStorage implements IStorage {
     return closedPeriods.length === 0;
   }
 
-  // Authorized device operations
-  async getAuthorizedDevices(companyId: number): Promise<AuthorizedDevice[]> {
-    return await db
-      .select()
-      .from(authorizedDevices)
-      .where(eq(authorizedDevices.companyId, companyId))
-      .orderBy(desc(authorizedDevices.createdAt));
-  }
-
-  async getAuthorizedDevice(id: number): Promise<AuthorizedDevice | undefined> {
-    const [device] = await db
-      .select()
-      .from(authorizedDevices)
-      .where(eq(authorizedDevices.id, id));
-    return device;
-  }
-
-  async getAuthorizedDeviceByCode(deviceCode: string): Promise<AuthorizedDevice | undefined> {
-    const [device] = await db
-      .select()
-      .from(authorizedDevices)
-      .where(eq(authorizedDevices.deviceCode, deviceCode));
-    return device;
-  }
-
-  async createAuthorizedDevice(device: InsertAuthorizedDevice): Promise<AuthorizedDevice> {
-    const [newDevice] = await db
-      .insert(authorizedDevices)
-      .values(device)
-      .returning();
-    return newDevice;
-  }
-
-  async updateAuthorizedDevice(id: number, device: Partial<InsertAuthorizedDevice>): Promise<AuthorizedDevice> {
-    const [updatedDevice] = await db
-      .update(authorizedDevices)
-      .set({ ...device, updatedAt: new Date() })
-      .where(eq(authorizedDevices.id, id))
-      .returning();
-    return updatedDevice;
-  }
-
-  async deleteAuthorizedDevice(id: number): Promise<void> {
-    await db
-      .delete(authorizedDevices)
-      .where(eq(authorizedDevices.id, id));
-  }
-
-  async updateDeviceLastUsed(id: number): Promise<void> {
-    await db
-      .update(authorizedDevices)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(authorizedDevices.id, id));
-  }
-
   // Enhanced user shift assignment operations with sequential validation
   async validateSequentialAssignment(
     userId: string, 
@@ -2805,159 +2591,41 @@ export class DatabaseStorage implements IStorage {
   async getJobOpenings(companyId: number, status?: string): Promise<any[]> {
     if (status) {
       return await db
-        .select({
-          id: jobOpenings.id,
-          companyId: jobOpenings.companyId,
-          companyName: companies.name,
-          departmentId: jobOpenings.departmentId,
-          title: jobOpenings.title,
-          description: jobOpenings.description,
-          requirements: jobOpenings.requirements,
-          responsibilities: jobOpenings.responsibilities,
-          benefits: jobOpenings.benefits,
-          location: jobOpenings.location,
-          employmentType: jobOpenings.employmentType,
-          salaryRange: jobOpenings.salaryRange,
-          workSchedule: jobOpenings.workSchedule,
-          vacancies: jobOpenings.vacancies,
-          status: jobOpenings.status,
-          publishedAt: jobOpenings.publishedAt,
-          closedAt: jobOpenings.closedAt,
-          expiresAt: jobOpenings.expiresAt,
-          createdBy: jobOpenings.createdBy,
-          createdAt: jobOpenings.createdAt,
-          updatedAt: jobOpenings.updatedAt,
-        })
+        .select()
         .from(jobOpenings)
-        .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(eq(jobOpenings.companyId, companyId), eq(jobOpenings.status, status)))
         .orderBy(desc(jobOpenings.createdAt));
     }
     return await db
-      .select({
-        id: jobOpenings.id,
-        companyId: jobOpenings.companyId,
-        companyName: companies.name,
-        departmentId: jobOpenings.departmentId,
-        title: jobOpenings.title,
-        description: jobOpenings.description,
-        requirements: jobOpenings.requirements,
-        responsibilities: jobOpenings.responsibilities,
-        benefits: jobOpenings.benefits,
-        location: jobOpenings.location,
-        employmentType: jobOpenings.employmentType,
-        salaryRange: jobOpenings.salaryRange,
-        workSchedule: jobOpenings.workSchedule,
-        vacancies: jobOpenings.vacancies,
-        status: jobOpenings.status,
-        publishedAt: jobOpenings.publishedAt,
-        closedAt: jobOpenings.closedAt,
-        expiresAt: jobOpenings.expiresAt,
-        createdBy: jobOpenings.createdBy,
-        createdAt: jobOpenings.createdAt,
-        updatedAt: jobOpenings.updatedAt,
-      })
+      .select()
       .from(jobOpenings)
-      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.companyId, companyId))
       .orderBy(desc(jobOpenings.createdAt));
   }
 
   async getPublicJobOpenings(companyId?: number): Promise<any[]> {
-    // Return only published job openings for public viewing
+    // Return only active job openings for public viewing
     if (companyId) {
       return await db
-        .select({
-          id: jobOpenings.id,
-          companyId: jobOpenings.companyId,
-          companyName: companies.name,
-          departmentId: jobOpenings.departmentId,
-          title: jobOpenings.title,
-          description: jobOpenings.description,
-          requirements: jobOpenings.requirements,
-          responsibilities: jobOpenings.responsibilities,
-          benefits: jobOpenings.benefits,
-          location: jobOpenings.location,
-          employmentType: jobOpenings.employmentType,
-          salaryRange: jobOpenings.salaryRange,
-          workSchedule: jobOpenings.workSchedule,
-          vacancies: jobOpenings.vacancies,
-          status: jobOpenings.status,
-          publishedAt: jobOpenings.publishedAt,
-          closedAt: jobOpenings.closedAt,
-          expiresAt: jobOpenings.expiresAt,
-          createdBy: jobOpenings.createdBy,
-          createdAt: jobOpenings.createdAt,
-          updatedAt: jobOpenings.updatedAt,
-        })
+        .select()
         .from(jobOpenings)
-        .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(
           eq(jobOpenings.companyId, companyId),
-          eq(jobOpenings.status, 'published')
+          eq(jobOpenings.status, 'active')
         ))
         .orderBy(desc(jobOpenings.createdAt));
     }
     
-    // Return all published job openings if no company specified
+    // Return all active job openings if no company specified
     return await db
-      .select({
-        id: jobOpenings.id,
-        companyId: jobOpenings.companyId,
-        companyName: companies.name,
-        departmentId: jobOpenings.departmentId,
-        title: jobOpenings.title,
-        description: jobOpenings.description,
-        requirements: jobOpenings.requirements,
-        responsibilities: jobOpenings.responsibilities,
-        benefits: jobOpenings.benefits,
-        location: jobOpenings.location,
-        employmentType: jobOpenings.employmentType,
-        salaryRange: jobOpenings.salaryRange,
-        workSchedule: jobOpenings.workSchedule,
-        vacancies: jobOpenings.vacancies,
-        status: jobOpenings.status,
-        publishedAt: jobOpenings.publishedAt,
-        closedAt: jobOpenings.closedAt,
-        expiresAt: jobOpenings.expiresAt,
-        createdBy: jobOpenings.createdBy,
-        createdAt: jobOpenings.createdAt,
-        updatedAt: jobOpenings.updatedAt,
-      })
+      .select()
       .from(jobOpenings)
-      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
-      .where(eq(jobOpenings.status, 'published'))
+      .where(eq(jobOpenings.status, 'active'))
       .orderBy(desc(jobOpenings.createdAt));
   }
 
   async getJobOpening(id: number): Promise<any | undefined> {
-    const [job] = await db
-      .select({
-        id: jobOpenings.id,
-        companyId: jobOpenings.companyId,
-        companyName: companies.name,
-        departmentId: jobOpenings.departmentId,
-        title: jobOpenings.title,
-        description: jobOpenings.description,
-        requirements: jobOpenings.requirements,
-        responsibilities: jobOpenings.responsibilities,
-        benefits: jobOpenings.benefits,
-        location: jobOpenings.location,
-        employmentType: jobOpenings.employmentType,
-        salaryRange: jobOpenings.salaryRange,
-        workSchedule: jobOpenings.workSchedule,
-        vacancies: jobOpenings.vacancies,
-        status: jobOpenings.status,
-        publishedAt: jobOpenings.publishedAt,
-        closedAt: jobOpenings.closedAt,
-        expiresAt: jobOpenings.expiresAt,
-        createdBy: jobOpenings.createdBy,
-        createdAt: jobOpenings.createdAt,
-        updatedAt: jobOpenings.updatedAt,
-      })
-      .from(jobOpenings)
-      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
-      .where(eq(jobOpenings.id, id));
+    const [job] = await db.select().from(jobOpenings).where(eq(jobOpenings.id, id));
     return job;
   }
 
@@ -3033,24 +2701,6 @@ export class DatabaseStorage implements IStorage {
     return candidate;
   }
 
-  async findOrCreateCandidateByEmail(email: string, data: any): Promise<any> {
-    const normalizedEmail = email.toLowerCase();
-    
-    const [existingCandidate] = await db
-      .select()
-      .from(candidates)
-      .where(and(
-        eq(candidates.companyId, data.companyId),
-        sql`LOWER(${candidates.email}) = ${normalizedEmail}`
-      ));
-    
-    if (existingCandidate) {
-      return existingCandidate;
-    }
-    
-    return await this.createCandidate({ ...data, email: normalizedEmail });
-  }
-
   // Application operations
   async getApplications(jobOpeningId: number): Promise<any[]> {
     return await db
@@ -3093,188 +2743,6 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .where(and(eq(applications.jobOpeningId, jobOpeningId), eq(applications.status, status)))
       .orderBy(desc(applications.appliedAt));
-  }
-
-  // Job requirements operations
-  async getJobRequirements(jobOpeningId: number): Promise<any[]> {
-    return await db
-      .select()
-      .from(jobRequirements)
-      .where(eq(jobRequirements.jobOpeningId, jobOpeningId))
-      .orderBy(jobRequirements.order);
-  }
-
-  async getJobRequirement(id: number): Promise<any | undefined> {
-    const [requirement] = await db
-      .select()
-      .from(jobRequirements)
-      .where(eq(jobRequirements.id, id));
-    return requirement;
-  }
-
-  async createJobRequirement(requirement: any): Promise<any> {
-    const [newReq] = await db
-      .insert(jobRequirements)
-      .values(requirement)
-      .returning();
-    return newReq;
-  }
-
-  async updateJobRequirement(id: number, requirement: Partial<any>): Promise<any> {
-    const [updated] = await db
-      .update(jobRequirements)
-      .set({ ...requirement, updatedAt: new Date() })
-      .where(eq(jobRequirements.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteJobRequirement(id: number): Promise<void> {
-    await db.delete(jobRequirements).where(eq(jobRequirements.id, id));
-  }
-
-  async bulkReplaceJobRequirements(jobOpeningId: number, requirements: any[]): Promise<any[]> {
-    // Wrap delete + insert in a transaction for atomicity
-    return await db.transaction(async (tx) => {
-      // Delete all existing requirements for this job opening
-      await tx
-        .delete(jobRequirements)
-        .where(eq(jobRequirements.jobOpeningId, jobOpeningId));
-      
-      // Insert new requirements if any
-      if (requirements.length === 0) {
-        return [];
-      }
-
-      const newRequirements = await tx
-        .insert(jobRequirements)
-        .values(requirements.map((req, index) => ({
-          ...req,
-          jobOpeningId,
-          order: req.order ?? index,
-        })))
-        .returning();
-      
-      return newRequirements;
-    });
-  }
-
-  // Application requirement responses operations
-  async getApplicationRequirementResponses(applicationId: number): Promise<any[]> {
-    return await db
-      .select()
-      .from(applicationRequirementResponses)
-      .where(eq(applicationRequirementResponses.applicationId, applicationId));
-  }
-
-  async submitAndScoreApplication(applicationId: number, responses: any[]): Promise<{ 
-    score: number; 
-    isQualified: boolean; 
-    missingMandatoryRequirements: string[];
-  }> {
-    // Step 1: Get the application to find the job opening
-    const application = await this.getApplication(applicationId);
-    if (!application) {
-      throw new Error('Application not found');
-    }
-
-    // Step 2: Get all requirements for this job opening
-    const allRequirements = await this.getJobRequirements(application.jobOpeningId);
-    
-    // Step 3: Identify mandatory requirements
-    const mandatoryRequirements = allRequirements.filter(
-      req => req.requirementType === 'mandatory'
-    );
-    
-    // Step 4: Check which mandatory requirements have responses
-    const respondedRequirementIds = new Set(responses.map(r => r.requirementId));
-    const missingMandatory = mandatoryRequirements.filter(
-      req => !respondedRequirementIds.has(req.id)
-    );
-    
-    const missingMandatoryRequirements = missingMandatory.map(req => req.title);
-    const isQualified = missingMandatory.length === 0;
-    
-    // Step 5: Upsert responses (delete existing + insert new)
-    await db
-      .delete(applicationRequirementResponses)
-      .where(eq(applicationRequirementResponses.applicationId, applicationId));
-    
-    if (responses.length > 0) {
-      // Step 6: For each response, find the requirement and calculate points earned
-      const responsesWithPoints = await Promise.all(
-        responses.map(async (response) => {
-          const requirement = allRequirements.find(r => r.id === response.requirementId);
-          if (!requirement) {
-            throw new Error(`Requirement ${response.requirementId} not found`);
-          }
-          
-          // Find the points for the selected proficiency level
-          const proficiencyLevels = requirement.proficiencyLevels as any[];
-          const selectedLevel = proficiencyLevels.find(
-            level => level.level === response.proficiencyLevel
-          );
-          
-          if (!selectedLevel) {
-            throw new Error(
-              `Proficiency level "${response.proficiencyLevel}" not found for requirement ${requirement.title}`
-            );
-          }
-          
-          return {
-            applicationId,
-            requirementId: response.requirementId,
-            proficiencyLevel: response.proficiencyLevel,
-            pointsEarned: selectedLevel.points,
-          };
-        })
-      );
-      
-      await db
-        .insert(applicationRequirementResponses)
-        .values(responsesWithPoints);
-      
-      // Step 7: Calculate weighted score: Σ(Pi × Wi)
-      let totalScore = 0;
-      for (const response of responsesWithPoints) {
-        const requirement = allRequirements.find(r => r.id === response.requirementId);
-        if (requirement) {
-          totalScore += response.pointsEarned * requirement.weight;
-        }
-      }
-      
-      // Step 8: Update application with score and qualification status
-      await db
-        .update(applications)
-        .set({ 
-          score: totalScore, 
-          isQualified,
-          updatedAt: new Date()
-        })
-        .where(eq(applications.id, applicationId));
-      
-      return {
-        score: totalScore,
-        isQualified,
-        missingMandatoryRequirements,
-      };
-    } else {
-      // No responses submitted, set score to 0
-      await db
-        .update(applications)
-        .set({ 
-          score: 0, 
-          isQualified,
-          updatedAt: new Date()
-        })
-        .where(eq(applications.id, applicationId));
-      
-      return {
-        score: 0,
-        isQualified,
-        missingMandatoryRequirements,
-      };
-    }
   }
 
   // Selection stage operations
@@ -3483,455 +2951,6 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return data;
-  }
-
-  // ========================================================================================
-  // OVERTIME & TIME BANK OPERATIONS
-  // ========================================================================================
-
-  // Overtime Rules operations
-  async getOvertimeRules(departmentId: number): Promise<OvertimeRule[]> {
-    return await db
-      .select()
-      .from(overtimeRules)
-      .where(eq(overtimeRules.departmentId, departmentId))
-      .orderBy(desc(overtimeRules.priority));
-  }
-
-  async getOvertimeRule(id: number): Promise<OvertimeRule | undefined> {
-    const [rule] = await db
-      .select()
-      .from(overtimeRules)
-      .where(eq(overtimeRules.id, id));
-    return rule;
-  }
-
-  async createOvertimeRule(rule: InsertOvertimeRule): Promise<OvertimeRule> {
-    const [newRule] = await db.insert(overtimeRules).values(rule).returning();
-    return newRule;
-  }
-
-  async updateOvertimeRule(id: number, rule: Partial<InsertOvertimeRule>): Promise<OvertimeRule> {
-    const [updated] = await db
-      .update(overtimeRules)
-      .set({ ...rule, updatedAt: new Date() })
-      .where(eq(overtimeRules.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteOvertimeRule(id: number): Promise<void> {
-    await db.delete(overtimeRules).where(eq(overtimeRules.id, id));
-  }
-
-  async getApplicableOvertimeRule(
-    departmentId: number, 
-    shiftId: number | null, 
-    date: Date
-  ): Promise<(OvertimeRule & { tiers: OvertimeTier[] }) | undefined> {
-    const dayOfWeek = date.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
-    // Check if date is a holiday
-    const dateStr = date.toISOString().split('T')[0];
-    const [holiday] = await db
-      .select()
-      .from(holidays)
-      .where(
-        and(
-          eq(holidays.date, dateStr),
-          eq(holidays.isActive, true)
-        )
-      );
-    const isHoliday = !!holiday;
-    
-    // Find applicable rules ordered by priority
-    const rules = await db
-      .select()
-      .from(overtimeRules)
-      .where(
-        and(
-          eq(overtimeRules.departmentId, departmentId),
-          eq(overtimeRules.isActive, true),
-          or(
-            isNull(overtimeRules.shiftId),
-            shiftId ? eq(overtimeRules.shiftId, shiftId) : sql`true`
-          )
-        )
-      )
-      .orderBy(desc(overtimeRules.priority));
-    
-    // Find the first rule that applies to this day type
-    for (const rule of rules) {
-      if (isHoliday && rule.applyToHolidays) {
-        const tiers = await this.getOvertimeTiers(rule.id);
-        return { ...rule, tiers };
-      }
-      if (isWeekend && rule.applyToWeekends) {
-        const tiers = await this.getOvertimeTiers(rule.id);
-        return { ...rule, tiers };
-      }
-      if (!isWeekend && !isHoliday && rule.applyToWeekdays) {
-        const tiers = await this.getOvertimeTiers(rule.id);
-        return { ...rule, tiers };
-      }
-    }
-    
-    return undefined;
-  }
-
-  // Overtime Tiers operations
-  async getOvertimeTiers(overtimeRuleId: number): Promise<OvertimeTier[]> {
-    return await db
-      .select()
-      .from(overtimeTiers)
-      .where(eq(overtimeTiers.overtimeRuleId, overtimeRuleId))
-      .orderBy(overtimeTiers.orderIndex);
-  }
-
-  async createOvertimeTier(tier: InsertOvertimeTier): Promise<OvertimeTier> {
-    const [newTier] = await db.insert(overtimeTiers).values(tier).returning();
-    return newTier;
-  }
-
-  async updateOvertimeTier(id: number, tier: Partial<InsertOvertimeTier>): Promise<OvertimeTier> {
-    const [updated] = await db
-      .update(overtimeTiers)
-      .set(tier)
-      .where(eq(overtimeTiers.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteOvertimeTier(id: number): Promise<void> {
-    await db.delete(overtimeTiers).where(eq(overtimeTiers.id, id));
-  }
-
-  // Time Bank operations
-  async getTimeBank(userId: string): Promise<TimeBank | undefined> {
-    const [bank] = await db
-      .select()
-      .from(timeBank)
-      .where(eq(timeBank.userId, userId));
-    return bank;
-  }
-
-  async createTimeBank(timeBankData: InsertTimeBank): Promise<TimeBank> {
-    const [newBank] = await db.insert(timeBank).values(timeBankData).returning();
-    return newBank;
-  }
-
-  async updateTimeBankBalance(
-    userId: string,
-    hours: number,
-    type: 'credit' | 'debit',
-    reason: string,
-    description?: string,
-    timeEntryId?: number,
-    createdBy?: string
-  ): Promise<TimeBank> {
-    // Get or create time bank
-    let bank = await this.getTimeBank(userId);
-    if (!bank) {
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (!user?.companyId) throw new Error('User company not found');
-      bank = await this.createTimeBank({ userId, companyId: user.companyId });
-    }
-
-    // Calculate new balance
-    const currentBalance = parseFloat(bank.balanceHours || '0');
-    const hoursNum = parseFloat(hours.toString());
-    const newBalance = type === 'credit' 
-      ? currentBalance + hoursNum 
-      : currentBalance - hoursNum;
-
-    // Update time bank
-    const [updated] = await db
-      .update(timeBank)
-      .set({
-        balanceHours: newBalance.toFixed(2),
-        totalCredited: type === 'credit'
-          ? (parseFloat(bank.totalCredited || '0') + hoursNum).toFixed(2)
-          : bank.totalCredited,
-        totalDebited: type === 'debit'
-          ? (parseFloat(bank.totalDebited || '0') + hoursNum).toFixed(2)
-          : bank.totalDebited,
-        updatedAt: new Date()
-      })
-      .where(eq(timeBank.userId, userId))
-      .returning();
-
-    // Create transaction record
-    await this.createTimeBankTransaction({
-      timeBankId: bank.id,
-      userId,
-      transactionType: type,
-      hours: hoursNum.toFixed(2),
-      balanceAfter: newBalance.toFixed(2),
-      timeEntryId,
-      reason,
-      description,
-      createdBy
-    });
-
-    return updated;
-  }
-
-  async getTimeBankBalance(userId: string): Promise<number> {
-    const bank = await this.getTimeBank(userId);
-    return bank ? parseFloat(bank.balanceHours || '0') : 0;
-  }
-
-  // Time Bank Transaction operations
-  async getTimeBankTransactions(userId: string, limit = 50): Promise<TimeBankTransaction[]> {
-    return await db
-      .select()
-      .from(timeBankTransactions)
-      .where(eq(timeBankTransactions.userId, userId))
-      .orderBy(desc(timeBankTransactions.createdAt))
-      .limit(limit);
-  }
-
-  async createTimeBankTransaction(transaction: InsertTimeBankTransaction): Promise<TimeBankTransaction> {
-    const [newTransaction] = await db
-      .insert(timeBankTransactions)
-      .values(transaction)
-      .returning();
-    return newTransaction;
-  }
-
-  // Overtime calculation logic
-  calculateOvertimeBreakdown(
-    overtimeHours: number,
-    tiers: OvertimeTier[]
-  ): { totalEquivalentHours: number; breakdown: Array<{ tierName: string; hours: number; percentage: number; equivalentHours: number }> } {
-    const breakdown: Array<{ tierName: string; hours: number; percentage: number; equivalentHours: number }> = [];
-    let remainingHours = overtimeHours;
-    let totalEquivalentHours = 0;
-
-    // Sort tiers by order
-    const sortedTiers = [...tiers].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-
-    for (const tier of sortedTiers) {
-      if (remainingHours <= 0) break;
-
-      const minHours = parseFloat(tier.minHours);
-      const maxHours = tier.maxHours ? parseFloat(tier.maxHours) : Infinity;
-      const percentage = tier.percentage;
-
-      // Calculate hours in this tier
-      const tierRange = maxHours - minHours;
-      const hoursInThisTier = Math.min(remainingHours, Math.max(0, maxHours - Math.max(minHours, overtimeHours - remainingHours)));
-
-      if (hoursInThisTier > 0) {
-        const equivalentHours = hoursInThisTier * (1 + percentage / 100);
-        breakdown.push({
-          tierName: tier.description || `Faixa ${tier.orderIndex || 0}`,
-          hours: parseFloat(hoursInThisTier.toFixed(2)),
-          percentage,
-          equivalentHours: parseFloat(equivalentHours.toFixed(2))
-        });
-        totalEquivalentHours += equivalentHours;
-        remainingHours -= hoursInThisTier;
-      }
-    }
-
-    return {
-      totalEquivalentHours: parseFloat(totalEquivalentHours.toFixed(2)),
-      breakdown
-    };
-  }
-
-  async processOvertimeForTimeEntry(
-    timeEntryId: number,
-    userId: string,
-    departmentId: number,
-    shiftId: number | null,
-    workedHours: number,
-    expectedHours: number,
-    entryDate: Date
-  ): Promise<void> {
-    const overtimeHours = Math.max(0, workedHours - expectedHours);
-    if (overtimeHours === 0) return;
-
-    // Get applicable overtime rule
-    const rule = await this.getApplicableOvertimeRule(departmentId, shiftId, entryDate);
-    if (!rule) return;
-
-    // Calculate overtime breakdown
-    const { totalEquivalentHours, breakdown } = this.calculateOvertimeBreakdown(overtimeHours, rule.tiers);
-
-    // Update time entry with overtime info
-    await db.update(timeEntries)
-      .set({
-        overtimeRuleId: rule.id,
-        overtimeType: rule.overtimeType,
-        overtimeBreakdown: JSON.stringify(breakdown),
-        timeBankHours: rule.overtimeType === 'time_bank' ? totalEquivalentHours.toFixed(2) : null
-      })
-      .where(eq(timeEntries.id, timeEntryId));
-
-    // If time bank, credit the hours
-    if (rule.overtimeType === 'time_bank') {
-      await this.updateTimeBankBalance(
-        userId,
-        totalEquivalentHours,
-        'credit',
-        'overtime',
-        `HE processada: ${overtimeHours}h trabalhadas = ${totalEquivalentHours}h creditadas`,
-        timeEntryId
-      );
-    }
-  }
-
-  // Lead operations
-  async createLead(lead: InsertLead): Promise<Lead> {
-    const [newLead] = await db
-      .insert(leads)
-      .values({
-        ...lead,
-        status: "new",
-        sourceChannel: "website",
-      })
-      .returning();
-    return newLead;
-  }
-
-  async getLeads(filters?: { status?: string }): Promise<Lead[]> {
-    let query = db
-      .select()
-      .from(leads)
-      .orderBy(desc(leads.createdAt));
-
-    if (filters?.status) {
-      query = query.where(eq(leads.status, filters.status)) as any;
-    }
-
-    return await query;
-  }
-
-  async getLead(id: number): Promise<Lead | undefined> {
-    const results = await db
-      .select()
-      .from(leads)
-      .where(eq(leads.id, id))
-      .limit(1);
-    return results[0];
-  }
-
-  async updateLeadStatus(
-    id: number,
-    update: { status?: string; followUpNotes?: string; assignedTo?: string; lastContactedAt?: Date }
-  ): Promise<Lead> {
-    const [updatedLead] = await db
-      .update(leads)
-      .set({
-        ...update,
-        updatedAt: new Date(),
-      })
-      .where(eq(leads.id, id))
-      .returning();
-    return updatedLead;
-  }
-
-  // DISC assessment operations
-  async getDISCQuestions(): Promise<DISCQuestion[]> {
-    return await db.select().from(discQuestions).orderBy(discQuestions.order);
-  }
-
-  async getActiveDISCQuestions(): Promise<DISCQuestion[]> {
-    return await db
-      .select()
-      .from(discQuestions)
-      .where(eq(discQuestions.isActive, true))
-      .orderBy(discQuestions.order);
-  }
-
-  async createDISCAssessment(assessment: InsertDISCAssessment): Promise<DISCAssessment> {
-    const [newAssessment] = await db
-      .insert(discAssessments)
-      .values(assessment)
-      .returning();
-    return newAssessment;
-  }
-
-  async getDISCAssessment(id: number): Promise<DISCAssessment | undefined> {
-    const results = await db
-      .select()
-      .from(discAssessments)
-      .where(eq(discAssessments.id, id))
-      .limit(1);
-    return results[0];
-  }
-
-  async getDISCAssessmentByToken(token: string): Promise<DISCAssessment | undefined> {
-    const results = await db
-      .select()
-      .from(discAssessments)
-      .where(eq(discAssessments.accessToken, token))
-      .limit(1);
-    return results[0];
-  }
-
-  async getDISCAssessmentsByJobOpening(jobOpeningId: number): Promise<DISCAssessment[]> {
-    return await db
-      .select()
-      .from(discAssessments)
-      .where(eq(discAssessments.jobOpeningId, jobOpeningId))
-      .orderBy(desc(discAssessments.createdAt));
-  }
-
-  async getDISCAssessmentsByCandidate(candidateId: number): Promise<DISCAssessment[]> {
-    return await db
-      .select()
-      .from(discAssessments)
-      .where(eq(discAssessments.candidateId, candidateId))
-      .orderBy(desc(discAssessments.createdAt));
-  }
-
-  async updateDISCAssessment(id: number, assessment: Partial<InsertDISCAssessment>): Promise<DISCAssessment> {
-    const [updated] = await db
-      .update(discAssessments)
-      .set(assessment)
-      .where(eq(discAssessments.id, id))
-      .returning();
-    return updated;
-  }
-
-  async createDISCResponse(response: InsertDISCResponse): Promise<DISCResponse> {
-    const [newResponse] = await db
-      .insert(discResponses)
-      .values(response)
-      .returning();
-    return newResponse;
-  }
-
-  async getDISCResponses(assessmentId: number): Promise<DISCResponse[]> {
-    return await db
-      .select()
-      .from(discResponses)
-      .where(eq(discResponses.assessmentId, assessmentId))
-      .orderBy(discResponses.questionId);
-  }
-
-  async finalizeDISCAssessment(
-    assessmentId: number,
-    scores: { dScore: number; iScore: number; sScore: number; cScore: number; primaryProfile: string }
-  ): Promise<DISCAssessment> {
-    const [updated] = await db
-      .update(discAssessments)
-      .set({
-        status: 'completed',
-        completedAt: new Date(),
-        dScore: scores.dScore,
-        iScore: scores.iScore,
-        sScore: scores.sScore,
-        cScore: scores.cScore,
-        primaryProfile: scores.primaryProfile,
-      })
-      .where(eq(discAssessments.id, assessmentId))
-      .returning();
-    return updated;
   }
 }
 

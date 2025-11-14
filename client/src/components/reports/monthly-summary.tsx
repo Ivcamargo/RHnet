@@ -1,10 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle, Camera } from "lucide-react";
+import { Clock, Calendar, AlertTriangle } from "lucide-react";
 
 interface TimeEntry {
   id: number;
@@ -21,22 +18,6 @@ interface TimeEntry {
   clockOutShiftCompliant?: boolean;
   clockInValidationMessage?: string;
   clockOutValidationMessage?: string;
-  // Additional details
-  clockInPhotoUrl?: string | null;
-  clockOutPhotoUrl?: string | null;
-  clockInIpAddress?: string | null;
-  clockOutIpAddress?: string | null;
-  clockInLatitude?: number | null;
-  clockInLongitude?: number | null;
-  clockOutLatitude?: number | null;
-  clockOutLongitude?: number | null;
-  regularHours?: string | null;
-  overtimeHours?: string | null;
-  // Irregularity tracking
-  expectedHours?: string | null;
-  lateMinutes?: number | null;
-  shortfallMinutes?: number | null;
-  irregularityReasons?: string[] | null;
 }
 
 interface MonthlyTimeTableProps {
@@ -44,17 +25,9 @@ interface MonthlyTimeTableProps {
 }
 
 export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
-  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
   const sortedEntries = useMemo(() => {
     return [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [entries]);
-
-  const openDetails = (entry: TimeEntry) => {
-    setSelectedEntry(entry);
-    setDetailsOpen(true);
-  };
 
   const formatTime = (timeString: string | null) => {
     if (!timeString) return "-";
@@ -66,12 +39,8 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   };
 
   const formatDate = (dateString: string) => {
-    // Parse date string (YYYY-MM-DD) sem interpretar timezone
-    // Evita problema de timezone que faz a data voltar 1 dia
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    
-    return localDate.toLocaleDateString('pt-BR', {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -89,15 +58,6 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   const getStatusBadge = (entry: TimeEntry) => {
     const today = new Date().toISOString().split('T')[0];
     const isToday = entry.date === today;
-    
-    // Prioridade para "Irregular" se houver problemas
-    if (isIrregular(entry)) {
-      return (
-        <Badge variant="destructive" className="bg-red-600">
-          Irregular
-        </Badge>
-      );
-    }
     
     if (entry.status === "active" && isToday) {
       return (
@@ -172,251 +132,9 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
     return hasGeofenceIssue || hasShiftIssue;
   };
 
-  const isIrregular = (entry: TimeEntry) => {
-    // Usa irregularityReasons do backend se disponível
-    if (entry.irregularityReasons && entry.irregularityReasons.length > 0) {
-      return true;
-    }
-    // Status irregular
-    if (entry.status === "irregular") return true;
-    return false;
-  };
-
   return (
-    <>
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
-              Detalhes de Validação - {selectedEntry && formatDate(selectedEntry.date)}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedEntry && (
-            <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto">
-              {/* Status */}
-              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                <span className="text-sm font-medium">Status do Registro:</span>
-                {getStatusBadge(selectedEntry)}
-              </div>
-
-              {/* Irregularidades */}
-              {selectedEntry.irregularityReasons && selectedEntry.irregularityReasons.length > 0 && (
-                <div className="bg-red-50 border border-red-200 p-4 rounded-lg space-y-2">
-                  <h3 className="font-semibold text-red-800 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Irregularidades Detectadas
-                  </h3>
-                  <ul className="space-y-1 ml-7">
-                    {selectedEntry.irregularityReasons.map((reason, idx) => (
-                      <li key={idx} className="text-sm text-red-700">
-                        • {reason}
-                      </li>
-                    ))}
-                  </ul>
-                  {selectedEntry.expectedHours && (
-                    <div className="mt-3 pt-3 border-t border-red-200 text-xs text-red-600">
-                      <span className="font-medium">Horas esperadas:</span> {selectedEntry.expectedHours}h
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Entrada */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
-                  <Clock className="h-5 w-5" />
-                  Registro de Entrada - {formatTime(selectedEntry.clockInTime)}
-                </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  {/* Validação */}
-                  {selectedEntry.clockInValidationMessage ? (
-                    <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
-                      {selectedEntry.clockInValidationMessage}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
-                  )}
-                  
-                  {/* Status de Conformidade */}
-                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
-                    <div className="flex items-center gap-2">
-                      {selectedEntry.clockInWithinGeofence ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
-                      )}
-                      <span className="text-xs">
-                        {selectedEntry.clockInWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {selectedEntry.clockInShiftCompliant ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
-                      )}
-                      <span className="text-xs">
-                        {selectedEntry.clockInShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* IP e Localização */}
-                  <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t">
-                    {selectedEntry.clockInIpAddress && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">IP:</span>
-                        <span className="font-mono">{selectedEntry.clockInIpAddress}</span>
-                      </div>
-                    )}
-                    {selectedEntry.clockInLatitude && selectedEntry.clockInLongitude && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">Localização:</span>
-                        <span className="font-mono">
-                          {selectedEntry.clockInLatitude.toFixed(6)}, {selectedEntry.clockInLongitude.toFixed(6)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Reconhecimento Facial */}
-                  <div className="mt-3 pt-3 border-t">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Camera className="h-4 w-4 text-blue-600" />
-                      <p className="text-xs font-medium text-blue-800">Reconhecimento Facial:</p>
-                    </div>
-                    {selectedEntry.clockInPhotoUrl ? (
-                      <img 
-                        src={selectedEntry.clockInPhotoUrl} 
-                        alt="Foto de entrada" 
-                        className="w-32 h-32 object-cover rounded border border-blue-300"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-dashed">
-                        <Camera className="h-4 w-4" />
-                        <span>Foto não disponível para este registro</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Saída */}
-              {selectedEntry.clockOutTime && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
-                    <Clock className="h-5 w-5" />
-                    Registro de Saída - {formatTime(selectedEntry.clockOutTime)}
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                    {/* Validação */}
-                    {selectedEntry.clockOutValidationMessage ? (
-                      <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
-                        {selectedEntry.clockOutValidationMessage}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
-                    )}
-                    
-                    {/* Status de Conformidade */}
-                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
-                      <div className="flex items-center gap-2">
-                        {selectedEntry.clockOutWithinGeofence ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className="text-xs">
-                          {selectedEntry.clockOutWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {selectedEntry.clockOutShiftCompliant ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className="text-xs">
-                          {selectedEntry.clockOutShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* IP e Localização */}
-                    <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t">
-                      {selectedEntry.clockOutIpAddress && (
-                        <div className="flex items-center gap-2 text-xs">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="font-medium">IP:</span>
-                          <span className="font-mono">{selectedEntry.clockOutIpAddress}</span>
-                        </div>
-                      )}
-                      {selectedEntry.clockOutLatitude && selectedEntry.clockOutLongitude && (
-                        <div className="flex items-center gap-2 text-xs">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="font-medium">Localização:</span>
-                          <span className="font-mono">
-                            {selectedEntry.clockOutLatitude.toFixed(6)}, {selectedEntry.clockOutLongitude.toFixed(6)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Reconhecimento Facial */}
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Camera className="h-4 w-4 text-blue-600" />
-                        <p className="text-xs font-medium text-blue-800">Reconhecimento Facial:</p>
-                      </div>
-                      {selectedEntry.clockOutPhotoUrl ? (
-                        <img 
-                          src={selectedEntry.clockOutPhotoUrl} 
-                          alt="Foto de saída" 
-                          className="w-32 h-32 object-cover rounded border border-blue-300"
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-dashed">
-                          <Camera className="h-4 w-4" />
-                          <span>Foto não disponível para este registro</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Resumo de Horas */}
-              <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-blue-800">Total de Horas Trabalhadas</span>
-                  <span className="text-lg font-bold text-blue-900">
-                    {formatHours(selectedEntry.totalHours)}
-                  </span>
-                </div>
-                {(selectedEntry.regularHours || selectedEntry.overtimeHours) && (
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-200">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-blue-700">Horas Regulares:</span>
-                      <span className="font-semibold">{formatHours(selectedEntry.regularHours || '0')}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-blue-700">Horas Extras:</span>
-                      <span className="font-semibold">{formatHours(selectedEntry.overtimeHours || '0')}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <div className="overflow-x-auto">
-        <Table>
+    <div className="overflow-x-auto">
+      <Table>
         <TableHeader>
           <TableRow className="border-b border-gray-200">
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Data</TableHead>
@@ -434,23 +152,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 <div className="flex items-center gap-1">
                   {formatDate(entry.date)}
                   {hasValidationIssues(entry) && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => openDetails(entry)}
-                            className="cursor-pointer hover:scale-110 transition-transform"
-                            data-testid={`button-warning-${entry.id}`}
-                          >
-                            <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">⚠️ Problemas de validação detectados</p>
-                          <p className="text-xs text-gray-400">Clique para ver detalhes</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <AlertTriangle className="h-4 w-4 text-amber-600" title="Inconsistências detectadas" />
                   )}
                 </div>
               </TableCell>
@@ -472,43 +174,22 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               <TableCell className="py-3 px-4">
                 <div className="flex flex-col gap-1">
                   {entry.faceRecognitionVerified ? (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1 text-green-600">
-                            <Camera className="h-4 w-4" />
-                            <span className="text-xs">Verificado</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">✓ Reconhecimento facial verificado</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <span className="text-green-600 text-xs">✓ Facial</span>
                   ) : (
                     <span className="text-gray-400 text-xs">-</span>
                   )}
-                  <button
-                    onClick={() => openDetails(entry)}
-                    className={`text-xs underline cursor-pointer text-left ${
-                      (entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
-                        ? 'text-amber-600 hover:text-amber-700'
-                        : 'text-blue-600 hover:text-blue-700'
-                    }`}
-                    data-testid={`button-details-${entry.id}`}
-                  >
-                    {(entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
-                      ? '⚠ Ver detalhes'
-                      : 'Ver detalhes'}
-                  </button>
+                  {(entry.clockInValidationMessage || entry.clockOutValidationMessage) && (
+                    <div className="text-xs text-amber-600 cursor-help" title={`${entry.clockInValidationMessage || ''}\n${entry.clockOutValidationMessage || ''}`.trim()}>
+                      ⚠ Ver detalhes
+                    </div>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      </div>
-    </>
+    </div>
   );
 }
 

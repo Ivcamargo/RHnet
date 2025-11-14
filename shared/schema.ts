@@ -114,8 +114,6 @@ export const departmentShifts = pgTable("department_shifts", {
   breakStart: varchar("break_start"), // "12:00" - Início do intervalo
   breakEnd: varchar("break_end"), // "13:00" - Fim do intervalo
   daysOfWeek: integer("days_of_week").array(), // [1,2,3,4,5] for Mon-Fri
-  toleranceBeforeMinutes: integer("tolerance_before_minutes").default(5), // Tolerância para entrada antecipada (padrão: 5 min)
-  toleranceAfterMinutes: integer("tolerance_after_minutes").default(5), // Tolerância para entrada atrasada (padrão: 5 min)
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -288,7 +286,6 @@ export const timeEntries = pgTable("time_entries", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),
   departmentId: integer("department_id").notNull(),
-  deviceId: integer("device_id"), // ID do terminal autorizado (se registrado via terminal fixo)
   clockInTime: timestamp("clock_in_time"),
   clockOutTime: timestamp("clock_out_time"),
   clockInLatitude: real("clock_in_latitude"),
@@ -298,18 +295,8 @@ export const timeEntries = pgTable("time_entries", {
   totalHours: decimal("total_hours", { precision: 6, scale: 2 }),
   regularHours: decimal("regular_hours", { precision: 6, scale: 2 }).default('0'),
   overtimeHours: decimal("overtime_hours", { precision: 6, scale: 2 }).default('0'),
-  expectedHours: decimal("expected_hours", { precision: 6, scale: 2 }), // Horas esperadas do turno
-  lateMinutes: integer("late_minutes"), // Minutos de atraso no início
-  shortfallMinutes: integer("shortfall_minutes"), // Minutos a menos trabalhados
-  irregularityReasons: text("irregularity_reasons").array(), // Motivos de irregularidade
-  status: varchar("status").default("active"), // active, completed, incomplete, irregular
+  status: varchar("status").default("active"), // active, completed, incomplete
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
-  
-  // Overtime tracking (novo sistema de HE)
-  overtimeRuleId: integer("overtime_rule_id"), // ID da regra de HE aplicada
-  overtimeType: varchar("overtime_type"), // "paid" ou "time_bank"
-  overtimeBreakdown: jsonb("overtime_breakdown"), // Detalhamento por tier: [{ tier: 1, hours: 2, percentage: 50, equivalentHours: 3 }]
-  timeBankHours: decimal("time_bank_hours", { precision: 6, scale: 2 }).default('0'), // Horas creditadas no banco
   
   // Fotos de reconhecimento facial
   clockInPhotoUrl: varchar("clock_in_photo_url"), // URL da foto na entrada
@@ -373,27 +360,6 @@ export const faceProfiles = pgTable("face_profiles", {
   }).onDelete('cascade'),
 }));
 
-// Authorized devices for fixed time clock terminals
-export const authorizedDevices = pgTable("authorized_devices", {
-  id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(),
-  deviceCode: varchar("device_code", { length: 50 }).notNull().unique(),
-  deviceName: varchar("device_name", { length: 100 }).notNull(),
-  location: varchar("location", { length: 100 }).notNull(), // Text description
-  latitude: real("latitude"), // Terminal geofence center
-  longitude: real("longitude"), // Terminal geofence center
-  radius: integer("radius").default(100), // Meters - geofence radius
-  isActive: boolean("is_active").default(true),
-  lastUsedAt: timestamp("last_used_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  companyReference: foreignKey({
-    columns: [table.companyId],
-    foreignColumns: [companies.id],
-  }).onDelete('cascade'),
-}));
-
 // Message categories for organizing communications
 export const messageCategories = pgTable("message_categories", {
   id: serial("id").primaryKey(),
@@ -420,10 +386,6 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   isMassMessage: boolean("is_mass_message").default(false),
   priority: varchar("priority").default("normal"), // low, normal, high
-  targetType: varchar("target_type"), // 'individual' | 'all' | 'department' | 'sector' | 'position'
-  targetId: integer("target_id"), // ID do departamento, setor (quando aplicável)
-  targetValue: varchar("target_value"), // Valor específico como nome do cargo
-  relatedDocumentId: integer("related_document_id"), // Link para documento relacionado
   senderDeleted: boolean("sender_deleted").default(false), // Sender archived/deleted (doesn't affect recipients)
   senderDeletedAt: timestamp("sender_deleted_at"), // When sender deleted/archived
   createdAt: timestamp("created_at").defaultNow(),
@@ -745,29 +707,6 @@ export const auditLog = pgTable("audit_log", {
   }).onDelete('set null'),
 }));
 
-// Time Entry Audit table - tracks all changes to time entries
-export const timeEntryAudit = pgTable("time_entry_audit", {
-  id: serial("id").primaryKey(),
-  timeEntryId: integer("time_entry_id").notNull(),
-  fieldName: varchar("field_name").notNull(), // clockInTime, clockOutTime, etc.
-  oldValue: text("old_value"), // Valor anterior
-  newValue: text("new_value"), // Valor novo
-  justification: text("justification").notNull(), // Justificativa obrigatória
-  attachmentUrl: text("attachment_url"), // URL do arquivo de comprovante (atestado, recibo, etc)
-  editedBy: varchar("edited_by").notNull(), // User ID que fez a alteração
-  ipAddress: varchar("ip_address"), // IP do editor
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  timeEntryReference: foreignKey({
-    columns: [table.timeEntryId],
-    foreignColumns: [timeEntries.id],
-  }).onDelete('cascade'),
-  editedByReference: foreignKey({
-    columns: [table.editedBy],
-    foreignColumns: [users.id],
-  }).onDelete('set null'),
-}));
-
 // Schema types and validation
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -791,9 +730,7 @@ export type CourseAnswer = typeof courseAnswers.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
-export type TimeEntryAudit = typeof timeEntryAudit.$inferSelect;
 export type TimePeriod = typeof timePeriods.$inferSelect;
-export type AuthorizedDevice = typeof authorizedDevices.$inferSelect;
 
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -1073,14 +1010,6 @@ export const insertTimePeriodSchema = createInsertSchema(timePeriods).omit({
   createdAt: true,
   updatedAt: true,
 });
-
-export const insertAuthorizedDeviceSchema = createInsertSchema(authorizedDevices).omit({
-  id: true,
-  lastUsedAt: true,
-  createdAt: true,
-  updatedAt: true,
-});
-export type InsertAuthorizedDevice = z.infer<typeof insertAuthorizedDeviceSchema>;
 
 export const insertBreakEntrySchema = createInsertSchema(breakEntries).omit({
   id: true,
@@ -1382,15 +1311,10 @@ export const jobOpenings = pgTable("job_openings", {
   benefits: text("benefits"),
   location: varchar("location"),
   employmentType: varchar("employment_type").notNull(), // "CLT", "PJ", "Estágio", "Temporário"
-  salaryMin: decimal("salary_min", { precision: 10, scale: 2 }), // Salário mínimo
-  salaryMax: decimal("salary_max", { precision: 10, scale: 2 }), // Salário máximo
-  salaryRange: varchar("salary_range"), // Legacy field, deprecated - use salaryMin/Max
+  salaryRange: varchar("salary_range"), // "R$ 3.000 - R$ 5.000"
   workSchedule: varchar("work_schedule"), // "Segunda a Sexta, 8h-17h"
   vacancies: integer("vacancies").default(1), // Número de vagas
   status: varchar("status").default("draft"), // draft, published, closed, filled
-  requiresDISC: boolean("requires_disc").default(false), // Se a vaga exige teste DISC
-  discTiming: varchar("disc_timing"), // "on_application" ou "during_selection"
-  idealDISCProfile: jsonb("ideal_disc_profile"), // {d: 30, i: 25, s: 25, c: 20} percentuais do perfil ideal
   publishedAt: timestamp("published_at"),
   closedAt: timestamp("closed_at"),
   expiresAt: timestamp("expires_at"),
@@ -1453,11 +1377,9 @@ export const applications = pgTable("applications", {
   candidateId: integer("candidate_id").notNull(),
   status: varchar("status").default("applied"), // applied, screening, interview, test, approved, rejected, hired
   currentStageId: integer("current_stage_id"), // Etapa atual do processo
-  score: integer("score").default(0), // Pontuação ponderada (Σ(Pi × Wi))
-  isQualified: boolean("is_qualified").default(true), // false se reprovou no corte obrigatório
+  score: integer("score").default(0), // Pontuação automática (0-100)
   distanceKm: real("distance_km"), // Distância em km do candidato até o local da vaga
   coverLetter: text("cover_letter"),
-  accessToken: varchar("access_token"), // Token único para acesso público às respostas de requisitos
   appliedAt: timestamp("applied_at").defaultNow(),
   screeningNotes: text("screening_notes"),
   rejectionReason: text("rejection_reason"),
@@ -1472,48 +1394,6 @@ export const applications = pgTable("applications", {
     foreignColumns: [candidates.id],
   }).onDelete('cascade'),
   uniqueApplication: uniqueIndex("unique_application").on(table.jobOpeningId, table.candidateId),
-  accessTokenIndex: index("access_token_idx").on(table.accessToken),
-}));
-
-// Job requirements / Requisitos da vaga
-export const jobRequirements = pgTable("job_requirements", {
-  id: serial("id").primaryKey(),
-  jobOpeningId: integer("job_opening_id").notNull(),
-  title: varchar("title").notNull(), // Ex: "JavaScript", "Liderança", "Experiência mínima"
-  description: text("description"), // Descrição detalhada do requisito
-  category: varchar("category").notNull(), // "hard_skill", "soft_skill", "administrative"
-  requirementType: varchar("requirement_type").notNull(), // "mandatory" (corte), "desirable" (pontuação)
-  weight: integer("weight").default(1), // Peso de 1 a 5 para requisitos desejáveis
-  proficiencyLevels: jsonb("proficiency_levels").notNull(), // [{level: "Básico", points: 1}, {level: "Intermediário", points: 3}, ...]
-  order: integer("order").default(0), // Ordem de exibição
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  jobOpeningReference: foreignKey({
-    columns: [table.jobOpeningId],
-    foreignColumns: [jobOpenings.id],
-  }).onDelete('cascade'),
-  jobOpeningIndex: index("job_requirements_job_opening_idx").on(table.jobOpeningId),
-}));
-
-// Application requirement responses / Respostas dos candidatos aos requisitos
-export const applicationRequirementResponses = pgTable("application_requirement_responses", {
-  id: serial("id").primaryKey(),
-  applicationId: integer("application_id").notNull(),
-  requirementId: integer("requirement_id").notNull(),
-  proficiencyLevel: varchar("proficiency_level").notNull(), // Nível declarado pelo candidato
-  pointsEarned: integer("points_earned").default(0), // Pontos ganhos neste requisito
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  applicationReference: foreignKey({
-    columns: [table.applicationId],
-    foreignColumns: [applications.id],
-  }).onDelete('cascade'),
-  requirementReference: foreignKey({
-    columns: [table.requirementId],
-    foreignColumns: [jobRequirements.id],
-  }).onDelete('cascade'),
-  uniqueResponse: uniqueIndex("unique_requirement_response").on(table.applicationId, table.requirementId),
-  applicationIndex: index("app_requirement_responses_application_idx").on(table.applicationId),
 }));
 
 // Selection stages / Etapas do processo seletivo
@@ -1657,112 +1537,23 @@ export const onboardingFormData = pgTable("onboarding_form_data", {
 }));
 
 // ========================================================================================
-// DISC PERSONALITY ASSESSMENT
-// ========================================================================================
-
-// DISC questions / Questões do teste DISC
-export const discQuestions = pgTable("disc_questions", {
-  id: serial("id").primaryKey(),
-  questionText: text("question_text").notNull(), // Texto da questão
-  profileType: varchar("profile_type").notNull(), // "D", "I", "S", "C"
-  order: integer("order").notNull(), // Ordem de exibição
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// DISC assessments / Avaliações DISC aplicadas
-export const discAssessments = pgTable("disc_assessments", {
-  id: serial("id").primaryKey(),
-  applicationId: integer("application_id"), // Vinculado a candidatura (pode ser null se enviado antes)
-  candidateId: integer("candidate_id"), // Vinculado a candidato
-  jobOpeningId: integer("job_opening_id").notNull(), // Vaga relacionada
-  accessToken: varchar("access_token").notNull().unique(), // Token único para acesso público
-  status: varchar("status").default("pending"), // pending, in_progress, completed
-  dScore: integer("d_score").default(0), // Pontuação Dominância (0-100%)
-  iScore: integer("i_score").default(0), // Pontuação Influência (0-100%)
-  sScore: integer("s_score").default(0), // Pontuação Estabilidade (0-100%)
-  cScore: integer("c_score").default(0), // Pontuação Conformidade (0-100%)
-  primaryProfile: varchar("primary_profile"), // Perfil predominante: "D", "I", "S", "C"
-  sentAt: timestamp("sent_at").defaultNow(),
-  startedAt: timestamp("started_at"),
-  completedAt: timestamp("completed_at"),
-  expiresAt: timestamp("expires_at"), // Data de expiração do link
-  createdBy: varchar("created_by").notNull(), // Quem enviou o teste
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  applicationReference: foreignKey({
-    columns: [table.applicationId],
-    foreignColumns: [applications.id],
-  }).onDelete('cascade'),
-  candidateReference: foreignKey({
-    columns: [table.candidateId],
-    foreignColumns: [candidates.id],
-  }).onDelete('cascade'),
-  jobOpeningReference: foreignKey({
-    columns: [table.jobOpeningId],
-    foreignColumns: [jobOpenings.id],
-  }).onDelete('cascade'),
-  createdByReference: foreignKey({
-    columns: [table.createdBy],
-    foreignColumns: [users.id],
-  }),
-  accessTokenIndex: index("disc_access_token_idx").on(table.accessToken),
-}));
-
-// DISC responses / Respostas do candidato
-export const discResponses = pgTable("disc_responses", {
-  id: serial("id").primaryKey(),
-  assessmentId: integer("assessment_id").notNull(),
-  questionId: integer("question_id").notNull(),
-  selectedValue: integer("selected_value").notNull(), // Escala 1-5 (Discordo totalmente a Concordo totalmente)
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  assessmentReference: foreignKey({
-    columns: [table.assessmentId],
-    foreignColumns: [discAssessments.id],
-  }).onDelete('cascade'),
-  questionReference: foreignKey({
-    columns: [table.questionId],
-    foreignColumns: [discQuestions.id],
-  }),
-  uniqueResponse: uniqueIndex("unique_disc_response").on(table.assessmentId, table.questionId),
-  assessmentIndex: index("disc_responses_assessment_idx").on(table.assessmentId),
-}));
-
-// ========================================================================================
 // RECRUITMENT & SELECTION TYPES AND VALIDATION
 // ========================================================================================
 
 export type JobOpening = typeof jobOpenings.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type Application = typeof applications.$inferSelect;
-export type JobRequirement = typeof jobRequirements.$inferSelect;
-export type ApplicationRequirementResponse = typeof applicationRequirementResponses.$inferSelect;
 export type SelectionStage = typeof selectionStages.$inferSelect;
 export type InterviewTemplate = typeof interviewTemplates.$inferSelect;
 export type Interview = typeof interviews.$inferSelect;
 export type OnboardingLink = typeof onboardingLinks.$inferSelect;
 export type OnboardingDocument = typeof onboardingDocuments.$inferSelect;
 export type OnboardingFormData = typeof onboardingFormData.$inferSelect;
-export type DISCQuestion = typeof discQuestions.$inferSelect;
-export type DISCAssessment = typeof discAssessments.$inferSelect;
-export type DISCResponse = typeof discResponses.$inferSelect;
 
 export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).refine((data) => {
-  // Validate that salaryMin <= salaryMax when both are provided
-  if (data.salaryMin && data.salaryMax) {
-    const min = parseFloat(data.salaryMin);
-    const max = parseFloat(data.salaryMax);
-    return min <= max;
-  }
-  return true;
-}, {
-  message: "Salário mínimo deve ser menor ou igual ao salário máximo",
-  path: ["salaryMax"]
 });
 export type InsertJobOpening = z.infer<typeof insertJobOpeningSchema>;
 
@@ -1817,316 +1608,3 @@ export const insertOnboardingFormDataSchema = createInsertSchema(onboardingFormD
   updatedAt: true,
 });
 export type InsertOnboardingFormData = z.infer<typeof insertOnboardingFormDataSchema>;
-
-// Proficiency level schema for job requirements
-export const proficiencyLevelSchema = z.object({
-  level: z.string().min(1, "Nível é obrigatório"),
-  points: z.number().int().min(0, "Pontos devem ser >= 0"),
-});
-
-// Job requirement insert schema with validation
-export const insertJobRequirementSchema = createInsertSchema(jobRequirements).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  category: z.enum(["hard_skill", "soft_skill", "administrative"], {
-    errorMap: () => ({ message: "Categoria deve ser hard_skill, soft_skill ou administrative" }),
-  }),
-  requirementType: z.enum(["mandatory", "desirable"], {
-    errorMap: () => ({ message: "Tipo deve ser mandatory ou desirable" }),
-  }),
-  weight: z.number().int().min(1).max(5).optional().default(1),
-  proficiencyLevels: z.array(proficiencyLevelSchema).min(1, "Deve ter ao menos um nível de proficiência"),
-});
-export type InsertJobRequirement = z.infer<typeof insertJobRequirementSchema>;
-
-// Application requirement response insert schema
-export const insertApplicationRequirementResponseSchema = createInsertSchema(applicationRequirementResponses).omit({
-  id: true,
-  createdAt: true,
-  pointsEarned: true, // Calculado automaticamente
-});
-export type InsertApplicationRequirementResponse = z.infer<typeof insertApplicationRequirementResponseSchema>;
-
-// DISC question insert schema
-export const insertDISCQuestionSchema = createInsertSchema(discQuestions).omit({
-  id: true,
-  createdAt: true,
-});
-export type InsertDISCQuestion = z.infer<typeof insertDISCQuestionSchema>;
-
-// DISC assessment insert schema
-export const insertDISCAssessmentSchema = createInsertSchema(discAssessments).omit({
-  id: true,
-  sentAt: true,
-  createdAt: true,
-  dScore: true,
-  iScore: true,
-  sScore: true,
-  cScore: true,
-  primaryProfile: true,
-  startedAt: true,
-  completedAt: true,
-});
-export type InsertDISCAssessment = z.infer<typeof insertDISCAssessmentSchema>;
-
-// DISC response insert schema
-export const insertDISCResponseSchema = createInsertSchema(discResponses).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  selectedValue: z.number().int().min(1).max(5, "Valor deve ser entre 1 e 5"),
-});
-export type InsertDISCResponse = z.infer<typeof insertDISCResponseSchema>;
-
-// ========================================================================================
-// OVERTIME & TIME BANK SYSTEM
-// ========================================================================================
-
-// Overtime rules - Configuration for overtime calculation by department/shift
-export const overtimeRules = pgTable("overtime_rules", {
-  id: serial("id").primaryKey(),
-  departmentId: integer("department_id").notNull(),
-  shiftId: integer("shift_id"), // Optional: specific shift, null = applies to all shifts in department
-  name: varchar("name").notNull(), // "Regra de HE Padrão", "HE Fim de Semana"
-  overtimeType: varchar("overtime_type").notNull(), // "paid" or "time_bank"
-  applyToWeekdays: boolean("apply_to_weekdays").default(true),
-  applyToWeekends: boolean("apply_to_weekends").default(false),
-  applyToHolidays: boolean("apply_to_holidays").default(false),
-  isActive: boolean("is_active").default(true),
-  priority: integer("priority").default(0), // Higher priority rules override lower ones
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  departmentReference: foreignKey({
-    columns: [table.departmentId],
-    foreignColumns: [departments.id],
-  }).onDelete('cascade'),
-  shiftReference: foreignKey({
-    columns: [table.shiftId],
-    foreignColumns: [departmentShifts.id],
-  }).onDelete('cascade'),
-}));
-
-// Overtime tiers - Percentage rates for different hour ranges
-export const overtimeTiers = pgTable("overtime_tiers", {
-  id: serial("id").primaryKey(),
-  overtimeRuleId: integer("overtime_rule_id").notNull(),
-  minHours: decimal("min_hours", { precision: 4, scale: 2 }).notNull(), // 0.00
-  maxHours: decimal("max_hours", { precision: 4, scale: 2 }), // null = no limit
-  percentage: integer("percentage").notNull(), // 50, 100, 200 (represents 50%, 100%, 200%)
-  description: varchar("description"), // "Primeiras 2 horas", "Acima de 2 horas"
-  orderIndex: integer("order_index").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  overtimeRuleReference: foreignKey({
-    columns: [table.overtimeRuleId],
-    foreignColumns: [overtimeRules.id],
-  }).onDelete('cascade'),
-}));
-
-// Time bank - Employee time bank balance
-export const timeBank = pgTable("time_bank", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().unique(),
-  companyId: integer("company_id").notNull(),
-  balanceHours: decimal("balance_hours", { precision: 8, scale: 2 }).default('0'), // Current balance
-  totalCredited: decimal("total_credited", { precision: 8, scale: 2 }).default('0'), // Total hours credited
-  totalDebited: decimal("total_debited", { precision: 8, scale: 2 }).default('0'), // Total hours debited
-  expirationDate: date("expiration_date"), // Optional: date when balance expires
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  userReference: foreignKey({
-    columns: [table.userId],
-    foreignColumns: [users.id],
-  }).onDelete('cascade'),
-  companyReference: foreignKey({
-    columns: [table.companyId],
-    foreignColumns: [companies.id],
-  }),
-}));
-
-// Time bank transactions - History of credits and debits
-export const timeBankTransactions = pgTable("time_bank_transactions", {
-  id: serial("id").primaryKey(),
-  timeBankId: integer("time_bank_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  transactionType: varchar("transaction_type").notNull(), // "credit" or "debit"
-  hours: decimal("hours", { precision: 6, scale: 2 }).notNull(),
-  balanceAfter: decimal("balance_after", { precision: 8, scale: 2 }).notNull(),
-  timeEntryId: integer("time_entry_id"), // Link to the time entry that generated this transaction
-  reason: varchar("reason").notNull(), // "Hora extra trabalhada", "Compensação utilizada", "Ajuste manual"
-  description: text("description"), // Additional details
-  createdBy: varchar("created_by"), // Admin who created manual adjustments
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  timeBankReference: foreignKey({
-    columns: [table.timeBankId],
-    foreignColumns: [timeBank.id],
-  }).onDelete('cascade'),
-  userReference: foreignKey({
-    columns: [table.userId],
-    foreignColumns: [users.id],
-  }).onDelete('cascade'),
-  timeEntryReference: foreignKey({
-    columns: [table.timeEntryId],
-    foreignColumns: [timeEntries.id],
-  }),
-}));
-
-// Types for Overtime System
-export type OvertimeRule = typeof overtimeRules.$inferSelect;
-export type OvertimeTier = typeof overtimeTiers.$inferSelect;
-export type TimeBank = typeof timeBank.$inferSelect;
-export type TimeBankTransaction = typeof timeBankTransactions.$inferSelect;
-
-// Insert schemas
-export const insertOvertimeRuleSchema = createInsertSchema(overtimeRules).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-export type InsertOvertimeRule = z.infer<typeof insertOvertimeRuleSchema>;
-
-export const insertOvertimeTierSchema = createInsertSchema(overtimeTiers).omit({
-  id: true,
-  createdAt: true,
-});
-export type InsertOvertimeTier = z.infer<typeof insertOvertimeTierSchema>;
-
-export const insertTimeBankSchema = createInsertSchema(timeBank).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-export type InsertTimeBank = z.infer<typeof insertTimeBankSchema>;
-
-export const insertTimeBankTransactionSchema = createInsertSchema(timeBankTransactions).omit({
-  id: true,
-  createdAt: true,
-});
-export type InsertTimeBankTransaction = z.infer<typeof insertTimeBankTransactionSchema>;
-
-// Legal Files - AFD/AEJ metadata storage
-export const legalFiles = pgTable("legal_files", {
-  id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(),
-  type: varchar("type").notNull(), // "AFD" or "AEJ"
-  periodStart: date("period_start").notNull(),
-  periodEnd: date("period_end").notNull(),
-  nsrStart: integer("nsr_start"), // First NSR in this file
-  nsrEnd: integer("nsr_end"), // Last NSR in this file
-  totalRecords: integer("total_records").default(0),
-  filePath: text("file_path"), // Path to stored file
-  sha256Hash: varchar("sha256_hash", { length: 64 }), // SHA-256 of file content
-  crcAggregate: varchar("crc_aggregate"), // Aggregate CRC for validation
-  repIdentifier: varchar("rep_identifier").default("REP-P-001"), // REP equipment identifier
-  generatedBy: varchar("generated_by"), // User who generated the file
-  generatedAt: timestamp("generated_at").defaultNow(),
-  status: varchar("status").default("generated"), // generated, downloaded, submitted
-  digitalSignatureMeta: jsonb("digital_signature_meta"), // Placeholder for future CAdES signature
-  description: text("description"), // Additional notes
-}, (table) => ({
-  companyReference: foreignKey({
-    columns: [table.companyId],
-    foreignColumns: [companies.id],
-  }),
-  generatedByReference: foreignKey({
-    columns: [table.generatedBy],
-    foreignColumns: [users.id],
-  }),
-}));
-
-// Legal NSR Sequences - Ensures monotonic NSR per company/REP
-export const legalNsrSequences = pgTable("legal_nsr_sequences", {
-  id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull().unique(),
-  currentNsr: integer("current_nsr").default(0).notNull(),
-  repIdentifier: varchar("rep_identifier").default("REP-P-001").notNull(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  companyReference: foreignKey({
-    columns: [table.companyId],
-    foreignColumns: [companies.id],
-  }),
-}));
-
-// Types for Legal Files
-export type LegalFile = typeof legalFiles.$inferSelect;
-export type LegalNsrSequence = typeof legalNsrSequences.$inferSelect;
-
-// Insert schemas
-export const insertLegalFileSchema = createInsertSchema(legalFiles).omit({
-  id: true,
-  generatedAt: true,
-});
-export type InsertLegalFile = z.infer<typeof insertLegalFileSchema>;
-
-export const insertLegalNsrSequenceSchema = createInsertSchema(legalNsrSequences).omit({
-  id: true,
-  updatedAt: true,
-});
-export type InsertLegalNsrSequence = z.infer<typeof insertLegalNsrSequenceSchema>;
-
-// Leads - Pre-sales contact capture
-export const leads = pgTable("leads", {
-  id: serial("id").primaryKey(),
-  name: varchar("name").notNull(),
-  email: varchar("email").notNull(),
-  phone: varchar("phone"),
-  companyName: varchar("company_name"),
-  message: text("message"),
-  status: varchar("status").default("new").notNull(), // new, contacted, meeting_scheduled, proposal_sent, contracted, lost
-  sourceChannel: varchar("source_channel").default("website"), // website, referral, etc
-  utmSource: varchar("utm_source"),
-  utmMedium: varchar("utm_medium"),
-  utmCampaign: varchar("utm_campaign"),
-  assignedTo: varchar("assigned_to"), // User ID of sales rep
-  companyId: integer("company_id"), // Nullable - only set if lead converts to customer
-  followUpNotes: text("follow_up_notes"),
-  lastContactedAt: timestamp("last_contacted_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  assignedToReference: foreignKey({
-    columns: [table.assignedTo],
-    foreignColumns: [users.id],
-  }),
-  companyReference: foreignKey({
-    columns: [table.companyId],
-    foreignColumns: [companies.id],
-  }),
-}));
-
-// Types for Leads
-export type Lead = typeof leads.$inferSelect;
-
-// Insert schema for leads
-export const insertLeadSchema = createInsertSchema(leads, {
-  email: z.string().email("Email inválido"),
-  phone: z.string().optional(),
-  companyName: z.string().optional(),
-  message: z.string().optional(),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  lastContactedAt: true,
-  status: true,
-  sourceChannel: true,
-  assignedTo: true,
-  companyId: true,
-  followUpNotes: true,
-  utmSource: true,
-  utmMedium: true,
-  utmCampaign: true,
-});
-export type InsertLead = z.infer<typeof insertLeadSchema>;
-
-// Update schema for lead status management (admin only)
-export const updateLeadStatusSchema = z.object({
-  status: z.enum(["new", "contacted", "meeting_scheduled", "proposal_sent", "contracted", "lost"]),
-  followUpNotes: z.string().optional(),
-  assignedTo: z.string().optional(),
-});

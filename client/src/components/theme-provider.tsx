@@ -22,29 +22,24 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
+  defaultTheme = "dark", // Default to dark theme
   storageKey = "rhnet-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
+  const [theme, setTheme] = useState<Theme>(() => {
     try {
-      const stored = localStorage.getItem(storageKey) as Theme;
-      if (stored) {
-        setTheme(stored);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
       }
+      return defaultTheme;
     } catch {
-      // Ignore localStorage errors
+      return defaultTheme;
     }
-  }, [storageKey]);
+  });
 
   useEffect(() => {
-    if (!mounted) return;
-
     const root = window.document.documentElement;
+
     root.classList.remove("light", "dark");
 
     if (theme === "system") {
@@ -52,22 +47,19 @@ export function ThemeProvider({
         .matches
         ? "dark"
         : "light";
+
       root.classList.add(systemTheme);
       return;
     }
 
     root.classList.add(theme);
-  }, [theme, mounted]);
+  }, [theme]);
 
   const value = {
     theme,
-    setTheme: (newTheme: Theme) => {
-      try {
-        localStorage.setItem(storageKey, newTheme);
-      } catch {
-        // Ignore localStorage errors
-      }
-      setTheme(newTheme);
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme);
+      setTheme(theme);
     },
   };
 
