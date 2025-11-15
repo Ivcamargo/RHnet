@@ -396,7 +396,7 @@ export default function Landing() {
       <footer className="bg-white/90 backdrop-blur-sm border-t border-[hsl(175,65%,45%)]/30 py-8 relative z-10 text-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-2">
-            <p className="text-gray-600">© 2025 RHNet Sistema de Gestão de RH</p>
+            <p className="text-gray-600">© 2025 RHNet Gestão de RH</p>
             <div className="flex items-center gap-4">
               <a 
                 href="mailto:infosis@infosis.com.br" 
