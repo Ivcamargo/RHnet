@@ -43,9 +43,12 @@ import ScreenshotHelper from "@/pages/screenshot-helper";
 import DISCAssessment from "@/pages/disc-assessment";
 
 // Protected route component that redirects to login if not authenticated
-function ProtectedRoute({ component: Component, ...props }: any) {
-  const { isAuthenticated, isLoading } = useAuth();
-  
+function ProtectedRoute({ 
+  component: Component, 
+  isAuthenticated, 
+  isLoading,
+  ...props 
+}: any) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -102,30 +105,30 @@ function Router() {
       {!isAuthenticated && <Route path="/" component={Landing} />}
       
       {/* Rotas protegidas - redirecionam para login se não autenticado */}
-      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-      <Route path="/change-password" component={() => <ProtectedRoute component={ChangePassword} />} />
-      <Route path="/messages" component={() => <ProtectedRoute component={Messages} />} />
-      <Route path="/documents" component={() => <ProtectedRoute component={Documents} />} />
-      <Route path="/training" component={() => <ProtectedRoute component={Training} />} />
-      <Route path="/course/:id" component={() => <ProtectedRoute component={CourseView} />} />
-      <Route path="/certificate/:id" component={() => <ProtectedRoute component={CertificateView} />} />
-      <Route path="/time-clock" component={() => <ProtectedRoute component={TimeClock} />} />
-      <Route path="/departments" component={() => <ProtectedRoute component={Departments} />} />
-      <Route path="/holidays" component={() => <ProtectedRoute component={Holidays} />} />
-      <Route path="/superadmin" component={() => <ProtectedRoute component={SuperAdmin} />} />
-      <Route path="/reports" component={() => <ProtectedRoute component={Reports} />} />
-      <Route path="/employees" component={() => <ProtectedRoute component={Employees} />} />
-      <Route path="/banco-horas" component={() => <ProtectedRoute component={TimeBank} />} />
-      <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} />} />
-      <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} />} />
-      <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} />} />
-      <Route path="/admin/terminals" component={() => <ProtectedRoute component={Terminals} />} />
-      <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} />} />
-      <Route path="/admin/overtime-config" component={() => <ProtectedRoute component={OvertimeConfig} />} />
-      <Route path="/admin/arquivos-legais" component={() => <ProtectedRoute component={ArquivosLegais} />} />
-      <Route path="/admin/leads" component={() => <ProtectedRoute component={AdminLeads} />} />
-      <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} />} />
-      <Route path="/manual" component={() => <ProtectedRoute component={Manual} />} />
+      <Route path="/" component={() => <ProtectedRoute component={Dashboard} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/change-password" component={() => <ProtectedRoute component={ChangePassword} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/messages" component={() => <ProtectedRoute component={Messages} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/documents" component={() => <ProtectedRoute component={Documents} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/training" component={() => <ProtectedRoute component={Training} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/course/:id" component={() => <ProtectedRoute component={CourseView} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/certificate/:id" component={() => <ProtectedRoute component={CertificateView} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/time-clock" component={() => <ProtectedRoute component={TimeClock} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/departments" component={() => <ProtectedRoute component={Departments} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/holidays" component={() => <ProtectedRoute component={Holidays} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/superadmin" component={() => <ProtectedRoute component={SuperAdmin} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/reports" component={() => <ProtectedRoute component={Reports} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/employees" component={() => <ProtectedRoute component={Employees} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/banco-horas" component={() => <ProtectedRoute component={TimeBank} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/sectors" component={() => <ProtectedRoute component={Sectors} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/time-periods" component={() => <ProtectedRoute component={TimePeriods} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/time-entries" component={() => <ProtectedRoute component={AdminTimeEntries} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/terminals" component={() => <ProtectedRoute component={Terminals} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/rotation-management" component={() => <ProtectedRoute component={RotationManagement} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/overtime-config" component={() => <ProtectedRoute component={OvertimeConfig} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/arquivos-legais" component={() => <ProtectedRoute component={ArquivosLegais} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/admin/leads" component={() => <ProtectedRoute component={AdminLeads} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
+      <Route path="/manual" component={() => <ProtectedRoute component={Manual} isAuthenticated={isAuthenticated} isLoading={isLoading} />} />
       
       <Route component={NotFound} />
     </Switch>
