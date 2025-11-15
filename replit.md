@@ -31,6 +31,7 @@ Preferred communication style: Simple, everyday language.
 - **Key Fields**: `passwordHash`, `mustChangePassword`, `passwordResetToken`, `internalId`.
 
 ### Core Features
+- **System Initialization**: First-time setup flow for production deployments. Login page automatically detects if no superadmin exists via GET `/api/auth/has-superadmin` endpoint and displays initialization form instead of standard login. Form collects email, first name, last name, and password to create the first superadmin account via POST `/api/setup/init`. After successful creation, system performs automatic login and redirects to dashboard. Includes loading states, validation, and error handling.
 - **Geolocation & Geofencing**: Browser Geolocation API, Haversine formula, `react-leaflet` for interactive map-based geofencing, Nominatim API for address search.
 - **Time Tracking**: Clock in/out with location/facial verification, break management, IP address tracking, geofence proximity validation, shift schedule compliance, and UTC timestamp storage with Brazil timezone conversion. Admin edits are audited. Configurable time tolerance.
 - **Terminal/Kiosk Mode**: Tablet-optimized interface for fixed time clock stations, device registration, stateless authentication, auto-logout, and data masking.
