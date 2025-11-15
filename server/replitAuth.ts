@@ -25,17 +25,26 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
-  // Use memory store for now to avoid PostgreSQL session store connection issues
-  // TODO: Fix PostgreSQL session store configuration for production
-  console.log("Using memory store for sessions (temporary solution)");
+  // Use PostgreSQL session store for production persistence
+  const PgSession = connectPg(session);
+  const store = new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session',
+    createTableIfMissing: true,
+    errorLog: () => {}, // Suppress "already exists" errors from index creation
+  });
+  
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
   
   return session({
+    store,
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction, // Enable secure cookies in production
+      sameSite: isProduction ? 'none' : 'lax', // Required for cross-site cookies in production
       maxAge: sessionTtl,
     },
   });

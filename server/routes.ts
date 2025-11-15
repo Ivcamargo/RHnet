@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth } from "./replitAuth";
-import { setupLocalAuth, isAuthenticatedHybrid } from "./localAuth";
+import { setupLocalAuth, isAuthenticatedHybrid, hashPassword } from "./localAuth";
 import { 
   insertDepartmentSchema, 
   clockInSchema, 
@@ -587,6 +587,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - sistema híbrido (OIDC + Local)
   await setupAuth(app);
   setupLocalAuth(app);
+
+  // System initialization route - PUBLIC (for first-time setup in production)
+  app.post('/api/setup/init', async (req, res) => {
+    try {
+      // Check if a superadmin already exists
+      const users = await storage.getAllUsers();
+      const hasSuperadmin = users.some(u => u.role === 'superadmin');
+      
+      if (hasSuperadmin) {
+        return res.status(403).json({ 
+          message: 'Sistema já inicializado. Um superadmin já existe.' 
+        });
+      }
+
+      // Validate input
+      const { email, firstName, lastName, password } = req.body;
+      
+      if (!email || !firstName || !lastName || !password) {
+        return res.status(400).json({ 
+          message: 'Todos os campos são obrigatórios: email, firstName, lastName, password' 
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ 
+          message: 'Senha deve ter no mínimo 6 caracteres' 
+        });
+      }
+
+      // Hash the password
+      const passwordHash = await hashPassword(password);
+      
+      // Create the first superadmin user
+      const userId = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newUser = await storage.upsertUser({
+        id: userId,
+        email,
+        firstName,
+        lastName,
+        passwordHash,
+        role: 'superadmin',
+        mustChangePassword: false,
+        isActive: true,
+      });
+
+      res.status(201).json({
+        message: 'Sistema inicializado com sucesso! Primeiro superadmin criado.',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role,
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Erro na inicialização do sistema:', error);
+      res.status(500).json({ 
+        message: 'Erro ao inicializar sistema',
+        error: error.message 
+      });
+    }
+  });
 
   // Configure multer for file uploads
   const uploadsDir = path.join(process.cwd(), 'uploads', 'documents');
