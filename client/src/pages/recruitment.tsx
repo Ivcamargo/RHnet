@@ -389,8 +389,10 @@ export default function Recruitment() {
         body: JSON.stringify(editRequirements),
       });
 
+      // Invalidate cache and wait for fresh data before closing
       await queryClient.invalidateQueries({ queryKey: ['/api/job-openings'] });
-      await refetch();
+      const { data: updatedJobs } = await refetch();
+      
       setIsEditDialogOpen(false);
       setSelectedJob(null);
       setEditRequirements([]);
