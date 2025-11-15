@@ -653,6 +653,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // EMERGENCY ROUTE: Force create superadmin (bypasses existing check)
+  app.post('/api/setup/force-superadmin', async (req, res) => {
+    try {
+      const { email, firstName, lastName, password } = req.body;
+      
+      if (!email || !firstName || !lastName || !password) {
+        return res.status(400).json({ 
+          message: 'Todos os campos são obrigatórios: email, firstName, lastName, password' 
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ 
+          message: 'Senha deve ter no mínimo 6 caracteres' 
+        });
+      }
+
+      // Hash the password
+      const passwordHash = await hashPassword(password);
+      
+      // Create or update superadmin user (FORCE)
+      const userId = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newUser = await storage.upsertUser({
+        id: userId,
+        email,
+        firstName,
+        lastName,
+        passwordHash,
+        role: 'superadmin',
+        mustChangePassword: true,
+        isActive: true,
+      });
+
+      res.status(201).json({
+        message: 'Superadmin criado/atualizado com sucesso!',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role,
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao criar superadmin forçado:', error);
+      res.status(500).json({ 
+        message: 'Erro ao criar superadmin',
+        error: error.message 
+      });
+    }
+  });
+
   // Configure multer for file uploads
   const uploadsDir = path.join(process.cwd(), 'uploads', 'documents');
   if (!fs.existsSync(uploadsDir)) {
