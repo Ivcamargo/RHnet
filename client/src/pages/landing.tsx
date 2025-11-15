@@ -82,7 +82,7 @@ export default function Landing() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <img src={rhnetLogo} alt="RHNet" className="h-16 w-16 mr-3 rounded-lg" />
-              <h1 className="text-2xl font-bold text-white">Sistema de gestão de RH</h1>
+              <h1 className="text-2xl font-bold text-white">Gestão de RH</h1>
             </div>
             <div className="flex gap-3">
               <Button 
