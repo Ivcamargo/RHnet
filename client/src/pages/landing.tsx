@@ -134,9 +134,6 @@ export default function Landing() {
                 Ver Vagas Disponíveis
               </Button>
             </div>
-            <p className="text-sm text-gray-600 mt-2">
-              Já é cliente? <button onClick={handleLogin} className="text-[hsl(175,65%,45%)] hover:underline font-semibold" data-testid="link-existing-client">Faça login aqui</button>
-            </p>
           </div>
         </div>
       </section>
