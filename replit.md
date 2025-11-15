@@ -8,6 +8,15 @@ RHNet is a comprehensive human resources management system designed to streamlin
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**November 15, 2025**: Fixed critical React infinite loop bug caused by multiple `useAuth()` hook invocations:
+- **Root Cause**: Both Router component and ProtectedRoute component were calling `useAuth()`, creating duplicate subscriptions and triggering infinite re-renders
+- **Solution**: Centralized authentication state by calling `useAuth()` only once in Router component, passing `isAuthenticated` and `isLoading` as props to ProtectedRoute
+- **Implementation**: Updated all protected routes to use `component={(routeProps) => <ProtectedRoute component={X} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />}` pattern
+- **Impact**: Ensures proper route parameter forwarding for dynamic routes (`:id` parameters) while eliminating hook duplication
+- **Testing**: Verified via end-to-end Playwright test that login page loads without infinite loop errors, form validation works, and UI is responsive
+
 ## System Architecture
 
 ### Frontend
