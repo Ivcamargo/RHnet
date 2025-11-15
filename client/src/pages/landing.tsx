@@ -22,7 +22,9 @@ import {
   ArrowRight,
   Briefcase,
   Book,
-  MessageCircle
+  MessageCircle,
+  Brain,
+  Scale
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
@@ -251,6 +253,42 @@ export default function Landing() {
                 </p>
               </CardContent>
             </Card>
+
+            {/* DISC Assessment */}
+            <Card className="border-[hsl(220,65%,18%)]/20 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-[hsl(220,65%,18%)]/10 rounded-lg">
+                    <Brain className="h-6 w-6 text-[hsl(220,65%,18%)]" />
+                  </div>
+                  <CardTitle className="text-xl">DISC Assessment</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Análise de perfil comportamental integrada ao processo seletivo. 
+                  Avalie compatibilidade dos candidatos com os requisitos da vaga.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* LGPD */}
+            <Card className="border-[hsl(175,65%,45%)]/20 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-[hsl(175,65%,45%)]/10 rounded-lg">
+                    <Scale className="h-6 w-6 text-[hsl(175,65%,45%)]" />
+                  </div>
+                  <CardTitle className="text-xl">LGPD & Privacidade</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Sistema em conformidade com a Lei Geral de Proteção de Dados. 
+                  Gestão segura de informações pessoais e dados sensíveis.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -358,9 +396,7 @@ export default function Landing() {
       <footer className="bg-white/90 backdrop-blur-sm border-t border-[hsl(175,65%,45%)]/30 py-8 relative z-10 text-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-2">
-            <p className="text-gray-600">
-              © 2025 RHNet. Sistema de gestão de recursos humanos.
-            </p>
+            <p className="text-gray-600">© 2025 RHNet Sistema de Gestão de RH</p>
             <div className="flex items-center gap-4">
               <a 
                 href="mailto:infosis@infosis.com.br" 

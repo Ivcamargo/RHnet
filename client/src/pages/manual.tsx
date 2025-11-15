@@ -2314,6 +2314,177 @@ export default function Manual() {
                     </ol>
                   </div>
                 </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    DISC Assessment - Análise de Perfil Comportamental
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      O RHNet integra a metodologia DISC para análise de perfil comportamental dos candidatos, 
+                      permitindo avaliar a compatibilidade entre o perfil do candidato e os requisitos da vaga.
+                    </p>
+
+                    <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">O que é DISC?</h4>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        DISC é uma ferramenta de avaliação comportamental que mede quatro dimensões principais 
+                        da personalidade no ambiente de trabalho.
+                      </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card className="bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-red-600" />
+                            D - Dominância
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>Características:</strong></p>
+                          <ul className="ml-4 space-y-1 text-xs">
+                            <li>• Foco em resultados e conquistas</li>
+                            <li>• Decisivo, direto e objetivo</li>
+                            <li>• Gosta de desafios e competição</li>
+                            <li>• Assume riscos calculados</li>
+                          </ul>
+                          <p className="text-xs text-red-700 dark:text-red-400 mt-2">
+                            <strong>Ideal para:</strong> Liderança, vendas, gestão de projetos
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Users className="h-4 w-4 text-yellow-600" />
+                            I - Influência
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>Características:</strong></p>
+                          <ul className="ml-4 space-y-1 text-xs">
+                            <li>• Comunicativo e persuasivo</li>
+                            <li>• Otimista e entusiasta</li>
+                            <li>• Foca em relacionamentos</li>
+                            <li>• Criativo e inovador</li>
+                          </ul>
+                          <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
+                            <strong>Ideal para:</strong> Atendimento, marketing, relações públicas
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            S - Estabilidade
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>Características:</strong></p>
+                          <ul className="ml-4 space-y-1 text-xs">
+                            <li>• Paciente e colaborativo</li>
+                            <li>• Leal e confiável</li>
+                            <li>• Prefere rotinas estabelecidas</li>
+                            <li>• Bom ouvinte e empático</li>
+                          </ul>
+                          <p className="text-xs text-green-700 dark:text-green-400 mt-2">
+                            <strong>Ideal para:</strong> Suporte, administrativo, recursos humanos
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                            C - Conformidade
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>Características:</strong></p>
+                          <ul className="ml-4 space-y-1 text-xs">
+                            <li>• Analítico e detalhista</li>
+                            <li>• Segue procedimentos e normas</li>
+                            <li>• Preciso e organizado</li>
+                            <li>• Focado em qualidade</li>
+                          </ul>
+                          <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                            <strong>Ideal para:</strong> Análise, qualidade, contabilidade, TI
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h4 className="font-semibold mb-3">Como Configurar DISC em uma Vaga</h4>
+                      <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+                        <li>
+                          Ao criar/editar uma vaga, acesse a seção <strong>"Requisitos DISC"</strong>
+                        </li>
+                        <li>
+                          Para cada dimensão (D, I, S, C), selecione o nível desejado:
+                          <ul className="ml-8 mt-1 space-y-1 text-xs">
+                            <li>• <strong>Não relevante:</strong> Essa característica não é importante para a vaga</li>
+                            <li>• <strong>Baixo (25%):</strong> Prefere candidatos com baixo nível nessa dimensão</li>
+                            <li>• <strong>Médio (50%):</strong> Nível moderado é adequado</li>
+                            <li>• <strong>Alto (75%):</strong> Requer nível elevado nessa característica</li>
+                            <li>• <strong>Muito Alto (100%):</strong> Essencial ter nível máximo</li>
+                          </ul>
+                        </li>
+                        <li>
+                          Escolha quando aplicar o teste:
+                          <ul className="ml-8 mt-1 space-y-1 text-xs">
+                            <li>• <strong>Na candidatura:</strong> Candidato responde ao se inscrever na vaga</li>
+                            <li>• <strong>Durante seleção:</strong> RH envia o teste posteriormente</li>
+                          </ul>
+                        </li>
+                        <li>
+                          O sistema calcula automaticamente a <strong>compatibilidade</strong> entre o perfil 
+                          do candidato e os requisitos da vaga
+                        </li>
+                      </ol>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h4 className="font-semibold mb-3">Interpretando os Resultados</h4>
+                      <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground mb-1">Score de Compatibilidade</p>
+                          <p className="text-xs text-muted-foreground">
+                            O sistema calcula um percentual de compatibilidade baseado na proximidade entre 
+                            o perfil DISC do candidato e os requisitos da vaga.
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground mb-1">Indicadores Direcionais</p>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• <strong>Seta para cima (↑):</strong> Candidato tem nível superior ao desejado</li>
+                            <li>• <strong>Seta para baixo (↓):</strong> Candidato tem nível inferior ao desejado</li>
+                            <li>• <strong>Check (✓):</strong> Perfil alinhado com os requisitos</li>
+                          </ul>
+                        </div>
+                        <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded border border-amber-200">
+                          <p className="text-xs text-amber-900 dark:text-amber-100">
+                            <strong>💡 Dica:</strong> Use o DISC como uma ferramenta complementar na avaliação. 
+                            Considere também experiência, habilidades técnicas e adequação cultural.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </CardContent>
             </Card>
           </div>

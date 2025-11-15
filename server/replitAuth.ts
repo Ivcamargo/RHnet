@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { pool } from "./db";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -22,6 +23,42 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
+// Ensure session table and index exist (idempotent)
+async function ensureSessionSchema() {
+  try {
+    // Create session table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS session (
+        sid VARCHAR NOT NULL COLLATE "default",
+        sess JSON NOT NULL,
+        expire TIMESTAMP(6) NOT NULL
+      )
+    `);
+    
+    // Add primary key constraint if not exists
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'session_pkey'
+        ) THEN
+          ALTER TABLE session ADD CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE;
+        END IF;
+      END $$
+    `);
+    
+    // Create index if not exists (this is the one causing the error)
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire)
+    `);
+    
+    console.log('[Session] Schema initialized successfully');
+  } catch (error: any) {
+    console.error('[Session] Error initializing schema:', error.message);
+    // Don't throw - allow app to start even if session setup has issues
+  }
+}
+
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
@@ -30,8 +67,13 @@ export function getSession() {
   const store = new PgSession({
     conString: process.env.DATABASE_URL,
     tableName: 'session',
-    createTableIfMissing: true,
-    errorLog: () => {}, // Suppress "already exists" errors from index creation
+    createTableIfMissing: false, // We handle table creation explicitly above
+    errorLog: (error: any) => {
+      // Only log critical errors, not "already exists" warnings
+      if (error && !error.message?.includes('already exists')) {
+        console.error('[Session store]', error.message);
+      }
+    },
   });
   
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
