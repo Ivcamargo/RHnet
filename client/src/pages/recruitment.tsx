@@ -86,6 +86,7 @@ export default function Recruitment() {
   const [selectedCandidateForDISC, setSelectedCandidateForDISC] = useState<number>(0);
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
   const [isViewResultsDialogOpen, setIsViewResultsDialogOpen] = useState(false);
+  const [isLoadingJobData, setIsLoadingJobData] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -413,30 +414,41 @@ export default function Recruitment() {
   };
 
   const handleEditJob = async (job: any) => {
-    setSelectedJob(job);
-    setEditEmploymentType(job.employmentType || 'full_time');
-    setEditExperienceLevel(job.experienceLevel || 'mid');
-    setEditRequiresDISC(job.requiresDISC || false);
-    setEditDiscTiming(job.discTiming || 'during_selection');
-    
-    // Hydrate DISC values using mapper to handle legacy numeric values
-    const idealProfile = job.idealDISCProfile || {};
-    setEditDiscD(mapDiscValueToOption(idealProfile.D).optionValue);
-    setEditDiscI(mapDiscValueToOption(idealProfile.I).optionValue);
-    setEditDiscS(mapDiscValueToOption(idealProfile.S).optionValue);
-    setEditDiscC(mapDiscValueToOption(idealProfile.C).optionValue);
-    
-    // Load existing requirements
+    // Fetch fresh data from server instead of using cached list data
+    setIsLoadingJobData(true);
     try {
+      const jobRes = await apiRequest(`/api/job-openings/${job.id}`);
+      const freshJob = await jobRes.json();
+      
+      setSelectedJob(freshJob);
+      setEditEmploymentType(freshJob.employmentType || 'full_time');
+      setEditExperienceLevel(freshJob.experienceLevel || 'mid');
+      setEditRequiresDISC(freshJob.requiresDISC || false);
+      setEditDiscTiming(freshJob.discTiming || 'during_selection');
+      
+      // Hydrate DISC values using mapper to handle legacy numeric values
+      const idealProfile = freshJob.idealDISCProfile || {};
+      setEditDiscD(mapDiscValueToOption(idealProfile.D).optionValue);
+      setEditDiscI(mapDiscValueToOption(idealProfile.I).optionValue);
+      setEditDiscS(mapDiscValueToOption(idealProfile.S).optionValue);
+      setEditDiscC(mapDiscValueToOption(idealProfile.C).optionValue);
+      
+      // Load existing requirements
       const requirementsRes = await apiRequest(`/api/job-openings/${job.id}/requirements`);
       const requirements = await requirementsRes.json();
       setEditRequirements(requirements);
+      
+      setIsEditDialogOpen(true);
     } catch (error) {
-      console.error("Error loading requirements:", error);
-      setEditRequirements([]);
+      console.error("Error loading job data:", error);
+      toast({
+        title: "Erro ao carregar vaga",
+        description: "Não foi possível carregar os dados da vaga. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingJobData(false);
     }
-    
-    setIsEditDialogOpen(true);
   };
 
   const handleViewJob = (job: any) => {
@@ -1193,10 +1205,11 @@ export default function Recruitment() {
                           size="sm" 
                           variant="outline"
                           onClick={() => handleEditJob(job)}
+                          disabled={isLoadingJobData}
                           data-testid={`button-edit-${job.id}`}
                         >
                           <Edit className="mr-2 h-4 w-4" />
-                          Editar
+                          {isLoadingJobData ? "Carregando..." : "Editar"}
                         </Button>
                         <Button 
                           size="sm" 

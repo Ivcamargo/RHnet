@@ -6896,6 +6896,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/job-openings/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const jobOpening = await storage.getJobOpening(parseInt(req.params.id));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      res.json(jobOpening);
+    } catch (error) {
+      console.error("Error fetching job opening:", error);
+      res.status(500).json({ message: "Failed to fetch job opening" });
+    }
+  });
+
   app.put('/api/job-openings/:id', isAuthenticatedHybrid, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
