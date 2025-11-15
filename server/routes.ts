@@ -707,6 +707,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve superadmin creation HTML (for production setup)
+  app.get('/api/setup-admin', (req, res) => {
+    const htmlPath = path.join(process.cwd(), 'create-superadmin-production.html');
+    res.sendFile(htmlPath);
+  });
+
   // Configure multer for file uploads
   const uploadsDir = path.join(process.cwd(), 'uploads', 'documents');
   if (!fs.existsSync(uploadsDir)) {
