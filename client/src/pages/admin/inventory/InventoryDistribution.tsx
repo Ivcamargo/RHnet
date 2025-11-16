@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ const distributionSchema = z.object({
 type DistributionFormValues = z.infer<typeof distributionSchema>;
 
 export default function InventoryDistribution() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const signaturePadRef = useRef<SignaturePadRef>(null);
   
@@ -64,9 +66,32 @@ export default function InventoryDistribution() {
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
 
-  const { data: employees = [] } = useQuery<User[]>({
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isSupervisor = user?.role === 'supervisor';
+
+  if (!isAdmin && !isSupervisor) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Acesso Negado</CardTitle>
+            <CardDescription>
+              Apenas administradores e supervisores podem acessar esta página.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const { data: allEmployees = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
+
+  // Filter employees by department for supervisors
+  const employees = isSupervisor && user?.departmentId
+    ? allEmployees.filter(emp => emp.departmentId === user.departmentId)
+    : allEmployees;
 
   const { data: items = [] } = useQuery<InventoryItem[]>({
     queryKey: ["/api/inventory/items", { isActive: true }],
@@ -224,7 +249,7 @@ export default function InventoryDistribution() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/admin/inventory">
-            <Button variant="ghost" size="sm" className="mb-2">
+            <Button variant="ghost" size="sm" className="mb-2" data-testid="button-back-to-dashboard">
               ← Voltar ao Dashboard
             </Button>
           </Link>

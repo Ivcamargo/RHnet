@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Package, AlertTriangle, Calendar, Plus, Search, FileDown } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface InventoryItem {
   id: number;
@@ -38,8 +39,12 @@ interface Category {
 }
 
 export default function InventoryDashboard() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isSupervisor = user?.role === 'supervisor';
 
   const { data: items = [], isLoading: itemsLoading } = useQuery<InventoryItem[]>({
     queryKey: ["/api/inventory/items"],
@@ -93,18 +98,22 @@ export default function InventoryDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/inventory/items">
-            <Button data-testid="button-manage-items">
-              <Package className="mr-2 h-4 w-4" />
-              Gerenciar Itens
-            </Button>
-          </Link>
-          <Link href="/admin/inventory/distribute">
-            <Button variant="outline" data-testid="button-distribute">
-              <Plus className="mr-2 h-4 w-4" />
-              Distribuir EPIs
-            </Button>
-          </Link>
+          {isAdmin && (
+            <Link href="/admin/inventory/items">
+              <Button data-testid="button-manage-items">
+                <Package className="mr-2 h-4 w-4" />
+                Gerenciar Itens
+              </Button>
+            </Link>
+          )}
+          {(isAdmin || isSupervisor) && (
+            <Link href="/admin/inventory/distribute">
+              <Button variant="outline" data-testid="button-distribute">
+                <Plus className="mr-2 h-4 w-4" />
+                Distribuir EPIs
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
