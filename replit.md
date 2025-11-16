@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 16, 2025**: Implemented complete Inventory & EPI Management System with digital signatures and role-based access control:
+- **Backend Infrastructure**: Created 5 new database tables (inventory_categories, inventory_items, inventory_stock, inventory_movements, employee_items) with full CRUD operations via storage layer and API routes
+- **Digital Signatures**: Installed react-signature-canvas package and created reusable SignaturePad UI component for delivery/return signatures
+- **Frontend Pages**: Built 4 complete pages - InventoryDashboard (overview with stats), InventoryItems (CRUD management), InventoryDistribution (EPI distribution with signatures), InventoryHistory (employee history with returns)
+- **Role-Based Permissions**: Implemented proper access control - Admin (full access to all features), Supervisor (department-filtered access to distribution/history), Employee (view own items only)
+- **Department Filtering**: Supervisors see only employees from their department in distribution and history pages
+- **Automatic Expiry Calculation**: System automatically calculates expiry dates based on deliveryDate + validityMonths for items with validity
+- **UI Components**: Added "success" variant to Badge component for status indicators
+- **Routes Integration**: Added 4 new protected routes to App.tsx (/admin/inventory, /admin/inventory/items, /admin/inventory/distribute, /admin/inventory/history)
+- **Code Quality**: All pages reviewed and approved by Architect agent with proper TypeScript typing, error handling, and data-testid attributes for automated testing
+- **Next Steps**: Planned features include PDF receipt generation, document integration, messaging system notifications, expiration alerts, and comprehensive reporting
+
 **November 15, 2025**: Fixed critical React infinite loop bug caused by multiple `useAuth()` hook invocations:
 - **Root Cause**: Both Router component and ProtectedRoute component were calling `useAuth()`, creating duplicate subscriptions and triggering infinite re-renders
 - **Solution**: Centralized authentication state by calling `useAuth()` only once in Router component, passing `isAuthenticated` and `isLoading` as props to ProtectedRoute
