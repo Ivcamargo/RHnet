@@ -18,7 +18,8 @@ import {
   UploadCloud,
   Award,
   CalendarDays,
-  ChevronRight
+  ChevronRight,
+  Package
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -269,7 +270,7 @@ export default function Dashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
             <Card 
               className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)] hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setLocation('/messages')}
@@ -355,6 +356,26 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {(user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'supervisor') && (
+              <Card 
+                className="bg-white/90 dark:bg-[hsl(220,20%,12%)] backdrop-blur-sm border-[hsl(175,40%,85%)] dark:border-[hsl(220,15%,25%)] hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setLocation('/admin/inventory')}
+                data-testid="card-inventory"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Estoque & EPIs</CardTitle>
+                  <Package className="h-4 w-4 text-[hsl(175,65%,45%)]" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]">Gestão</div>
+                  <p className="text-xs text-muted-foreground">Materiais e EPIs</p>
+                  <Badge variant="outline" className="mt-2">
+                    Disponível
+                  </Badge>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

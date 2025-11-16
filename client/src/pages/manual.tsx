@@ -851,13 +851,15 @@ export default function Manual() {
         </div>
 
       <Tabs defaultValue="introducao" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-8 mb-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-10 mb-6">
           <TabsTrigger value="introducao">Introdução</TabsTrigger>
           <TabsTrigger value="ponto">Ponto</TabsTrigger>
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
           <TabsTrigger value="gestao">Gestão</TabsTrigger>
           <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           <TabsTrigger value="recrutamento">Recrutamento</TabsTrigger>
+          <TabsTrigger value="disc">DISC</TabsTrigger>
+          <TabsTrigger value="inventory">Estoque & EPIs</TabsTrigger>
           <TabsTrigger value="legais">Arquivos Legais</TabsTrigger>
           <TabsTrigger value="outros">Outros</TabsTrigger>
         </TabsList>
@@ -2488,6 +2490,283 @@ export default function Manual() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* DISC */}
+        <TabsContent value="disc">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                Avaliação DISC
+              </CardTitle>
+              <CardDescription>
+                Sistema de avaliação de perfil comportamental
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <section>
+                <h3 className="text-lg font-semibold mb-3">O que é DISC?</h3>
+                <p className="text-muted-foreground mb-4">
+                  DISC é uma metodologia de avaliação comportamental que classifica as pessoas em quatro dimensões principais: Dominância, Influência, Estabilidade e Conformidade. É amplamente utilizada em processos de recrutamento e desenvolvimento de equipes.
+                </p>
+
+                <div className="space-y-4">
+                  <Card className="bg-red-50 dark:bg-red-950/20 border-red-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2 text-red-700 dark:text-red-400">
+                        D - Dominância
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      <p><strong>Características:</strong> Direto, assertivo, orientado para resultados, competitivo, desafiador.</p>
+                      <p className="mt-2"><strong>Trabalha melhor em:</strong> Ambientes com desafios, metas claras e autonomia para decisões.</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+                        I - Influência
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      <p><strong>Características:</strong> Comunicativo, entusiasta, sociável, persuasivo, otimista.</p>
+                      <p className="mt-2"><strong>Trabalha melhor em:</strong> Ambientes colaborativos, com interação social e reconhecimento.</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-green-50 dark:bg-green-950/20 border-green-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2 text-green-700 dark:text-green-400">
+                        S - Estabilidade
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      <p><strong>Características:</strong> Paciente, leal, bom ouvinte, confiável, consistente.</p>
+                      <p className="mt-2"><strong>Trabalha melhor em:</strong> Ambientes estáveis, previsíveis e com trabalho em equipe.</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                        C - Conformidade
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground">
+                      <p><strong>Características:</strong> Analítico, preciso, sistemático, cauteloso, orientado para qualidade.</p>
+                      <p className="mt-2"><strong>Trabalha melhor em:</strong> Ambientes com processos claros, dados e padrões de qualidade.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h3 className="text-lg font-semibold mb-3">Integração com Recrutamento</h3>
+                <p className="text-muted-foreground mb-4">
+                  O RHNet integra o DISC diretamente no processo de recrutamento para auxiliar na seleção de candidatos.
+                </p>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Configuração nas Vagas</p>
+                      <p className="text-muted-foreground">Ao criar uma vaga, você define o perfil DISC ideal selecionando os níveis (Não relevante, Baixo, Médio, Alto, Muito Alto) para cada dimensão.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Avaliação dos Candidatos</p>
+                      <p className="text-muted-foreground">Candidatos respondem 24-28 questões que avaliam seu perfil comportamental. O sistema calcula automaticamente as pontuações para cada dimensão (0-100).</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Compatibilidade Automática</p>
+                      <p className="text-muted-foreground">O sistema compara o perfil do candidato com o perfil ideal da vaga e exibe indicadores visuais (↑ ↓ ✓) para facilitar a análise.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Uso como Ferramenta Complementar</p>
+                      <p className="text-muted-foreground">O DISC deve ser usado junto com análise de experiência, habilidades técnicas e adequação cultural. Não deve ser o único critério de seleção.</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Estoque & EPIs */}
+        <TabsContent value="inventory">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Gestão de Estoque e EPIs
+              </CardTitle>
+              <CardDescription>
+                Sistema completo para controle de materiais e Equipamentos de Proteção Individual
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <section>
+                <h3 className="text-lg font-semibold mb-3">Visão Geral</h3>
+                <p className="text-muted-foreground mb-4">
+                  O módulo de Estoque & EPIs permite o controle completo de materiais, desde o cadastro de itens até a distribuição para funcionários com assinatura digital, rastreamento de validade e histórico de movimentações.
+                </p>
+
+                <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium mb-2">Acesso por Nível:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• <strong>Admin:</strong> Acesso total (CRUD de itens, distribuição, histórico, relatórios)</li>
+                    <li>• <strong>Supervisor:</strong> Distribuição e histórico apenas do seu departamento</li>
+                    <li>• <strong>Funcionário:</strong> Visualização apenas dos próprios EPIs</li>
+                  </ul>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h3 className="text-lg font-semibold mb-3">Funcionalidades Principais</h3>
+                
+                <div className="space-y-4">
+                  <Card className="bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        1. Dashboard de Estoque
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <p><strong>Visão geral do estoque:</strong></p>
+                      <ul className="ml-4 space-y-1">
+                        <li>• Total de itens ativos cadastrados</li>
+                        <li>• Alertas de estoque baixo (itens abaixo do mínimo)</li>
+                        <li>• Vencimentos próximos (EPIs vencendo em 30 dias)</li>
+                        <li>• Lista completa com filtros por nome, código e categoria</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-secondary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        2. Gestão de Itens (Somente Admin)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <p><strong>Cadastro e edição de itens:</strong></p>
+                      <ul className="ml-4 space-y-1">
+                        <li>• Código, nome, descrição e categoria</li>
+                        <li>• Unidade de medida (UN, CX, PC, KG, L, M)</li>
+                        <li>• Validade em meses (para itens com prazo)</li>
+                        <li>• Estoque mínimo para alertas</li>
+                        <li>• Status ativo/inativo</li>
+                        <li>• Criação de novas categorias</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        3. Distribuição de EPIs
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <p><strong>Entrega com assinatura digital:</strong></p>
+                      <ul className="ml-4 space-y-1">
+                        <li>• Seleção de funcionário (filtrado por departamento para supervisores)</li>
+                        <li>• Adição de múltiplos itens com quantidade</li>
+                        <li>• Cálculo automático de validade (data + meses de validade)</li>
+                        <li>• Assinatura digital do funcionário no recebimento</li>
+                        <li>• Preview da distribuição antes de confirmar</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-secondary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4" />
+                        4. Histórico por Funcionário
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <p><strong>Rastreamento completo:</strong></p>
+                      <ul className="ml-4 space-y-1">
+                        <li>• EPIs atualmente em uso com status de validade</li>
+                        <li>• Histórico de devoluções com motivos</li>
+                        <li>• Estatísticas: total em uso, devolvidos, total recebido</li>
+                        <li>• Modal de devolução com motivo e assinatura</li>
+                        <li>• Badges coloridos para status (vencido, vence em X dias, em uso)</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h3 className="text-lg font-semibold mb-3">Fluxo de Trabalho</h3>
+                <div className="bg-muted/30 p-4 rounded-lg">
+                  <ol className="space-y-2 text-sm">
+                    <li>1. <strong>Admin cria categorias e itens:</strong> Cadastra EPIs e materiais no sistema</li>
+                    <li>2. <strong>Configura validade:</strong> Define quantos meses cada item tem de validade (se aplicável)</li>
+                    <li>3. <strong>Admin/Supervisor distribui:</strong> Seleciona funcionário e itens para entrega</li>
+                    <li>4. <strong>Funcionário assina:</strong> Confirma recebimento com assinatura digital</li>
+                    <li>5. <strong>Sistema calcula validade:</strong> Data de vencimento = data entrega + meses de validade</li>
+                    <li>6. <strong>Acompanhamento:</strong> Admin/supervisor monitora vencimentos e estoque</li>
+                    <li>7. <strong>Devolução:</strong> Quando necessário, registra devolução com motivo e assinatura</li>
+                  </ol>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h3 className="text-lg font-semibold mb-3">Recursos Avançados (Em Desenvolvimento)</h3>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                    <p>Geração automática de recibos PDF com assinaturas</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                    <p>Integração com sistema de documentos (PDFs salvos automaticamente)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                    <p>Notificações automáticas de vencimento (30/15/7 dias antes)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                    <p>Relatórios personalizados com exportação Excel/PDF</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                    <p>Movimentação de estoque (entrada/saída) com histórico</p>
+                  </div>
+                </div>
+              </section>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Arquivos Legais (AFD/AEJ) */}
