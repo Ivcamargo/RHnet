@@ -24,7 +24,13 @@ const getOidcConfig = memoize(
 );
 
 // Ensure session table and index exist (idempotent)
-async function ensureSessionSchema() {
+export async function ensureSessionSchema() {
+  // Only run if DATABASE_URL is configured (skip if Postgres isn't available)
+  if (!process.env.DATABASE_URL) {
+    console.log('[Session] Skipping schema initialization (no DATABASE_URL configured)');
+    return;
+  }
+
   try {
     // Create session table if it doesn't exist
     await pool.query(`
