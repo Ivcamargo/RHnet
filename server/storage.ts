@@ -49,6 +49,11 @@ import {
   discQuestions,
   discAssessments,
   discResponses,
+  inventoryCategories,
+  inventoryItems,
+  inventoryStock,
+  inventoryMovements,
+  employeeItems,
   type User,
   type UpsertUser,
   type Department,
@@ -115,6 +120,16 @@ import {
   type DISCQuestion,
   type DISCAssessment,
   type DISCResponse,
+  type InventoryCategory,
+  type InsertInventoryCategory,
+  type InventoryItem,
+  type InsertInventoryItem,
+  type InventoryStock,
+  type InsertInventoryStock,
+  type InventoryMovement,
+  type InsertInventoryMovement,
+  type EmployeeItem,
+  type InsertEmployeeItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
@@ -503,6 +518,38 @@ export interface IStorage {
   createDISCResponse(response: InsertDISCResponse): Promise<DISCResponse>;
   getDISCResponses(assessmentId: number): Promise<DISCResponse[]>;
   finalizeDISCAssessment(assessmentId: number, scores: { dScore: number; iScore: number; sScore: number; cScore: number; primaryProfile: string }): Promise<DISCAssessment>;
+  
+  // Inventory Category operations
+  getInventoryCategories(companyId: number): Promise<InventoryCategory[]>;
+  getInventoryCategory(id: number): Promise<InventoryCategory | undefined>;
+  createInventoryCategory(category: InsertInventoryCategory): Promise<InventoryCategory>;
+  updateInventoryCategory(id: number, category: Partial<InsertInventoryCategory>): Promise<InventoryCategory>;
+  deleteInventoryCategory(id: number): Promise<void>;
+  
+  // Inventory Item operations
+  getInventoryItems(companyId: number, filters?: { categoryId?: number; isActive?: boolean }): Promise<InventoryItem[]>;
+  getInventoryItem(id: number): Promise<InventoryItem | undefined>;
+  createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
+  updateInventoryItem(id: number, item: Partial<InsertInventoryItem>): Promise<InventoryItem>;
+  deleteInventoryItem(id: number): Promise<void>;
+  
+  // Inventory Stock operations
+  getInventoryStock(companyId: number): Promise<InventoryStock[]>;
+  getStockByItem(itemId: number): Promise<InventoryStock | undefined>;
+  updateInventoryStock(itemId: number, companyId: number, quantity: number, userId: string): Promise<InventoryStock>;
+  getLowStockItems(companyId: number): Promise<Array<InventoryItem & { currentStock: number }>>;
+  
+  // Inventory Movement operations
+  getInventoryMovements(companyId: number, filters?: { itemId?: number; type?: string; startDate?: Date; endDate?: Date }): Promise<InventoryMovement[]>;
+  createInventoryMovement(movement: InsertInventoryMovement): Promise<InventoryMovement>;
+  
+  // Employee Item operations (distribution)
+  getEmployeeItems(employeeId: string, filters?: { status?: string }): Promise<EmployeeItem[]>;
+  getEmployeeItemsByDepartment(departmentId: number, filters?: { status?: string }): Promise<EmployeeItem[]>;
+  getEmployeeItem(id: number): Promise<EmployeeItem | undefined>;
+  createEmployeeItem(employeeItem: InsertEmployeeItem): Promise<EmployeeItem>;
+  updateEmployeeItem(id: number, employeeItem: Partial<InsertEmployeeItem>): Promise<EmployeeItem>;
+  getExpiringItems(companyId: number, daysAhead: number): Promise<Array<EmployeeItem & { employeeName: string; itemName: string }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3913,6 +3960,380 @@ export class DatabaseStorage implements IStorage {
       .where(eq(discAssessments.id, assessmentId))
       .returning();
     return updated;
+  }
+
+  // ============= INVENTORY SYSTEM OPERATIONS =============
+
+  // Inventory Category operations
+  async getInventoryCategories(companyId: number): Promise<InventoryCategory[]> {
+    return await db
+      .select()
+      .from(inventoryCategories)
+      .where(eq(inventoryCategories.companyId, companyId))
+      .orderBy(inventoryCategories.name);
+  }
+
+  async getInventoryCategory(id: number): Promise<InventoryCategory | undefined> {
+    const [category] = await db
+      .select()
+      .from(inventoryCategories)
+      .where(eq(inventoryCategories.id, id));
+    return category;
+  }
+
+  async createInventoryCategory(category: InsertInventoryCategory): Promise<InventoryCategory> {
+    const [newCategory] = await db
+      .insert(inventoryCategories)
+      .values(category)
+      .returning();
+    return newCategory;
+  }
+
+  async updateInventoryCategory(id: number, category: Partial<InsertInventoryCategory>): Promise<InventoryCategory> {
+    const [updated] = await db
+      .update(inventoryCategories)
+      .set({
+        ...category,
+        updatedAt: new Date(),
+      })
+      .where(eq(inventoryCategories.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteInventoryCategory(id: number): Promise<void> {
+    await db
+      .delete(inventoryCategories)
+      .where(eq(inventoryCategories.id, id));
+  }
+
+  // Inventory Item operations
+  async getInventoryItems(companyId: number, filters?: { categoryId?: number; isActive?: boolean }): Promise<InventoryItem[]> {
+    const conditions = [eq(inventoryItems.companyId, companyId)];
+    
+    if (filters?.categoryId) {
+      conditions.push(eq(inventoryItems.categoryId, filters.categoryId));
+    }
+    
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(inventoryItems.isActive, filters.isActive));
+    }
+
+    return await db
+      .select()
+      .from(inventoryItems)
+      .where(and(...conditions))
+      .orderBy(inventoryItems.name);
+  }
+
+  async getInventoryItem(id: number): Promise<InventoryItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, id));
+    return item;
+  }
+
+  async createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem> {
+    const [newItem] = await db
+      .insert(inventoryItems)
+      .values(item)
+      .returning();
+    
+    // Initialize stock for this item
+    await db.insert(inventoryStock).values({
+      itemId: newItem.id,
+      companyId: newItem.companyId,
+      quantity: 0,
+      location: 'Estoque Principal',
+    });
+    
+    return newItem;
+  }
+
+  async updateInventoryItem(id: number, item: Partial<InsertInventoryItem>): Promise<InventoryItem> {
+    const [updated] = await db
+      .update(inventoryItems)
+      .set({
+        ...item,
+        updatedAt: new Date(),
+      })
+      .where(eq(inventoryItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteInventoryItem(id: number): Promise<void> {
+    await db
+      .delete(inventoryItems)
+      .where(eq(inventoryItems.id, id));
+  }
+
+  // Inventory Stock operations
+  async getInventoryStock(companyId: number): Promise<InventoryStock[]> {
+    return await db
+      .select()
+      .from(inventoryStock)
+      .where(eq(inventoryStock.companyId, companyId));
+  }
+
+  async getStockByItem(itemId: number): Promise<InventoryStock | undefined> {
+    const [stock] = await db
+      .select()
+      .from(inventoryStock)
+      .where(eq(inventoryStock.itemId, itemId));
+    return stock;
+  }
+
+  async updateInventoryStock(itemId: number, companyId: number, quantity: number, userId: string): Promise<InventoryStock> {
+    const [updated] = await db
+      .update(inventoryStock)
+      .set({
+        quantity,
+        lastUpdateBy: userId,
+        lastUpdateAt: new Date(),
+      })
+      .where(and(
+        eq(inventoryStock.itemId, itemId),
+        eq(inventoryStock.companyId, companyId)
+      ))
+      .returning();
+    return updated;
+  }
+
+  async getLowStockItems(companyId: number): Promise<Array<InventoryItem & { currentStock: number }>> {
+    const result = await db
+      .select({
+        id: inventoryItems.id,
+        companyId: inventoryItems.companyId,
+        categoryId: inventoryItems.categoryId,
+        code: inventoryItems.code,
+        name: inventoryItems.name,
+        description: inventoryItems.description,
+        unit: inventoryItems.unit,
+        hasValidity: inventoryItems.hasValidity,
+        validityMonths: inventoryItems.validityMonths,
+        minStock: inventoryItems.minStock,
+        isActive: inventoryItems.isActive,
+        createdAt: inventoryItems.createdAt,
+        updatedAt: inventoryItems.updatedAt,
+        currentStock: sql<number>`COALESCE(${inventoryStock.quantity}, 0)`,
+      })
+      .from(inventoryItems)
+      .leftJoin(inventoryStock, eq(inventoryItems.id, inventoryStock.itemId))
+      .where(
+        and(
+          eq(inventoryItems.companyId, companyId),
+          eq(inventoryItems.isActive, true),
+          sql`COALESCE(${inventoryStock.quantity}, 0) <= ${inventoryItems.minStock}`
+        )
+      );
+    
+    return result;
+  }
+
+  // Inventory Movement operations
+  async getInventoryMovements(
+    companyId: number, 
+    filters?: { itemId?: number; type?: string; startDate?: Date; endDate?: Date }
+  ): Promise<InventoryMovement[]> {
+    const conditions = [eq(inventoryMovements.companyId, companyId)];
+    
+    if (filters?.itemId) {
+      conditions.push(eq(inventoryMovements.itemId, filters.itemId));
+    }
+    
+    if (filters?.type) {
+      conditions.push(eq(inventoryMovements.type, filters.type));
+    }
+    
+    if (filters?.startDate) {
+      conditions.push(gte(inventoryMovements.createdAt, filters.startDate));
+    }
+    
+    if (filters?.endDate) {
+      conditions.push(lte(inventoryMovements.createdAt, filters.endDate));
+    }
+
+    return await db
+      .select()
+      .from(inventoryMovements)
+      .where(and(...conditions))
+      .orderBy(desc(inventoryMovements.createdAt));
+  }
+
+  async createInventoryMovement(movement: InsertInventoryMovement): Promise<InventoryMovement> {
+    const [newMovement] = await db
+      .insert(inventoryMovements)
+      .values(movement)
+      .returning();
+    
+    // Update stock automatically
+    const stock = await this.getStockByItem(movement.itemId);
+    if (stock) {
+      const newQuantity = movement.type === 'in' 
+        ? stock.quantity + movement.quantity 
+        : stock.quantity - movement.quantity;
+      
+      await this.updateInventoryStock(
+        movement.itemId,
+        movement.companyId,
+        newQuantity,
+        movement.createdBy
+      );
+    }
+    
+    return newMovement;
+  }
+
+  // Employee Item operations (distribution)
+  async getEmployeeItems(employeeId: string, filters?: { status?: string }): Promise<EmployeeItem[]> {
+    const conditions = [eq(employeeItems.employeeId, employeeId)];
+    
+    if (filters?.status) {
+      conditions.push(eq(employeeItems.status, filters.status));
+    }
+
+    return await db
+      .select()
+      .from(employeeItems)
+      .where(and(...conditions))
+      .orderBy(desc(employeeItems.deliveryDate));
+  }
+
+  async getEmployeeItemsByDepartment(departmentId: number, filters?: { status?: string }): Promise<EmployeeItem[]> {
+    const conditions = [eq(users.departmentId, departmentId)];
+    
+    if (filters?.status) {
+      conditions.push(eq(employeeItems.status, filters.status));
+    }
+
+    return await db
+      .select({
+        id: employeeItems.id,
+        employeeId: employeeItems.employeeId,
+        itemId: employeeItems.itemId,
+        companyId: employeeItems.companyId,
+        quantity: employeeItems.quantity,
+        deliveryDate: employeeItems.deliveryDate,
+        expiryDate: employeeItems.expiryDate,
+        deliverySignature: employeeItems.deliverySignature,
+        deliveredBy: employeeItems.deliveredBy,
+        returnDate: employeeItems.returnDate,
+        returnSignature: employeeItems.returnSignature,
+        returnReason: employeeItems.returnReason,
+        returnedBy: employeeItems.returnedBy,
+        status: employeeItems.status,
+        deliveryDocumentId: employeeItems.deliveryDocumentId,
+        returnDocumentId: employeeItems.returnDocumentId,
+        createdAt: employeeItems.createdAt,
+        updatedAt: employeeItems.updatedAt,
+      })
+      .from(employeeItems)
+      .innerJoin(users, eq(employeeItems.employeeId, users.id))
+      .where(and(...conditions))
+      .orderBy(desc(employeeItems.deliveryDate));
+  }
+
+  async getEmployeeItem(id: number): Promise<EmployeeItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(employeeItems)
+      .where(eq(employeeItems.id, id));
+    return item;
+  }
+
+  async createEmployeeItem(employeeItem: InsertEmployeeItem): Promise<EmployeeItem> {
+    const [newEmployeeItem] = await db
+      .insert(employeeItems)
+      .values(employeeItem)
+      .returning();
+    
+    // Create inventory movement for distribution
+    await this.createInventoryMovement({
+      itemId: employeeItem.itemId,
+      companyId: employeeItem.companyId,
+      type: 'out',
+      quantity: employeeItem.quantity,
+      reason: 'distribution',
+      referenceId: newEmployeeItem.id,
+      createdBy: employeeItem.deliveredBy,
+    });
+    
+    return newEmployeeItem;
+  }
+
+  async updateEmployeeItem(id: number, employeeItem: Partial<InsertEmployeeItem> & { status?: string }): Promise<EmployeeItem> {
+    const [updated] = await db
+      .update(employeeItems)
+      .set({
+        ...employeeItem,
+        updatedAt: new Date(),
+      })
+      .where(eq(employeeItems.id, id))
+      .returning();
+    
+    // If returning item, create inventory movement
+    if (employeeItem.status === 'returned' && employeeItem.returnDate) {
+      const original = await this.getEmployeeItem(id);
+      if (original) {
+        await this.createInventoryMovement({
+          itemId: original.itemId,
+          companyId: original.companyId,
+          type: 'in',
+          quantity: original.quantity,
+          reason: 'return',
+          referenceId: id,
+          notes: employeeItem.returnReason,
+          createdBy: employeeItem.returnedBy || original.deliveredBy,
+        });
+      }
+    }
+    
+    return updated;
+  }
+
+  async getExpiringItems(companyId: number, daysAhead: number): Promise<Array<EmployeeItem & { employeeName: string; itemName: string }>> {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+
+    const result = await db
+      .select({
+        id: employeeItems.id,
+        employeeId: employeeItems.employeeId,
+        itemId: employeeItems.itemId,
+        companyId: employeeItems.companyId,
+        quantity: employeeItems.quantity,
+        deliveryDate: employeeItems.deliveryDate,
+        expiryDate: employeeItems.expiryDate,
+        deliverySignature: employeeItems.deliverySignature,
+        deliveredBy: employeeItems.deliveredBy,
+        returnDate: employeeItems.returnDate,
+        returnSignature: employeeItems.returnSignature,
+        returnReason: employeeItems.returnReason,
+        returnedBy: employeeItems.returnedBy,
+        status: employeeItems.status,
+        deliveryDocumentId: employeeItems.deliveryDocumentId,
+        returnDocumentId: employeeItems.returnDocumentId,
+        createdAt: employeeItems.createdAt,
+        updatedAt: employeeItems.updatedAt,
+        employeeName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        itemName: inventoryItems.name,
+      })
+      .from(employeeItems)
+      .innerJoin(users, eq(employeeItems.employeeId, users.id))
+      .innerJoin(inventoryItems, eq(employeeItems.itemId, inventoryItems.id))
+      .where(
+        and(
+          eq(employeeItems.companyId, companyId),
+          eq(employeeItems.status, 'active'),
+          lte(employeeItems.expiryDate, futureDate),
+          gte(employeeItems.expiryDate, new Date())
+        )
+      )
+      .orderBy(employeeItems.expiryDate);
+
+    return result;
   }
 }
 

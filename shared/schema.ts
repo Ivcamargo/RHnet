@@ -2130,3 +2130,202 @@ export const updateLeadStatusSchema = z.object({
   followUpNotes: z.string().optional(),
   assignedTo: z.string().optional(),
 });
+
+// ============= INVENTORY & EPI MANAGEMENT SYSTEM =============
+
+// Inventory Categories - Types of inventory items (EPI, Uniforms, Materials)
+export const inventoryCategories = pgTable("inventory_categories", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // "epi", "uniform", "material", "tool"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
+// Inventory Items - Catalog of items available in inventory
+export const inventoryItems = pgTable("inventory_items", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  categoryId: integer("category_id").notNull(),
+  code: varchar("code").notNull(), // SKU or internal code
+  name: varchar("name").notNull(),
+  description: text("description"),
+  unit: varchar("unit").default("un"), // un, par, kg, m, etc
+  hasValidity: boolean("has_validity").default(false), // EPIs usually have expiry
+  validityMonths: integer("validity_months"), // Default validity in months (e.g., 6 for helmet)
+  minStock: integer("min_stock").default(0), // Alert threshold
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  categoryReference: foreignKey({
+    columns: [table.categoryId],
+    foreignColumns: [inventoryCategories.id],
+  }),
+}));
+
+// Inventory Stock - Current stock levels by location
+export const inventoryStock = pgTable("inventory_stock", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull(),
+  companyId: integer("company_id").notNull(),
+  quantity: integer("quantity").default(0).notNull(),
+  location: varchar("location").default("Estoque Principal"), // Storage location
+  lastUpdateBy: varchar("last_update_by"),
+  lastUpdateAt: timestamp("last_update_at").defaultNow(),
+}, (table) => ({
+  itemReference: foreignKey({
+    columns: [table.itemId],
+    foreignColumns: [inventoryItems.id],
+  }),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  lastUpdateByReference: foreignKey({
+    columns: [table.lastUpdateBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Inventory Movements - Track all stock movements (in/out)
+export const inventoryMovements = pgTable("inventory_movements", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull(),
+  companyId: integer("company_id").notNull(),
+  type: varchar("type").notNull(), // "in" (entrada), "out" (saída)
+  quantity: integer("quantity").notNull(),
+  reason: varchar("reason").notNull(), // "purchase", "distribution", "return", "disposal", "adjustment"
+  referenceId: integer("reference_id"), // Link to employee_items if distribution
+  notes: text("notes"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  itemReference: foreignKey({
+    columns: [table.itemId],
+    foreignColumns: [inventoryItems.id],
+  }),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  createdByReference: foreignKey({
+    columns: [table.createdBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Employee Items - Items distributed to employees (with digital signatures)
+export const employeeItems = pgTable("employee_items", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id").notNull(),
+  itemId: integer("item_id").notNull(),
+  companyId: integer("company_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  
+  // Delivery information
+  deliveryDate: timestamp("delivery_date").defaultNow().notNull(),
+  expiryDate: timestamp("expiry_date"), // Calculated based on hasValidity
+  deliverySignature: text("delivery_signature"), // Base64 encoded signature image
+  deliveredBy: varchar("delivered_by").notNull(), // Admin/Supervisor who delivered
+  
+  // Return information
+  returnDate: timestamp("return_date"),
+  returnSignature: text("return_signature"), // Base64 encoded signature image
+  returnReason: text("return_reason"),
+  returnedBy: varchar("returned_by"), // Admin/Supervisor who processed return
+  
+  // Status tracking
+  status: varchar("status").default("active").notNull(), // "active", "returned", "expired"
+  
+  // Document integration
+  deliveryDocumentId: integer("delivery_document_id"), // Link to documents table
+  returnDocumentId: integer("return_document_id"), // Link to documents table
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  employeeReference: foreignKey({
+    columns: [table.employeeId],
+    foreignColumns: [users.id],
+  }),
+  itemReference: foreignKey({
+    columns: [table.itemId],
+    foreignColumns: [inventoryItems.id],
+  }),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  deliveredByReference: foreignKey({
+    columns: [table.deliveredBy],
+    foreignColumns: [users.id],
+  }),
+  returnedByReference: foreignKey({
+    columns: [table.returnedBy],
+    foreignColumns: [users.id],
+  }),
+  deliveryDocumentReference: foreignKey({
+    columns: [table.deliveryDocumentId],
+    foreignColumns: [documents.id],
+  }),
+  returnDocumentReference: foreignKey({
+    columns: [table.returnDocumentId],
+    foreignColumns: [documents.id],
+  }),
+}));
+
+// Types for Inventory System
+export type InventoryCategory = typeof inventoryCategories.$inferSelect;
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryStock = typeof inventoryStock.$inferSelect;
+export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type EmployeeItem = typeof employeeItems.$inferSelect;
+
+// Insert schemas for Inventory System
+export const insertInventoryCategorySchema = createInsertSchema(inventoryCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInventoryCategory = z.infer<typeof insertInventoryCategorySchema>;
+
+export const insertInventoryItemSchema = createInsertSchema(inventoryItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertInventoryItem = z.infer<typeof insertInventoryItemSchema>;
+
+export const insertInventoryStockSchema = createInsertSchema(inventoryStock).omit({
+  id: true,
+  lastUpdateAt: true,
+});
+export type InsertInventoryStock = z.infer<typeof insertInventoryStockSchema>;
+
+export const insertInventoryMovementSchema = createInsertSchema(inventoryMovements).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
+
+export const insertEmployeeItemSchema = createInsertSchema(employeeItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  deliveryDate: true,
+  status: true,
+});
+export type InsertEmployeeItem = z.infer<typeof insertEmployeeItemSchema>;
