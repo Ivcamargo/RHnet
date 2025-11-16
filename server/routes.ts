@@ -7810,6 +7810,478 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========================================================================================
+  // INVENTORY & EPI MANAGEMENT ROUTES
+  // ========================================================================================
+
+  // ===================== INVENTORY CATEGORIES =====================
+
+  // Get all categories (admin and supervisor)
+  app.get('/api/inventory/categories', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const companyId = user.companyId;
+      const categories = await storage.getInventoryCategories(companyId);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching inventory categories:", error);
+      res.status(500).json({ message: "Erro ao buscar categorias" });
+    }
+  });
+
+  // Create category (admin only)
+  app.post('/api/inventory/categories', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      const category = await storage.createInventoryCategory({
+        companyId: user.companyId,
+        name: req.body.name,
+        description: req.body.description,
+      });
+
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating inventory category:", error);
+      res.status(500).json({ message: "Erro ao criar categoria" });
+    }
+  });
+
+  // Update category (admin only)
+  app.put('/api/inventory/categories/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      const category = await storage.updateInventoryCategory(parseInt(req.params.id), {
+        name: req.body.name,
+        description: req.body.description,
+      });
+
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating inventory category:", error);
+      res.status(500).json({ message: "Erro ao atualizar categoria" });
+    }
+  });
+
+  // Delete category (admin only)
+  app.delete('/api/inventory/categories/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      await storage.deleteInventoryCategory(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting inventory category:", error);
+      res.status(500).json({ message: "Erro ao excluir categoria" });
+    }
+  });
+
+  // ===================== INVENTORY ITEMS =====================
+
+  // Get all items (admin and supervisor)
+  app.get('/api/inventory/items', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const companyId = user.companyId;
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId) : undefined;
+      const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+
+      const items = await storage.getInventoryItems(companyId, { categoryId, isActive });
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching inventory items:", error);
+      res.status(500).json({ message: "Erro ao buscar itens" });
+    }
+  });
+
+  // Get single item (admin and supervisor)
+  app.get('/api/inventory/items/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const item = await storage.getInventoryItem(parseInt(req.params.id));
+      if (!item || item.companyId !== user.companyId) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error fetching inventory item:", error);
+      res.status(500).json({ message: "Erro ao buscar item" });
+    }
+  });
+
+  // Create item (admin only)
+  app.post('/api/inventory/items', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      const item = await storage.createInventoryItem({
+        companyId: user.companyId,
+        categoryId: req.body.categoryId,
+        code: req.body.code,
+        name: req.body.name,
+        description: req.body.description,
+        unit: req.body.unit,
+        hasValidity: req.body.hasValidity || false,
+        validityMonths: req.body.validityMonths,
+        minStock: req.body.minStock || 0,
+        isActive: req.body.isActive !== false,
+      });
+
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating inventory item:", error);
+      res.status(500).json({ message: "Erro ao criar item" });
+    }
+  });
+
+  // Update item (admin only)
+  app.put('/api/inventory/items/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      const item = await storage.updateInventoryItem(parseInt(req.params.id), {
+        categoryId: req.body.categoryId,
+        code: req.body.code,
+        name: req.body.name,
+        description: req.body.description,
+        unit: req.body.unit,
+        hasValidity: req.body.hasValidity,
+        validityMonths: req.body.validityMonths,
+        minStock: req.body.minStock,
+        isActive: req.body.isActive,
+      });
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error updating inventory item:", error);
+      res.status(500).json({ message: "Erro ao atualizar item" });
+    }
+  });
+
+  // Delete item (admin only)
+  app.delete('/api/inventory/items/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      await storage.deleteInventoryItem(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting inventory item:", error);
+      res.status(500).json({ message: "Erro ao excluir item" });
+    }
+  });
+
+  // ===================== INVENTORY STOCK =====================
+
+  // Get current stock (admin and supervisor)
+  app.get('/api/inventory/stock', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const companyId = user.companyId;
+      const stock = await storage.getInventoryStock(companyId);
+      res.json(stock);
+    } catch (error) {
+      console.error("Error fetching inventory stock:", error);
+      res.status(500).json({ message: "Erro ao buscar estoque" });
+    }
+  });
+
+  // Get low stock items (admin and supervisor)
+  app.get('/api/inventory/stock/low', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const companyId = user.companyId;
+      const lowStockItems = await storage.getLowStockItems(companyId);
+      res.json(lowStockItems);
+    } catch (error) {
+      console.error("Error fetching low stock items:", error);
+      res.status(500).json({ message: "Erro ao buscar itens com estoque baixo" });
+    }
+  });
+
+  // ===================== INVENTORY MOVEMENTS =====================
+
+  // Get movements (admin and supervisor)
+  app.get('/api/inventory/movements', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const companyId = user.companyId;
+      const filters: any = {};
+
+      if (req.query.itemId) filters.itemId = parseInt(req.query.itemId);
+      if (req.query.type) filters.type = req.query.type;
+      if (req.query.startDate) filters.startDate = new Date(req.query.startDate);
+      if (req.query.endDate) filters.endDate = new Date(req.query.endDate);
+
+      const movements = await storage.getInventoryMovements(companyId, filters);
+      res.json(movements);
+    } catch (error) {
+      console.error("Error fetching inventory movements:", error);
+      res.status(500).json({ message: "Erro ao buscar movimentações" });
+    }
+  });
+
+  // Create movement (admin only)
+  app.post('/api/inventory/movements', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+        return res.status(403).json({ message: "Acesso negado - apenas administradores" });
+      }
+
+      const movement = await storage.createInventoryMovement({
+        companyId: user.companyId,
+        itemId: req.body.itemId,
+        type: req.body.type,
+        quantity: req.body.quantity,
+        reason: req.body.reason,
+        referenceId: req.body.referenceId,
+        notes: req.body.notes,
+        createdBy: user.id,
+      });
+
+      res.status(201).json(movement);
+    } catch (error) {
+      console.error("Error creating inventory movement:", error);
+      res.status(500).json({ message: "Erro ao criar movimentação" });
+    }
+  });
+
+  // ===================== EMPLOYEE ITEMS (DISTRIBUTION) =====================
+
+  // Get employee items - for specific employee (admin, supervisor, or employee self)
+  app.get('/api/inventory/employee-items', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const employeeId = req.query.employeeId as string;
+      const status = req.query.status as string | undefined;
+
+      // Employee can only see their own items
+      if (user.role === 'employee') {
+        if (employeeId && employeeId !== user.id) {
+          return res.status(403).json({ message: "Acesso negado - você só pode ver seus próprios itens" });
+        }
+        const items = await storage.getEmployeeItems(user.id, { status });
+        return res.json(items);
+      }
+
+      // Supervisor can see items from their department
+      if (user.role === 'supervisor') {
+        if (employeeId) {
+          const employee = await storage.getUser(employeeId);
+          if (!employee || employee.departmentId !== user.departmentId) {
+            return res.status(403).json({ message: "Acesso negado - funcionário não pertence ao seu departamento" });
+          }
+          const items = await storage.getEmployeeItems(employeeId, { status });
+          return res.json(items);
+        } else {
+          // Return all items from supervisor's department
+          const items = await storage.getEmployeeItemsByDepartment(user.departmentId, { status });
+          return res.json(items);
+        }
+      }
+
+      // Admin can see all items
+      if (employeeId) {
+        const items = await storage.getEmployeeItems(employeeId, { status });
+        return res.json(items);
+      } else {
+        // Return all items from all departments
+        const items = await storage.getEmployeeItemsByDepartment(user.departmentId, { status });
+        return res.json(items);
+      }
+    } catch (error) {
+      console.error("Error fetching employee items:", error);
+      res.status(500).json({ message: "Erro ao buscar itens do funcionário" });
+    }
+  });
+
+  // Get single employee item (admin, supervisor, or employee self)
+  app.get('/api/inventory/employee-items/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const item = await storage.getEmployeeItem(parseInt(req.params.id));
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+
+      // Check permissions
+      if (user.role === 'employee' && item.employeeId !== user.id) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      if (user.role === 'supervisor') {
+        const employee = await storage.getUser(item.employeeId);
+        if (!employee || employee.departmentId !== user.departmentId) {
+          return res.status(403).json({ message: "Acesso negado - funcionário não pertence ao seu departamento" });
+        }
+      }
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error fetching employee item:", error);
+      res.status(500).json({ message: "Erro ao buscar item do funcionário" });
+    }
+  });
+
+  // Distribute items to employee (admin and supervisor)
+  app.post('/api/inventory/employee-items', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const employeeId = req.body.employeeId;
+
+      // Supervisor can only distribute to employees in their department
+      if (user.role === 'supervisor') {
+        const employee = await storage.getUser(employeeId);
+        if (!employee || employee.departmentId !== user.departmentId) {
+          return res.status(403).json({ message: "Acesso negado - funcionário não pertence ao seu departamento" });
+        }
+      }
+
+      const employeeItem = await storage.createEmployeeItem({
+        companyId: user.companyId,
+        employeeId: employeeId,
+        itemId: req.body.itemId,
+        quantity: req.body.quantity,
+        deliveryDate: new Date(req.body.deliveryDate),
+        expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
+        deliverySignature: req.body.deliverySignature,
+        deliveredBy: user.id,
+        status: 'active',
+      });
+
+      res.status(201).json(employeeItem);
+    } catch (error) {
+      console.error("Error distributing item to employee:", error);
+      res.status(500).json({ message: "Erro ao distribuir item para funcionário" });
+    }
+  });
+
+  // Return employee item (admin and supervisor)
+  app.put('/api/inventory/employee-items/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const item = await storage.getEmployeeItem(parseInt(req.params.id));
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+
+      // Supervisor can only return items from employees in their department
+      if (user.role === 'supervisor') {
+        const employee = await storage.getUser(item.employeeId);
+        if (!employee || employee.departmentId !== user.departmentId) {
+          return res.status(403).json({ message: "Acesso negado - funcionário não pertence ao seu departamento" });
+        }
+      }
+
+      const updatedItem = await storage.updateEmployeeItem(parseInt(req.params.id), {
+        status: req.body.status,
+        returnDate: req.body.returnDate ? new Date(req.body.returnDate) : undefined,
+        returnSignature: req.body.returnSignature,
+        returnReason: req.body.returnReason,
+        returnedBy: user.id,
+        deliveryDocumentId: req.body.deliveryDocumentId,
+        returnDocumentId: req.body.returnDocumentId,
+      });
+
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Error updating employee item:", error);
+      res.status(500).json({ message: "Erro ao atualizar item do funcionário" });
+    }
+  });
+
+  // Get expiring items (admin and supervisor)
+  app.get('/api/inventory/employee-items/expiring/:days', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'supervisor')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const daysAhead = parseInt(req.params.days);
+      const companyId = user.companyId;
+      const expiringItems = await storage.getExpiringItems(companyId, daysAhead);
+
+      // Filter by department for supervisors
+      if (user.role === 'supervisor') {
+        const filteredItems = [];
+        for (const item of expiringItems) {
+          const employee = await storage.getUser(item.employeeId);
+          if (employee && employee.departmentId === user.departmentId) {
+            filteredItems.push(item);
+          }
+        }
+        return res.json(filteredItems);
+      }
+
+      res.json(expiringItems);
+    } catch (error) {
+      console.error("Error fetching expiring items:", error);
+      res.status(500).json({ message: "Erro ao buscar itens a vencer" });
+    }
+  });
+
+  // ========================================================================================
   // DISC ASSESSMENT ROUTES
   // ========================================================================================
 
