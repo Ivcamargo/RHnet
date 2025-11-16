@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS "application_requirement_responses" (
+CREATE TABLE "application_requirement_responses" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"application_id" integer NOT NULL,
 	"requirement_id" integer NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS "application_requirement_responses" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "applications" (
+CREATE TABLE "applications" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"job_opening_id" integer NOT NULL,
 	"candidate_id" integer NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS "applications" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "audit_log" (
+CREATE TABLE "audit_log" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"action" varchar NOT NULL,
 	"performed_by" varchar NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS "audit_log" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "authorized_devices" (
+CREATE TABLE "authorized_devices" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"device_code" varchar(50) NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS "authorized_devices" (
 	CONSTRAINT "authorized_devices_device_code_unique" UNIQUE("device_code")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "break_entries" (
+CREATE TABLE "break_entries" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"time_entry_id" integer NOT NULL,
 	"break_start" timestamp,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS "break_entries" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "candidates" (
+CREATE TABLE "candidates" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS "candidates" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "certificates" (
+CREATE TABLE "certificates" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"course_id" integer NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS "certificates" (
 	CONSTRAINT "certificates_certificate_number_unique" UNIQUE("certificate_number")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "companies" (
+CREATE TABLE "companies" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar NOT NULL,
 	"cnpj" varchar,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS "companies" (
 	CONSTRAINT "companies_cnpj_unique" UNIQUE("cnpj")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "course_answers" (
+CREATE TABLE "course_answers" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"employee_course_id" integer NOT NULL,
 	"question_id" integer NOT NULL,
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS "course_answers" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "course_questions" (
+CREATE TABLE "course_questions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"course_id" integer NOT NULL,
 	"question" text NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS "course_questions" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "courses" (
+CREATE TABLE "courses" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"title" varchar NOT NULL,
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS "courses" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "department_shift_breaks" (
+CREATE TABLE "department_shift_breaks" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"shift_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS "department_shift_breaks" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "department_shifts" (
+CREATE TABLE "department_shifts" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"department_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS "department_shifts" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "departments" (
+CREATE TABLE "departments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"sector_id" integer NOT NULL,
@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS "departments" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "disc_assessments" (
+CREATE TABLE "disc_assessments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"application_id" integer,
 	"candidate_id" integer,
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS "disc_assessments" (
 	CONSTRAINT "disc_assessments_access_token_unique" UNIQUE("access_token")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "disc_questions" (
+CREATE TABLE "disc_questions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"question_text" text NOT NULL,
 	"profile_type" varchar NOT NULL,
@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS "disc_questions" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "disc_responses" (
+CREATE TABLE "disc_responses" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"assessment_id" integer NOT NULL,
 	"question_id" integer NOT NULL,
@@ -244,7 +244,7 @@ CREATE TABLE IF NOT EXISTS "disc_responses" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "documents" (
+CREATE TABLE "documents" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"title" varchar NOT NULL,
@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS "documents" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "employee_courses" (
+CREATE TABLE "employee_courses" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"course_id" integer NOT NULL,
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS "employee_courses" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "face_profiles" (
+CREATE TABLE "face_profiles" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"face_data" jsonb,
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS "face_profiles" (
 	CONSTRAINT "face_profiles_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "holidays" (
+CREATE TABLE "holidays" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS "holidays" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "interview_templates" (
+CREATE TABLE "interview_templates" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -320,7 +320,7 @@ CREATE TABLE IF NOT EXISTS "interview_templates" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "interviews" (
+CREATE TABLE "interviews" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"application_id" integer NOT NULL,
 	"template_id" integer,
@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS "interviews" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "job_openings" (
+CREATE TABLE "job_openings" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"department_id" integer,
@@ -364,7 +364,7 @@ CREATE TABLE IF NOT EXISTS "job_openings" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "job_requirements" (
+CREATE TABLE "job_requirements" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"job_opening_id" integer NOT NULL,
 	"title" varchar NOT NULL,
@@ -377,7 +377,7 @@ CREATE TABLE IF NOT EXISTS "job_requirements" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "job_training_tracks" (
+CREATE TABLE "job_training_tracks" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"department_id" integer,
@@ -389,7 +389,7 @@ CREATE TABLE IF NOT EXISTS "job_training_tracks" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "leads" (
+CREATE TABLE "leads" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar NOT NULL,
 	"email" varchar NOT NULL,
@@ -409,7 +409,7 @@ CREATE TABLE IF NOT EXISTS "leads" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "legal_files" (
+CREATE TABLE "legal_files" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"type" varchar NOT NULL,
@@ -429,7 +429,7 @@ CREATE TABLE IF NOT EXISTS "legal_files" (
 	"description" text
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "legal_nsr_sequences" (
+CREATE TABLE "legal_nsr_sequences" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"current_nsr" integer DEFAULT 0 NOT NULL,
@@ -438,7 +438,7 @@ CREATE TABLE IF NOT EXISTS "legal_nsr_sequences" (
 	CONSTRAINT "legal_nsr_sequences_company_id_unique" UNIQUE("company_id")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "message_attachments" (
+CREATE TABLE "message_attachments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"message_id" integer NOT NULL,
 	"file_name" varchar NOT NULL,
@@ -450,7 +450,7 @@ CREATE TABLE IF NOT EXISTS "message_attachments" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "message_categories" (
+CREATE TABLE "message_categories" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar NOT NULL,
 	"description" text,
@@ -460,7 +460,7 @@ CREATE TABLE IF NOT EXISTS "message_categories" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "message_recipients" (
+CREATE TABLE "message_recipients" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"message_id" integer NOT NULL,
 	"user_id" varchar NOT NULL,
@@ -473,7 +473,7 @@ CREATE TABLE IF NOT EXISTS "message_recipients" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "messages" (
+CREATE TABLE "messages" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"sender_id" varchar NOT NULL,
@@ -492,7 +492,7 @@ CREATE TABLE IF NOT EXISTS "messages" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "notifications" (
+CREATE TABLE "notifications" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"company_id" integer NOT NULL,
@@ -510,7 +510,7 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "onboarding_documents" (
+CREATE TABLE "onboarding_documents" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"onboarding_link_id" integer NOT NULL,
 	"document_type" varchar NOT NULL,
@@ -525,7 +525,7 @@ CREATE TABLE IF NOT EXISTS "onboarding_documents" (
 	"reviewed_by" varchar
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "onboarding_form_data" (
+CREATE TABLE "onboarding_form_data" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"onboarding_link_id" integer NOT NULL,
 	"personal_data" jsonb,
@@ -541,7 +541,7 @@ CREATE TABLE IF NOT EXISTS "onboarding_form_data" (
 	CONSTRAINT "onboarding_form_data_onboarding_link_id_unique" UNIQUE("onboarding_link_id")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "onboarding_links" (
+CREATE TABLE "onboarding_links" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"application_id" integer NOT NULL,
 	"token" varchar NOT NULL,
@@ -559,7 +559,7 @@ CREATE TABLE IF NOT EXISTS "onboarding_links" (
 	CONSTRAINT "onboarding_links_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "overtime_rules" (
+CREATE TABLE "overtime_rules" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"department_id" integer NOT NULL,
 	"shift_id" integer,
@@ -574,7 +574,7 @@ CREATE TABLE IF NOT EXISTS "overtime_rules" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "overtime_tiers" (
+CREATE TABLE "overtime_tiers" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"overtime_rule_id" integer NOT NULL,
 	"min_hours" numeric(4, 2) NOT NULL,
@@ -585,7 +585,7 @@ CREATE TABLE IF NOT EXISTS "overtime_tiers" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rotation_audit" (
+CREATE TABLE "rotation_audit" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"template_id" integer NOT NULL,
 	"action" varchar NOT NULL,
@@ -598,7 +598,7 @@ CREATE TABLE IF NOT EXISTS "rotation_audit" (
 	"performed_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rotation_exceptions" (
+CREATE TABLE "rotation_exceptions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"template_id" integer,
 	"user_id" varchar,
@@ -611,7 +611,7 @@ CREATE TABLE IF NOT EXISTS "rotation_exceptions" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rotation_instances" (
+CREATE TABLE "rotation_instances" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"template_id" integer NOT NULL,
 	"cycle_number" integer NOT NULL,
@@ -622,7 +622,7 @@ CREATE TABLE IF NOT EXISTS "rotation_instances" (
 	"generated_by" varchar
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rotation_segments" (
+CREATE TABLE "rotation_segments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"template_id" integer NOT NULL,
 	"sequence_order" integer NOT NULL,
@@ -637,7 +637,7 @@ CREATE TABLE IF NOT EXISTS "rotation_segments" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rotation_templates" (
+CREATE TABLE "rotation_templates" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"department_id" integer,
@@ -652,7 +652,7 @@ CREATE TABLE IF NOT EXISTS "rotation_templates" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "rotation_user_assignments" (
+CREATE TABLE "rotation_user_assignments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"template_id" integer NOT NULL,
@@ -666,7 +666,7 @@ CREATE TABLE IF NOT EXISTS "rotation_user_assignments" (
 	"deactivated_by" varchar
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "sectors" (
+CREATE TABLE "sectors" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -679,7 +679,7 @@ CREATE TABLE IF NOT EXISTS "sectors" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "selection_stages" (
+CREATE TABLE "selection_stages" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"job_opening_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -691,20 +691,20 @@ CREATE TABLE IF NOT EXISTS "selection_stages" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "sessions" (
+CREATE TABLE "sessions" (
 	"sid" varchar PRIMARY KEY NOT NULL,
 	"sess" jsonb NOT NULL,
 	"expire" timestamp NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "supervisor_assignments" (
+CREATE TABLE "supervisor_assignments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"supervisor_id" varchar NOT NULL,
 	"sector_id" integer NOT NULL,
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "time_bank" (
+CREATE TABLE "time_bank" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"company_id" integer NOT NULL,
@@ -717,7 +717,7 @@ CREATE TABLE IF NOT EXISTS "time_bank" (
 	CONSTRAINT "time_bank_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "time_bank_transactions" (
+CREATE TABLE "time_bank_transactions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"time_bank_id" integer NOT NULL,
 	"user_id" varchar NOT NULL,
@@ -731,7 +731,7 @@ CREATE TABLE IF NOT EXISTS "time_bank_transactions" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "time_entries" (
+CREATE TABLE "time_entries" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"department_id" integer NOT NULL,
@@ -776,7 +776,7 @@ CREATE TABLE IF NOT EXISTS "time_entries" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "time_entry_audit" (
+CREATE TABLE "time_entry_audit" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"time_entry_id" integer NOT NULL,
 	"field_name" varchar NOT NULL,
@@ -789,7 +789,7 @@ CREATE TABLE IF NOT EXISTS "time_entry_audit" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "time_periods" (
+CREATE TABLE "time_periods" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"company_id" integer NOT NULL,
 	"name" varchar NOT NULL,
@@ -805,7 +805,7 @@ CREATE TABLE IF NOT EXISTS "time_periods" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "user_shift_assignments" (
+CREATE TABLE "user_shift_assignments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" varchar NOT NULL,
 	"shift_id" integer NOT NULL,
@@ -817,7 +817,7 @@ CREATE TABLE IF NOT EXISTS "user_shift_assignments" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "users" (
+CREATE TABLE "users" (
 	"id" varchar PRIMARY KEY NOT NULL,
 	"email" varchar,
 	"first_name" varchar,
