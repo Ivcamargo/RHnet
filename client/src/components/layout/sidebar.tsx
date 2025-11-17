@@ -25,7 +25,9 @@ import {
   TrendingUp as TrendingUpIcon,
   Percent,
   Book,
-  UserPlus
+  UserPlus,
+  Package,
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
