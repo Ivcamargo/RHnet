@@ -216,13 +216,10 @@ export default function InventoryHistory() {
         <main className="flex-1 overflow-y-auto">
           <div className="space-y-6 p-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold">Histórico de EPIs</h1>
-                <p className="text-muted-foreground mt-1">
-                  Consulte o histórico de distribuição de EPIs por funcionário
-                </p>
-              </div>
+            <div className="mb-2">
+              <p className="text-muted-foreground">
+                Consulte o histórico de distribuição de EPIs por funcionário
+              </p>
             </div>
 
             {/* Employee Selection */}
