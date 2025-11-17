@@ -10,24 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 17, 2025** (latest): Enhanced inventory movements with searchable item selection and transaction date tracking:
-- **TopBar Standardization**: Updated all inventory module pages to use specific TopBar titles matching their purpose:
-  - Dashboard de Estoque, Gestão de Itens, Distribuição de EPIs, Histórico de EPIs, Movimentações de Estoque
-- **Searchable Item Selection**: Replaced dropdown with Combobox component (Command + Popover):
-  - Type-to-filter by item code or name
-  - Displays stock quantity while searching
-  - Validation ensures item is selected from list (not just typed)
-- **Transaction Date Field**: Added dedicated date picker for recording actual transaction dates:
-  - Allows recording invoice dates or when movement actually occurred
-  - DatePicker with calendar widget (pt-BR format: dd/MM/yyyy)
-  - Defaults to current date
-  - Timezone-safe: normalizes to local noon (12:00) before ISO conversion to prevent day-shift bugs
-- **Database Schema**: Added `transaction_date` column to `inventory_movements` table (timestamp NOT NULL, default CURRENT_TIMESTAMP)
-- **Enhanced Validation**: Separate, specific validation messages for:
-  - Item selection required
-  - Positive quantity required  
-  - Reason selection required
-- **History Display**: Movement table now shows transaction date instead of creation date for accurate tracking
+**November 17, 2025** (latest): Simplified inventory movement form by removing redundancy:
+- **Form Simplification**: Removed "Tipo de Movimentação" field, eliminating redundancy with "Motivo"
+- **Smart Motivo Field**: Single dropdown now shows all 10 movement reasons with visual emojis:
+  - Entradas: 📦 Compra, ↩️ Devolução, 🎁 Doação Recebida
+  - Saídas: 👷 Distribuição de EPI, ❌ Perda/Estravio, 🔨 Dano/Avaria, 📅 Vencimento, 🗑️ Descarte
+  - Ajustes: ✏️ Correção de Inventário, 🔢 Recontagem
+- **Automatic Type Calculation**: System automatically determines if movement is entrada/saída/ajuste based on selected reason
+- **Improved UX**: One less field to fill, faster data entry, less confusion
+- **Previous Enhancements** (same session):
+  - TopBar standardization with specific titles per page
+  - Searchable Combobox for item selection (type to filter by code or name)
+  - Transaction date field with calendar picker (pt-BR format)
+  - Timezone-safe date handling (normalizes to noon before ISO conversion)
+  - Enhanced validation with specific error messages
+  - Database column `transaction_date` added to track actual movement dates
 
 ## System Architecture
 
