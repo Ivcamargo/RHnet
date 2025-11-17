@@ -480,6 +480,14 @@ export default function InventoryMovements() {
                         <SelectItem value="recount">🔢 Recontagem</SelectItem>
                       </SelectContent>
                     </Select>
+                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">💡 Referência:</p>
+                      <div className="space-y-0.5 text-xs text-gray-600 dark:text-gray-400">
+                        <p><span className="text-green-600 dark:text-green-400 font-medium">➕ Adicionam:</span> Compra, Devolução, Doação Recebida</p>
+                        <p><span className="text-red-600 dark:text-red-400 font-medium">➖ Subtraem:</span> Distribuição de EPI, Perda/Estravio, Dano/Avaria, Vencimento, Descarte</p>
+                        <p><span className="text-blue-600 dark:text-blue-400 font-medium">⚖️ Ajustes:</span> Correção de Inventário, Recontagem</p>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
