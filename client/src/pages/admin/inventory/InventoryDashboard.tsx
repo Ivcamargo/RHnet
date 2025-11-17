@@ -9,6 +9,8 @@ import { Package, AlertTriangle, Calendar, Plus, Search, FileDown } from "lucide
 import { Link } from "wouter";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import Sidebar from "@/components/layout/sidebar";
+import TopBar from "@/components/layout/top-bar";
 
 interface InventoryItem {
   id: number;
@@ -88,35 +90,39 @@ export default function InventoryDashboard() {
   const isLoading = itemsLoading || stockLoading || lowStockLoading || expiringLoading;
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="space-y-6 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Gestão de Estoque e EPIs</h1>
-            <p className="text-muted-foreground mt-1">
-              Controle completo de materiais e equipamentos de proteção
-            </p>
-          </div>
-        <div className="flex gap-2">
-          {isAdmin && (
-            <Link href="/admin/inventory/items">
-              <Button data-testid="button-manage-items">
-                <Package className="mr-2 h-4 w-4" />
-                Gerenciar Itens
-              </Button>
-            </Link>
-          )}
-          {(isAdmin || isSupervisor) && (
-            <Link href="/admin/inventory/distribute">
-              <Button variant="outline" data-testid="button-distribute">
-                <Plus className="mr-2 h-4 w-4" />
-                Distribuir EPIs
-              </Button>
-            </Link>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+      <TopBar title="Gestão de Estoque e EPIs" />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="space-y-6 p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Gestão de Estoque e EPIs</h1>
+                <p className="text-muted-foreground mt-1">
+                  Controle completo de materiais e equipamentos de proteção
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Link href="/admin/inventory/items">
+                    <Button data-testid="button-manage-items">
+                      <Package className="mr-2 h-4 w-4" />
+                      Gerenciar Itens
+                    </Button>
+                  </Link>
+                )}
+                {(isAdmin || isSupervisor) && (
+                  <Link href="/admin/inventory/distribute">
+                    <Button variant="outline" data-testid="button-distribute">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Distribuir EPIs
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -277,6 +283,8 @@ export default function InventoryDashboard() {
           )}
         </CardContent>
       </Card>
+          </div>
+        </main>
       </div>
     </div>
   );
