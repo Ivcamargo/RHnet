@@ -66,15 +66,21 @@ export default function InventoryHistory() {
 
   if (!isAdmin && !isSupervisor) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Acesso Negado</CardTitle>
-            <CardDescription>
-              Apenas administradores e supervisores podem acessar esta página.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+        <TopBar title="Histórico de EPIs" />
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1 p-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Acesso Negado</CardTitle>
+                <CardDescription>
+                  Apenas administradores e supervisores podem acessar esta página.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </main>
+        </div>
       </div>
     );
   }

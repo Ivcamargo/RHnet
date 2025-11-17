@@ -15,7 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { SignaturePad, SignaturePadRef } from "@/components/ui/signature-pad";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Package, UserCheck, Calendar, Trash2 } from "lucide-react";
+import { Package, UserCheck, Calendar, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { format, addMonths } from "date-fns";
 import Sidebar from "@/components/layout/sidebar";
@@ -67,6 +70,7 @@ export default function InventoryDistribution() {
   const [distributionItems, setDistributionItems] = useState<DistributionItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
+  const [employeeComboboxOpen, setEmployeeComboboxOpen] = useState(false);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSupervisor = user?.role === 'supervisor';
@@ -239,10 +243,16 @@ export default function InventoryDistribution() {
     }
   };
 
-  const handleEmployeeChange = (employeeId: string) => {
+  const handleEmployeeChange = (employeeId: string, fieldOnChange?: (value: string) => void) => {
     const employee = employees.find((e) => e.id === employeeId);
     setSelectedEmployee(employee || null);
-    form.setValue("employeeId", employeeId);
+    
+    // Call field.onChange to properly update react-hook-form state
+    if (fieldOnChange) {
+      fieldOnChange(employeeId);
+    } else {
+      form.setValue("employeeId", employeeId, { shouldValidate: true, shouldDirty: true });
+    }
   };
 
   return (
@@ -275,22 +285,60 @@ export default function InventoryDistribution() {
                   control={form.control}
                   name="employeeId"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Funcionário</FormLabel>
-                      <Select onValueChange={handleEmployeeChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-employee">
-                            <SelectValue placeholder="Selecione o funcionário" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {employees.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.internalId} - {employee.firstName} {employee.lastName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={employeeComboboxOpen}
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              data-testid="select-employee"
+                            >
+                              {field.value
+                                ? (() => {
+                                    const emp = employees.find((e) => e.id === field.value);
+                                    return emp ? `${emp.internalId} - ${emp.firstName} ${emp.lastName}` : "Selecione o funcionário";
+                                  })()
+                                : "Selecione o funcionário"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Digite o nome ou ID do funcionário..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {employees.map((employee) => (
+                                  <CommandItem
+                                    key={employee.id}
+                                    value={`${employee.internalId} ${employee.firstName} ${employee.lastName}`}
+                                    onSelect={() => {
+                                      handleEmployeeChange(employee.id, field.onChange);
+                                      setEmployeeComboboxOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === employee.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {employee.internalId} - {employee.firstName} {employee.lastName}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
