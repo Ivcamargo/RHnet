@@ -239,27 +239,22 @@ export default function InventoryItems() {
           <div className="space-y-6 p-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-        <div>
-          <Link href="/admin/inventory">
-            <Button variant="ghost" size="sm" className="mb-2" data-testid="button-back-to-dashboard">
-              ← Voltar ao Dashboard
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold">Gestão de Itens</h1>
-          <p className="text-muted-foreground mt-1">
-            Cadastre e gerencie materiais e EPIs
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setCategoryDialogOpen(true)} data-testid="button-add-category">
-            Adicionar Categoria
-          </Button>
-          <Button onClick={handleNewItem} data-testid="button-add-item">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Item
-          </Button>
-        </div>
-      </div>
+              <div>
+                <h1 className="text-3xl font-bold">Gestão de Itens</h1>
+                <p className="text-muted-foreground mt-1">
+                  Cadastre e gerencie materiais e EPIs
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setCategoryDialogOpen(true)} data-testid="button-add-category">
+                  Adicionar Categoria
+                </Button>
+                <Button onClick={handleNewItem} data-testid="button-add-item">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Item
+                </Button>
+              </div>
+            </div>
 
       {/* Items Table */}
       <Card>
