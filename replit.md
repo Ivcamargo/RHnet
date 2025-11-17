@@ -10,17 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 17, 2025** (latest): Fixed confusing inventory page headers and added inactive items filter:
-- **TopBar Standardization**: Changed all inventory module pages to use generic TopBar title "Estoque e EPIs" instead of duplicating page-specific titles
-- **H1 Differentiation**: Maintained specific H1 titles for each page (Dashboard de Estoque, Gestão de Itens, Distribuição de EPIs, Histórico de EPIs, Movimentações de Estoque) to clarify page context
-- **Inactive Items Filter**: Added 4th clickable card to Dashboard showing "Itens Inativos" (items with stock = 0):
-  - Gray ring border when active (ring-2 ring-gray-500)
-  - Correctly counts items not in stock table (quantity = 0)
-  - Fixed bug where getStockForItem() incorrectly returned 0 for all items missing from stock API response
-  - Uses optimized Set lookup (itemsWithStock) for performance with useMemo
-  - Message "🔍 Filtrando itens sem estoque" when active
-- **Grid Layout**: Updated Dashboard stats grid from 3 to 4 columns (md:grid-cols-4)
-- **UX Improvement**: Eliminates title duplication confusion and provides complete inventory visibility including zero-stock items
+**November 17, 2025** (latest): Enhanced inventory movements with searchable item selection and transaction date tracking:
+- **TopBar Standardization**: Updated all inventory module pages to use specific TopBar titles matching their purpose:
+  - Dashboard de Estoque, Gestão de Itens, Distribuição de EPIs, Histórico de EPIs, Movimentações de Estoque
+- **Searchable Item Selection**: Replaced dropdown with Combobox component (Command + Popover):
+  - Type-to-filter by item code or name
+  - Displays stock quantity while searching
+  - Validation ensures item is selected from list (not just typed)
+- **Transaction Date Field**: Added dedicated date picker for recording actual transaction dates:
+  - Allows recording invoice dates or when movement actually occurred
+  - DatePicker with calendar widget (pt-BR format: dd/MM/yyyy)
+  - Defaults to current date
+  - Timezone-safe: normalizes to local noon (12:00) before ISO conversion to prevent day-shift bugs
+- **Database Schema**: Added `transaction_date` column to `inventory_movements` table (timestamp NOT NULL, default CURRENT_TIMESTAMP)
+- **Enhanced Validation**: Separate, specific validation messages for:
+  - Item selection required
+  - Positive quantity required  
+  - Reason selection required
+- **History Display**: Movement table now shows transaction date instead of creation date for accurate tracking
 
 ## System Architecture
 
