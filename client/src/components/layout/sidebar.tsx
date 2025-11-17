@@ -46,7 +46,7 @@ type MenuItem = {
 export default function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Controle de Ponto"]);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const queryClient = useQueryClient();
   
   const { data: user } = useQuery<any>({
