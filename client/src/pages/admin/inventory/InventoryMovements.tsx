@@ -48,13 +48,29 @@ interface InventoryMovement {
   itemName?: string;
 }
 
+// Mapeamento de motivos para tipos de movimentação
+const REASON_TO_TYPE_MAP: Record<string, 'in' | 'out' | 'adjustment'> = {
+  // Entradas
+  purchase: 'in',
+  return: 'in',
+  donation: 'in',
+  // Saídas
+  distribution: 'out',
+  loss: 'out',
+  damage: 'out',
+  expired: 'out',
+  disposal: 'out',
+  // Ajustes
+  correction: 'adjustment',
+  recount: 'adjustment',
+};
+
 export default function InventoryMovements() {
   const { user } = useAuth();
   const { toast } = useToast();
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [movementType, setMovementType] = useState<string>("in");
   const [quantity, setQuantity] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -99,10 +115,6 @@ export default function InventoryMovements() {
     queryKey: ["/api/inventory/movements"],
   });
 
-  useEffect(() => {
-    setReason("");
-  }, [movementType]);
-
   const createMovementMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/inventory/movements", {
       method: "POST",
@@ -129,7 +141,6 @@ export default function InventoryMovements() {
 
   const resetForm = () => {
     setSelectedItemId(null);
-    setMovementType("in");
     setQuantity("");
     setReason("");
     setNotes("");
@@ -160,6 +171,17 @@ export default function InventoryMovements() {
       toast({
         title: "Erro de validação",
         description: "Selecione um motivo para a movimentação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calcula o tipo automaticamente baseado no motivo
+    const movementType = REASON_TO_TYPE_MAP[reason];
+    if (!movementType) {
+      toast({
+        title: "Erro",
+        description: "Motivo inválido selecionado",
         variant: "destructive",
       });
       return;
@@ -320,20 +342,6 @@ export default function InventoryMovements() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label>Tipo de Movimentação</Label>
-                    <Select value={movementType} onValueChange={setMovementType}>
-                      <SelectTrigger data-testid="select-movement-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="in">Entrada (Compra/Devolução)</SelectItem>
-                        <SelectItem value="out">Saída (Estravio/Perda)</SelectItem>
-                        <SelectItem value="adjustment">Ajuste de Estoque</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
                     <Label>Item</Label>
                     <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
                       <PopoverTrigger asChild>
@@ -454,33 +462,22 @@ export default function InventoryMovements() {
                   </div>
 
                   <div>
-                    <Label>Motivo</Label>
+                    <Label>Motivo da Movimentação</Label>
                     <Select value={reason} onValueChange={setReason}>
                       <SelectTrigger data-testid="select-reason">
                         <SelectValue placeholder="Selecione o motivo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {movementType === 'in' && (
-                          <>
-                            <SelectItem value="purchase">Compra</SelectItem>
-                            <SelectItem value="return">Devolução</SelectItem>
-                            <SelectItem value="donation">Doação</SelectItem>
-                          </>
-                        )}
-                        {movementType === 'out' && (
-                          <>
-                            <SelectItem value="loss">Estravio/Perda</SelectItem>
-                            <SelectItem value="damage">Dano/Avaria</SelectItem>
-                            <SelectItem value="expired">Vencimento</SelectItem>
-                            <SelectItem value="disposal">Descarte</SelectItem>
-                          </>
-                        )}
-                        {movementType === 'adjustment' && (
-                          <>
-                            <SelectItem value="correction">Correção de Inventário</SelectItem>
-                            <SelectItem value="recount">Recontagem</SelectItem>
-                          </>
-                        )}
+                        <SelectItem value="purchase">📦 Compra</SelectItem>
+                        <SelectItem value="return">↩️ Devolução</SelectItem>
+                        <SelectItem value="donation">🎁 Doação Recebida</SelectItem>
+                        <SelectItem value="distribution">👷 Distribuição de EPI</SelectItem>
+                        <SelectItem value="loss">❌ Perda/Estravio</SelectItem>
+                        <SelectItem value="damage">🔨 Dano/Avaria</SelectItem>
+                        <SelectItem value="expired">📅 Vencimento</SelectItem>
+                        <SelectItem value="disposal">🗑️ Descarte</SelectItem>
+                        <SelectItem value="correction">✏️ Correção de Inventário</SelectItem>
+                        <SelectItem value="recount">🔢 Recontagem</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
