@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, AlertTriangle, Calendar, Plus, Search, FileDown } from "lucide-react";
+import { Package, AlertTriangle, Calendar, Plus, Search, FileDown, X } from "lucide-react";
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
@@ -40,10 +40,13 @@ interface Category {
   name: string;
 }
 
+type FilterType = "all" | "active" | "low" | "expiring";
+
 export default function InventoryDashboard() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSupervisor = user?.role === 'supervisor';
@@ -68,12 +71,29 @@ export default function InventoryDashboard() {
     queryKey: ["/api/inventory/categories"],
   });
 
+  // Create set of expiring item IDs
+  const expiringItemIds = useMemo(() => {
+    return new Set(expiringItems.map((ei) => ei.itemId));
+  }, [expiringItems]);
+
   // Filter items
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          item.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || item.categoryId.toString() === categoryFilter;
-    return matchesSearch && matchesCategory;
+    
+    // Apply card filter
+    let matchesCardFilter = true;
+    if (activeFilter === "active") {
+      matchesCardFilter = item.isActive;
+    } else if (activeFilter === "low") {
+      const currentStock = getStockForItem(item.id);
+      matchesCardFilter = currentStock <= item.minStock;
+    } else if (activeFilter === "expiring") {
+      matchesCardFilter = expiringItemIds.has(item.id);
+    }
+    
+    return matchesSearch && matchesCategory && matchesCardFilter;
   });
 
   // Get stock for item
@@ -126,7 +146,13 @@ export default function InventoryDashboard() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${
+            activeFilter === "active" ? "ring-2 ring-blue-500 shadow-md" : ""
+          }`}
+          onClick={() => setActiveFilter(activeFilter === "active" ? "all" : "active")}
+          data-testid="card-filter-active"
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Itens Ativos</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
@@ -136,12 +162,18 @@ export default function InventoryDashboard() {
               {isLoading ? "..." : totalItems}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Itens cadastrados no sistema
+              {activeFilter === "active" ? "🔍 Filtrando itens ativos" : "Itens cadastrados no sistema"}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${
+            activeFilter === "low" ? "ring-2 ring-yellow-500 shadow-md" : ""
+          }`}
+          onClick={() => setActiveFilter(activeFilter === "low" ? "all" : "low")}
+          data-testid="card-filter-low"
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
@@ -151,12 +183,18 @@ export default function InventoryDashboard() {
               {isLoading ? "..." : lowStockCount}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Itens abaixo do estoque mínimo
+              {activeFilter === "low" ? "🔍 Filtrando estoque baixo" : "Itens abaixo do estoque mínimo"}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${
+            activeFilter === "expiring" ? "ring-2 ring-red-500 shadow-md" : ""
+          }`}
+          onClick={() => setActiveFilter(activeFilter === "expiring" ? "all" : "expiring")}
+          data-testid="card-filter-expiring"
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Vencimentos Próximos</CardTitle>
             <Calendar className="h-4 w-4 text-red-500" />
@@ -166,7 +204,7 @@ export default function InventoryDashboard() {
               {isLoading ? "..." : expiringCount}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              EPIs vencendo em 30 dias
+              {activeFilter === "expiring" ? "🔍 Filtrando vencimentos próximos" : "EPIs vencendo em 30 dias"}
             </p>
           </CardContent>
         </Card>
@@ -211,6 +249,18 @@ export default function InventoryDashboard() {
                 ))}
               </SelectContent>
             </Select>
+            {activeFilter !== "all" && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setActiveFilter("all")}
+                data-testid="button-clear-filter"
+                className="whitespace-nowrap"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Limpar Filtro
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
