@@ -77,6 +77,11 @@ export default function InventoryDashboard() {
     return itemStock?.quantity ?? 0;
   };
 
+  // Create set of item IDs that have stock > 0
+  const itemsWithStock = useMemo(() => {
+    return new Set(stock.map((s) => s.itemId));
+  }, [stock]);
+
   // Create set of expiring item IDs
   const expiringItemIds = useMemo(() => {
     return new Set(expiringItems.map((ei) => ei.itemId));
@@ -98,8 +103,8 @@ export default function InventoryDashboard() {
     } else if (activeFilter === "expiring") {
       matchesCardFilter = expiringItemIds.has(item.id);
     } else if (activeFilter === "inactive") {
-      const currentStock = getStockForItem(item.id);
-      matchesCardFilter = currentStock === 0;
+      // Item is inactive if it doesn't have stock (not in stock table = quantity 0)
+      matchesCardFilter = !itemsWithStock.has(item.id);
     }
     
     return matchesSearch && matchesCategory && matchesCardFilter;
@@ -109,7 +114,8 @@ export default function InventoryDashboard() {
   const totalItems = items.filter(item => item.isActive).length;
   const lowStockCount = lowStockItems.length;
   const expiringCount = expiringItems.length;
-  const inactiveCount = items.filter(item => getStockForItem(item.id) === 0).length;
+  // Items without stock are those not in the stock table (quantity = 0)
+  const inactiveCount = items.filter(item => !itemsWithStock.has(item.id)).length;
 
   const isLoading = itemsLoading || stockLoading || lowStockLoading || expiringLoading;
 
