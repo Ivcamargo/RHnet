@@ -71,6 +71,12 @@ export default function InventoryDashboard() {
     queryKey: ["/api/inventory/categories"],
   });
 
+  // Get stock for item
+  const getStockForItem = (itemId: number) => {
+    const itemStock = stock.find((s) => s.itemId === itemId);
+    return itemStock?.quantity ?? 0;
+  };
+
   // Create set of expiring item IDs
   const expiringItemIds = useMemo(() => {
     return new Set(expiringItems.map((ei) => ei.itemId));
@@ -95,12 +101,6 @@ export default function InventoryDashboard() {
     
     return matchesSearch && matchesCategory && matchesCardFilter;
   });
-
-  // Get stock for item
-  const getStockForItem = (itemId: number) => {
-    const itemStock = stock.find((s) => s.itemId === itemId);
-    return itemStock?.quantity ?? 0;
-  };
 
   // Calculate stats
   const totalItems = items.filter(item => item.isActive).length;
