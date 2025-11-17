@@ -40,7 +40,7 @@ interface Category {
   name: string;
 }
 
-type FilterType = "all" | "active" | "low" | "expiring";
+type FilterType = "all" | "active" | "low" | "expiring" | "inactive";
 
 export default function InventoryDashboard() {
   const { user } = useAuth();
@@ -97,6 +97,9 @@ export default function InventoryDashboard() {
       matchesCardFilter = currentStock <= item.minStock;
     } else if (activeFilter === "expiring") {
       matchesCardFilter = expiringItemIds.has(item.id);
+    } else if (activeFilter === "inactive") {
+      const currentStock = getStockForItem(item.id);
+      matchesCardFilter = currentStock === 0;
     }
     
     return matchesSearch && matchesCategory && matchesCardFilter;
@@ -106,6 +109,7 @@ export default function InventoryDashboard() {
   const totalItems = items.filter(item => item.isActive).length;
   const lowStockCount = lowStockItems.length;
   const expiringCount = expiringItems.length;
+  const inactiveCount = items.filter(item => getStockForItem(item.id) === 0).length;
 
   const isLoading = itemsLoading || stockLoading || lowStockLoading || expiringLoading;
 
@@ -145,7 +149,7 @@ export default function InventoryDashboard() {
             </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card 
           className={`cursor-pointer transition-all hover:shadow-md ${
             activeFilter === "active" ? "ring-2 ring-blue-500 shadow-md" : ""
@@ -205,6 +209,27 @@ export default function InventoryDashboard() {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {activeFilter === "expiring" ? "🔍 Filtrando vencimentos próximos" : "EPIs vencendo em 30 dias"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${
+            activeFilter === "inactive" ? "ring-2 ring-gray-500 shadow-md" : ""
+          }`}
+          onClick={() => setActiveFilter(activeFilter === "inactive" ? "all" : "inactive")}
+          data-testid="card-filter-inactive"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Itens Inativos</CardTitle>
+            <Package className="h-4 w-4 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-600" data-testid="text-inactive">
+              {isLoading ? "..." : inactiveCount}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeFilter === "inactive" ? "🔍 Filtrando itens sem estoque" : "Itens com estoque zerado"}
             </p>
           </CardContent>
         </Card>
