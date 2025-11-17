@@ -10,6 +10,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 17, 2025** (latest): Improved Inventory module navigation consistency:
+- **Navigation UX**: Removed redundant "← Voltar ao Dashboard" buttons from InventoryItems, InventoryDistribution, and InventoryHistory pages to maintain consistent navigation pattern using only Sidebar menu
+- **Layout Consistency**: All inventory pages now use identical layout structure (TopBar + Sidebar + internal H1 title with description)
+- **Code Quality**: Verified all titles (H1) and descriptions are properly positioned and visible across all 3 pages
+
 **November 17, 2025**: Fixed critical Inventory CRUD bugs and improved UX:
 - **Bug Fix - Category Creation**: Resolved NOT NULL constraint violation by adding required 'type' field to category creation form (Select component with EPI/Uniform/Material/Tool options) and backend route validation
 - **Layout Fix - InventoryDashboard**: Corrected content clipping issue by wrapping page content in `flex-1 overflow-y-auto` container with internal padding, ensuring full scrollability
