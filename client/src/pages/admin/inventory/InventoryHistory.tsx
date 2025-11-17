@@ -45,12 +45,16 @@ interface ItemDetails {
   code: string;
 }
 
+type FilterType = "all" | "active" | "returned";
+
 export default function InventoryHistory() {
   const { user } = useAuth();
   const { toast } = useToast();
   const signaturePadRef = useRef<SignaturePadRef>(null);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [returnDialog, setReturnDialog] = useState<{ open: boolean; item: EmployeeItem | null }>({
     open: false,
     item: null,
@@ -83,6 +87,16 @@ export default function InventoryHistory() {
   const employees = isSupervisor && user?.departmentId
     ? allEmployees.filter(emp => emp.departmentId === user.departmentId)
     : allEmployees;
+
+  // Filter employees by search term
+  const filteredEmployees = employees.filter((emp) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      emp.firstName.toLowerCase().includes(searchLower) ||
+      emp.lastName.toLowerCase().includes(searchLower) ||
+      emp.internalId.toLowerCase().includes(searchLower)
+    );
+  });
 
   const { data: employeeItems = [], isLoading } = useQuery<EmployeeItem[]>({
     queryKey: ["/api/inventory/employee-items", selectedEmployeeId],
@@ -220,16 +234,32 @@ export default function InventoryHistory() {
               <CardContent>
                 <div className="flex gap-4">
                   <div className="flex-1">
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por nome ou matrícula..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-search-employee"
+                      />
+                    </div>
                     <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
                       <SelectTrigger data-testid="select-employee">
                         <SelectValue placeholder="Selecione o funcionário" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employees.map((employee) => (
-                          <SelectItem key={employee.id} value={employee.id}>
-                            {employee.internalId} - {employee.firstName} {employee.lastName}
-                          </SelectItem>
-                        ))}
+                        {filteredEmployees.length === 0 ? (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            Nenhum funcionário encontrado
+                          </div>
+                        ) : (
+                          filteredEmployees.map((employee) => (
+                            <SelectItem key={employee.id} value={employee.id}>
+                              {employee.internalId} - {employee.firstName} {employee.lastName}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
