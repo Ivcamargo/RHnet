@@ -2205,9 +2205,9 @@ export const inventoryMovements = pgTable("inventory_movements", {
   id: serial("id").primaryKey(),
   itemId: integer("item_id").notNull(),
   companyId: integer("company_id").notNull(),
-  type: varchar("type").notNull(), // "in" (entrada), "out" (saída)
+  type: varchar("type").notNull(), // "in" (entrada), "out" (saída), "adjustment"
   quantity: integer("quantity").notNull(),
-  reason: varchar("reason").notNull(), // "purchase", "distribution", "return", "disposal", "adjustment"
+  reason: varchar("reason").notNull(), // Entrada: "purchase", "return", "donation" | Saída: "distribution", "loss", "damage", "expired", "disposal" | Ajuste: "correction", "recount"
   referenceId: integer("reference_id"), // Link to employee_items if distribution
   notes: text("notes"),
   transactionDate: timestamp("transaction_date").notNull().defaultNow(), // Data real da movimentação (ex: data da NF)
