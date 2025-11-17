@@ -16,8 +16,12 @@ Preferred communication style: Simple, everyday language.
   - Entradas: 📦 Compra, ↩️ Devolução, 🎁 Doação Recebida
   - Saídas: 👷 Distribuição de EPI, ❌ Perda/Estravio, 🔨 Dano/Avaria, 📅 Vencimento, 🗑️ Descarte
   - Ajustes: ✏️ Correção de Inventário, 🔢 Recontagem
+- **Visual Reference Guide**: Added helpful legend below "Motivo" field showing which options add/subtract from stock:
+  - Color-coded (green for additions, red for subtractions, blue for adjustments)
+  - Always visible during form completion for quick reference
+  - Dark mode support with appropriate contrast
 - **Automatic Type Calculation**: System automatically determines if movement is entrada/saída/ajuste based on selected reason
-- **Improved UX**: One less field to fill, faster data entry, less confusion
+- **Improved UX**: One less field to fill, faster data entry, less confusion, clear visual guidance
 - **Previous Enhancements** (same session):
   - TopBar standardization with specific titles per page
   - Searchable Combobox for item selection (type to filter by code or name)
