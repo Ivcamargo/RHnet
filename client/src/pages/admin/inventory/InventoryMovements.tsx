@@ -58,7 +58,7 @@ export default function InventoryMovements() {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-        <TopBar title="Movimentações de Estoque" />
+        <TopBar title="Estoque e EPIs" />
         <div className="flex">
           <Sidebar />
           <main className="flex-1 p-6">
@@ -163,7 +163,7 @@ export default function InventoryMovements() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-      <TopBar title="Movimentações de Estoque" />
+      <TopBar title="Estoque e EPIs" />
       <div className="flex">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">

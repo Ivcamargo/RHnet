@@ -111,7 +111,7 @@ export default function InventoryDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-      <TopBar title="Gestão de Estoque e EPIs" />
+      <TopBar title="Estoque e EPIs" />
       <div className="flex">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
@@ -119,9 +119,9 @@ export default function InventoryDashboard() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Gestão de Estoque e EPIs</h1>
+                <h1 className="text-3xl font-bold">Dashboard de Estoque</h1>
                 <p className="text-muted-foreground mt-1">
-                  Controle completo de materiais e equipamentos de proteção
+                  Visão geral de materiais e equipamentos de proteção
                 </p>
               </div>
               <div className="flex gap-2">

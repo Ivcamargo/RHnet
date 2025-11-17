@@ -210,7 +210,7 @@ export default function InventoryHistory() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-      <TopBar title="Histórico de EPIs" />
+      <TopBar title="Estoque e EPIs" />
       <div className="flex">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
