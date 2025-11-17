@@ -8,6 +8,20 @@ RHNet is a comprehensive human resources management system designed to streamlin
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**November 17, 2025** (latest): Fixed confusing inventory page headers and added inactive items filter:
+- **TopBar Standardization**: Changed all inventory module pages to use generic TopBar title "Estoque e EPIs" instead of duplicating page-specific titles
+- **H1 Differentiation**: Maintained specific H1 titles for each page (Dashboard de Estoque, Gestão de Itens, Distribuição de EPIs, Histórico de EPIs, Movimentações de Estoque) to clarify page context
+- **Inactive Items Filter**: Added 4th clickable card to Dashboard showing "Itens Inativos" (items with stock = 0):
+  - Gray ring border when active (ring-2 ring-gray-500)
+  - Correctly counts items not in stock table (quantity = 0)
+  - Fixed bug where getStockForItem() incorrectly returned 0 for all items missing from stock API response
+  - Uses optimized Set lookup (itemsWithStock) for performance with useMemo
+  - Message "🔍 Filtrando itens sem estoque" when active
+- **Grid Layout**: Updated Dashboard stats grid from 3 to 4 columns (md:grid-cols-4)
+- **UX Improvement**: Eliminates title duplication confusion and provides complete inventory visibility including zero-stock items
+
 ## System Architecture
 
 ### Frontend
