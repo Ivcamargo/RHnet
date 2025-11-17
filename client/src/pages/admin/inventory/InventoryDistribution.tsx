@@ -18,6 +18,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Package, UserCheck, Calendar, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { format, addMonths } from "date-fns";
+import Sidebar from "@/components/layout/sidebar";
+import TopBar from "@/components/layout/top-bar";
 
 interface User {
   id: string;
@@ -244,23 +246,28 @@ export default function InventoryDistribution() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/admin/inventory">
-            <Button variant="ghost" size="sm" className="mb-2" data-testid="button-back-to-dashboard">
-              ← Voltar ao Dashboard
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold">Distribuição de EPIs</h1>
-          <p className="text-muted-foreground mt-1">
-            Distribua materiais e EPIs para os funcionários
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+      <TopBar title="Distribuir EPIs" />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="space-y-6 p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Link href="/admin/inventory">
+                  <Button variant="ghost" size="sm" className="mb-2" data-testid="button-back-to-dashboard">
+                    ← Voltar ao Dashboard
+                  </Button>
+                </Link>
+                <h1 className="text-3xl font-bold">Distribuição de EPIs</h1>
+                <p className="text-muted-foreground mt-1">
+                  Distribua materiais e EPIs para os funcionários
+                </p>
+              </div>
+            </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
         {/* Distribution Form */}
         <Card>
           <CardHeader>
@@ -486,6 +493,9 @@ export default function InventoryDistribution() {
             )}
           </CardContent>
         </Card>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

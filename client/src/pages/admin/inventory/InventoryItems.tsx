@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, Edit, Trash2, Package } from "lucide-react";
 import { Link } from "wouter";
+import Sidebar from "@/components/layout/sidebar";
+import TopBar from "@/components/layout/top-bar";
 
 interface InventoryItem {
   id: number;
@@ -229,9 +231,14 @@ export default function InventoryItems() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+      <TopBar title="Gestão de Itens" />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="space-y-6 p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
         <div>
           <Link href="/admin/inventory">
             <Button variant="ghost" size="sm" className="mb-2" data-testid="button-back-to-dashboard">
@@ -605,6 +612,9 @@ export default function InventoryItems() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
