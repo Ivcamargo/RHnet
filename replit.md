@@ -17,9 +17,9 @@ Preferred communication style: Simple, everyday language.
   - Saídas: 👷 (-) Distribuição de EPI, ❌ (-) Perda/Estravio, 🔨 (-) Dano/Avaria, 📅 (-) Vencimento, 🗑️ (-) Descarte
   - Ajustes: ✏️ (±) Correção de Inventário, 🔢 (±) Recontagem
 - **Inline Operation Indicators**: (+), (-), and (±) symbols directly in dropdown options eliminate need for separate reference legend
-- **Header Standardization**: Removed duplicate h1 titles from all 5 inventory pages (Dashboard, Items, Movements, Distribution, History) - TopBar now provides single source of truth for page titles
+- **Header Consistency**: All 5 inventory pages follow system-wide pattern with h1 title + descriptive subtitle matching other modules (e.g., Capacitação)
 - **Automatic Type Calculation**: System automatically determines if movement is entrada/saída/ajuste based on selected reason
-- **Improved UX**: Cleaner interface, one less field to fill, faster data entry, less visual clutter, immediate clarity on stock impact
+- **Improved UX**: Cleaner interface, one less field to fill, faster data entry, immediate clarity on stock impact
 - **Previous Enhancements** (same session):
   - TopBar standardization with specific titles per page
   - Searchable Combobox for item selection (type to filter by code or name)
