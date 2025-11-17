@@ -10,18 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 17, 2025** (latest): Simplified inventory movement form by removing redundancy:
+**November 17, 2025** (latest): Comprehensive UI improvements across inventory management:
 - **Form Simplification**: Removed "Tipo de Movimentação" field, eliminating redundancy with "Motivo"
-- **Smart Motivo Field**: Single dropdown now shows all 10 movement reasons with visual emojis:
-  - Entradas: 📦 Compra, ↩️ Devolução, 🎁 Doação Recebida
-  - Saídas: 👷 Distribuição de EPI, ❌ Perda/Estravio, 🔨 Dano/Avaria, 📅 Vencimento, 🗑️ Descarte
-  - Ajustes: ✏️ Correção de Inventário, 🔢 Recontagem
-- **Visual Reference Guide**: Added helpful legend below "Motivo" field showing which options add/subtract from stock:
-  - Color-coded (green for additions, red for subtractions, blue for adjustments)
-  - Always visible during form completion for quick reference
-  - Dark mode support with appropriate contrast
+- **Smart Motivo Field**: Single dropdown now shows all 10 movement reasons with visual emojis and inline indicators:
+  - Entradas: 📦 (+) Compra, ↩️ (+) Devolução, 🎁 (+) Doação Recebida
+  - Saídas: 👷 (-) Distribuição de EPI, ❌ (-) Perda/Estravio, 🔨 (-) Dano/Avaria, 📅 (-) Vencimento, 🗑️ (-) Descarte
+  - Ajustes: ✏️ (±) Correção de Inventário, 🔢 (±) Recontagem
+- **Inline Operation Indicators**: (+), (-), and (±) symbols directly in dropdown options eliminate need for separate reference legend
+- **Header Standardization**: Removed duplicate h1 titles from all 5 inventory pages (Dashboard, Items, Movements, Distribution, History) - TopBar now provides single source of truth for page titles
 - **Automatic Type Calculation**: System automatically determines if movement is entrada/saída/ajuste based on selected reason
-- **Improved UX**: One less field to fill, faster data entry, less confusion, clear visual guidance
+- **Improved UX**: Cleaner interface, one less field to fill, faster data entry, less visual clutter, immediate clarity on stock impact
 - **Previous Enhancements** (same session):
   - TopBar standardization with specific titles per page
   - Searchable Combobox for item selection (type to filter by code or name)
