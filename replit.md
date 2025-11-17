@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 17, 2025**: Fixed critical Inventory CRUD bugs and improved UX:
+- **Bug Fix - Category Creation**: Resolved NOT NULL constraint violation by adding required 'type' field to category creation form (Select component with EPI/Uniform/Material/Tool options) and backend route validation
+- **Layout Fix - InventoryDashboard**: Corrected content clipping issue by wrapping page content in `flex-1 overflow-y-auto` container with internal padding, ensuring full scrollability
+- **Error Handling**: Added onError handler with destructive toast notification for category creation mutation failures
+- **Code Cleanup**: Removed unused Package icon import from dashboard.tsx
+- **UI Improvements**: 
+  - Removed Inventory & EPIs card from main dashboard (changed grid from 5 to 4 columns)
+  - Added "Gestão de Estoque e EPIs de Funcionários" feature section to landing page with Package icon and turquoise branding
+- **Documentation**: Updated system manual with comprehensive Inventory & EPI Management section
+- **Quality Assurance**: All changes reviewed and approved by Architect agent with confirmed functionality via server logs
+
 **November 16, 2025**: Implemented complete Inventory & EPI Management System with digital signatures and role-based access control:
 - **Backend Infrastructure**: Created 5 new database tables (inventory_categories, inventory_items, inventory_stock, inventory_movements, employee_items) with full CRUD operations via storage layer and API routes
 - **Digital Signatures**: Installed react-signature-canvas package and created reusable SignaturePad UI component for delivery/return signatures
