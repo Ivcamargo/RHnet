@@ -70,6 +70,16 @@ export default function Sidebar() {
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
     { 
+      name: "Estoque e EPIs", 
+      icon: Package,
+      submenu: [
+        { name: "Dashboard", href: "/admin/inventory", icon: LayoutDashboard },
+        { name: "Gestão de Itens", href: "/admin/inventory/items", icon: Package, adminOnly: true },
+        { name: "Distribuir EPIs", href: "/admin/inventory/distribute", icon: UserPlus },
+        { name: "Histórico", href: "/admin/inventory/history", icon: History },
+      ]
+    },
+    { 
       name: "Controle de Ponto", 
       icon: Clock,
       submenu: [
