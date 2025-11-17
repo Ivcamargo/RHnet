@@ -8081,6 +8081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reason: req.body.reason,
         referenceId: req.body.referenceId,
         notes: req.body.notes,
+        transactionDate: req.body.transactionDate ? new Date(req.body.transactionDate) : undefined,
         createdBy: user.id,
       });
 

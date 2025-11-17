@@ -2210,6 +2210,7 @@ export const inventoryMovements = pgTable("inventory_movements", {
   reason: varchar("reason").notNull(), // "purchase", "distribution", "return", "disposal", "adjustment"
   referenceId: integer("reference_id"), // Link to employee_items if distribution
   notes: text("notes"),
+  transactionDate: timestamp("transaction_date").notNull().defaultNow(), // Data real da movimentação (ex: data da NF)
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({

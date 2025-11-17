@@ -12,10 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Minus, TrendingUp, TrendingDown, Package, Calendar } from "lucide-react";
+import { Plus, Minus, TrendingUp, TrendingDown, Package, Calendar as CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface InventoryItem {
   id: number;
@@ -37,6 +42,7 @@ interface InventoryMovement {
   quantity: number;
   reason: string | null;
   notes: string | null;
+  transactionDate: string;
   createdAt: string;
   createdBy: string;
   itemName?: string;
@@ -52,6 +58,11 @@ export default function InventoryMovements() {
   const [quantity, setQuantity] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [transactionDate, setTransactionDate] = useState<Date>(new Date());
+  
+  // Combobox states
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
@@ -122,24 +133,48 @@ export default function InventoryMovements() {
     setQuantity("");
     setReason("");
     setNotes("");
+    setTransactionDate(new Date());
+    setSearchValue("");
   };
 
   const handleSubmit = () => {
-    if (!selectedItemId || !quantity || parseInt(quantity) <= 0) {
+    if (!selectedItemId) {
       toast({
         title: "Erro de validação",
-        description: "Selecione um item e informe uma quantidade válida",
+        description: "Por favor, selecione um item da lista",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!quantity || parseInt(quantity) <= 0) {
+      toast({
+        title: "Erro de validação",
+        description: "Informe uma quantidade válida maior que zero",
         variant: "destructive",
       });
       return;
     }
 
+    if (!reason) {
+      toast({
+        title: "Erro de validação",
+        description: "Selecione um motivo para a movimentação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const dateAtNoon = new Date(transactionDate);
+    dateAtNoon.setHours(12, 0, 0, 0);
+    
     createMovementMutation.mutate({
       itemId: selectedItemId,
       type: movementType,
       quantity: parseInt(quantity),
       reason: reason || null,
       notes: notes || null,
+      transactionDate: dateAtNoon.toISOString(),
     });
   };
 
@@ -163,7 +198,7 @@ export default function InventoryMovements() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-      <TopBar title="Estoque e EPIs" />
+      <TopBar title="Movimentações de Estoque" />
       <div className="flex">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
@@ -228,7 +263,7 @@ export default function InventoryMovements() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Calendar className="mr-2 h-5 w-5" />
+                  <CalendarIcon className="mr-2 h-5 w-5" />
                   Histórico de Movimentações
                 </CardTitle>
                 <CardDescription>Últimas entradas e saídas registradas</CardDescription>
@@ -254,7 +289,7 @@ export default function InventoryMovements() {
                       {movements.slice(0, 20).map((movement) => (
                         <TableRow key={movement.id}>
                           <TableCell>
-                            {format(new Date(movement.createdAt), 'dd/MM/yyyy HH:mm')}
+                            {format(new Date(movement.transactionDate), 'dd/MM/yyyy')}
                           </TableCell>
                           <TableCell>{getMovementTypeBadge(movement.type)}</TableCell>
                           <TableCell>
@@ -300,21 +335,75 @@ export default function InventoryMovements() {
 
                   <div>
                     <Label>Item</Label>
-                    <Select 
-                      value={selectedItemId?.toString()} 
-                      onValueChange={(value) => setSelectedItemId(parseInt(value))}
-                    >
-                      <SelectTrigger data-testid="select-item">
-                        <SelectValue placeholder="Selecione um item" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items.filter(item => item.isActive !== false).map((item) => (
-                          <SelectItem key={item.id} value={item.id.toString()}>
-                            {item.code} - {item.name} (Estoque: {getStockForItem(item.id)} {item.unit})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={comboboxOpen}
+                          className="w-full justify-between"
+                          data-testid="button-select-item"
+                        >
+                          {selectedItemId
+                            ? (() => {
+                                const selectedItem = items.find((item) => item.id === selectedItemId);
+                                return selectedItem
+                                  ? `${selectedItem.code} - ${selectedItem.name}`
+                                  : "Selecione um item";
+                              })()
+                            : "Selecione um item ou digite para buscar"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar por código ou nome..." 
+                            value={searchValue}
+                            onValueChange={setSearchValue}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {items
+                                .filter((item) => item.isActive !== false)
+                                .filter((item) => {
+                                  const search = searchValue.toLowerCase();
+                                  return (
+                                    item.code.toLowerCase().includes(search) ||
+                                    item.name.toLowerCase().includes(search)
+                                  );
+                                })
+                                .map((item) => (
+                                  <CommandItem
+                                    key={item.id}
+                                    value={`${item.code}-${item.name}-${item.id}`}
+                                    onSelect={() => {
+                                      setSelectedItemId(item.id);
+                                      setComboboxOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedItemId === item.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">
+                                        {item.code} - {item.name}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Estoque: {getStockForItem(item.id)} {item.unit}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div>
@@ -327,6 +416,41 @@ export default function InventoryMovements() {
                       placeholder="Digite a quantidade"
                       data-testid="input-quantity"
                     />
+                  </div>
+
+                  <div>
+                    <Label>Data da Movimentação</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !transactionDate && "text-muted-foreground"
+                          )}
+                          data-testid="button-select-date"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {transactionDate ? (
+                            format(transactionDate, "PPP", { locale: ptBR })
+                          ) : (
+                            <span>Selecione a data</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={transactionDate}
+                          onSelect={(date) => setTransactionDate(date || new Date())}
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ex: Data da nota fiscal ou quando a movimentação ocorreu
+                    </p>
                   </div>
 
                   <div>
