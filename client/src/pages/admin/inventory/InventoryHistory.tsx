@@ -272,27 +272,45 @@ export default function InventoryHistory() {
               <>
                 {/* Stats */}
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Card>
+                  <Card
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      activeFilter === "active" ? "ring-2 ring-green-500 shadow-md" : ""
+                    }`}
+                    onClick={() => setActiveFilter(activeFilter === "active" ? "all" : "active")}
+                    data-testid="card-filter-active-items"
+                  >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">EPIs em Uso</CardTitle>
                       <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold" data-testid="text-active-items">
+                      <div className="text-2xl font-bold text-green-600" data-testid="text-active-items">
                         {isLoading ? "..." : activeItems.length}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {activeFilter === "active" ? "🔍 Mostrando EPIs em uso" : "Clique para filtrar"}
+                      </p>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      activeFilter === "returned" ? "ring-2 ring-blue-500 shadow-md" : ""
+                    }`}
+                    onClick={() => setActiveFilter(activeFilter === "returned" ? "all" : "returned")}
+                    data-testid="card-filter-returned-items"
+                  >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium">EPIs Devolvidos</CardTitle>
                       <RotateCcw className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold" data-testid="text-returned-items">
+                      <div className="text-2xl font-bold text-blue-600" data-testid="text-returned-items">
                         {isLoading ? "..." : returnedItems.length}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {activeFilter === "returned" ? "🔍 Mostrando EPIs devolvidos" : "Clique para filtrar"}
+                      </p>
                     </CardContent>
                   </Card>
 
@@ -305,131 +323,120 @@ export default function InventoryHistory() {
                       <div className="text-2xl font-bold" data-testid="text-total-items">
                         {isLoading ? "..." : employeeItems.length}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Histórico completo
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Active Items */}
+                {/* Items Table */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>EPIs em Uso</CardTitle>
+                    <CardTitle>
+                      {activeFilter === "active" ? "EPIs em Uso" : 
+                       activeFilter === "returned" ? "Histórico de Devoluções" : 
+                       "Todos os EPIs"}
+                    </CardTitle>
                     <CardDescription>
-                      EPIs atualmente com {selectedEmployee?.firstName}
+                      {activeFilter === "active" ? `EPIs atualmente com ${selectedEmployee?.firstName}` :
+                       activeFilter === "returned" ? "EPIs já devolvidos" :
+                       `Histórico completo de ${selectedEmployee?.firstName}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (
                       <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-                    ) : activeItems.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p>Nenhum EPI em uso no momento</p>
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead>Quantidade</TableHead>
-                            <TableHead>Data Entrega</TableHead>
-                            <TableHead>Validade</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {activeItems.map((item) => {
-                            const itemDetails = getItemDetails(item.itemId);
-                            return (
-                              <TableRow key={item.id} data-testid={`row-active-item-${item.id}`}>
-                                <TableCell className="font-medium">
-                                  {itemDetails ? `${itemDetails.code} - ${itemDetails.name}` : `Item #${item.itemId}`}
-                                </TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{format(new Date(item.deliveryDate), "dd/MM/yyyy")}</TableCell>
-                                <TableCell>
-                                  {item.expiryDate ? (
-                                    format(new Date(item.expiryDate), "dd/MM/yyyy")
-                                  ) : (
-                                    <span className="text-muted-foreground">N/A</span>
+                    ) : (() => {
+                      const displayItems = activeFilter === "all" ? employeeItems :
+                                          activeFilter === "active" ? activeItems : returnedItems;
+                      
+                      if (displayItems.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                            <p>
+                              {activeFilter === "active" ? "Nenhum EPI em uso no momento" :
+                               activeFilter === "returned" ? "Nenhum EPI devolvido" :
+                               "Nenhum EPI registrado"}
+                            </p>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Item</TableHead>
+                              <TableHead>Quantidade</TableHead>
+                              <TableHead>Data Entrega</TableHead>
+                              {activeFilter !== "active" && <TableHead>Devolução</TableHead>}
+                              {activeFilter !== "active" && <TableHead>Motivo</TableHead>}
+                              {activeFilter === "active" && <TableHead>Validade</TableHead>}
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {displayItems.map((item) => {
+                              const itemDetails = getItemDetails(item.itemId);
+                              return (
+                                <TableRow key={item.id} data-testid={`row-item-${item.id}`}>
+                                  <TableCell className="font-medium">
+                                    {itemDetails ? `${itemDetails.code} - ${itemDetails.name}` : `Item #${item.itemId}`}
+                                  </TableCell>
+                                  <TableCell>{item.quantity}</TableCell>
+                                  <TableCell>{format(new Date(item.deliveryDate), "dd/MM/yyyy")}</TableCell>
+                                  {activeFilter !== "active" && (
+                                    <TableCell>
+                                      {item.returnDate ? format(new Date(item.returnDate), "dd/MM/yyyy") : "-"}
+                                    </TableCell>
                                   )}
-                                </TableCell>
-                                <TableCell>{getStatusBadge(item)}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleOpenReturnDialog(item)}
-                                      data-testid={`button-return-${item.id}`}
-                                    >
-                                      <RotateCcw className="mr-2 h-4 w-4" />
-                                      Devolver
-                                    </Button>
-                                    <Button variant="ghost" size="sm" data-testid={`button-download-${item.id}`}>
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    )}
+                                  {activeFilter !== "active" && (
+                                    <TableCell>
+                                      <span className="text-sm text-muted-foreground">
+                                        {item.returnReason || "-"}
+                                      </span>
+                                    </TableCell>
+                                  )}
+                                  {activeFilter === "active" && (
+                                    <TableCell>
+                                      {item.expiryDate ? (
+                                        format(new Date(item.expiryDate), "dd/MM/yyyy")
+                                      ) : (
+                                        <span className="text-muted-foreground">N/A</span>
+                                      )}
+                                    </TableCell>
+                                  )}
+                                  <TableCell>{getStatusBadge(item)}</TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                      {item.status === "active" && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleOpenReturnDialog(item)}
+                                          data-testid={`button-return-${item.id}`}
+                                        >
+                                          <RotateCcw className="mr-2 h-4 w-4" />
+                                          Devolver
+                                        </Button>
+                                      )}
+                                      <Button variant="ghost" size="sm" data-testid={`button-download-${item.id}`}>
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
-
-                {/* Returned Items */}
-                {returnedItems.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Histórico de Devoluções</CardTitle>
-                      <CardDescription>EPIs já devolvidos</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead>Quantidade</TableHead>
-                            <TableHead>Entrega</TableHead>
-                            <TableHead>Devolução</TableHead>
-                            <TableHead>Motivo</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {returnedItems.map((item) => {
-                            const itemDetails = getItemDetails(item.itemId);
-                            return (
-                              <TableRow key={item.id} data-testid={`row-returned-item-${item.id}`}>
-                                <TableCell className="font-medium">
-                                  {itemDetails ? `${itemDetails.code} - ${itemDetails.name}` : `Item #${item.itemId}`}
-                                </TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{format(new Date(item.deliveryDate), "dd/MM/yyyy")}</TableCell>
-                                <TableCell>
-                                  {item.returnDate ? format(new Date(item.returnDate), "dd/MM/yyyy") : "-"}
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-sm text-muted-foreground">
-                                    {item.returnReason || "-"}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <Button variant="ghost" size="sm" data-testid={`button-download-return-${item.id}`}>
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             )}
 
