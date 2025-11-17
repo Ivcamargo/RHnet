@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ interface InventoryItem {
   code: string;
   name: string;
   unit: string;
+  isActive?: boolean;
 }
 
 interface InventoryStock {
@@ -86,6 +87,10 @@ export default function InventoryMovements() {
   const { data: movements = [], isLoading: movementsLoading } = useQuery<InventoryMovement[]>({
     queryKey: ["/api/inventory/movements"],
   });
+
+  useEffect(() => {
+    setReason("");
+  }, [movementType]);
 
   const createMovementMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/inventory/movements", {
