@@ -255,11 +255,6 @@ export default function InventoryDistribution() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <Link href="/admin/inventory">
-                  <Button variant="ghost" size="sm" className="mb-2" data-testid="button-back-to-dashboard">
-                    ← Voltar ao Dashboard
-                  </Button>
-                </Link>
                 <h1 className="text-3xl font-bold">Distribuição de EPIs</h1>
                 <p className="text-muted-foreground mt-1">
                   Distribua materiais e EPIs para os funcionários
