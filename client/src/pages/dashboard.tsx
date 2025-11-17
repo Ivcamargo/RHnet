@@ -18,8 +18,7 @@ import {
   UploadCloud,
   Award,
   CalendarDays,
-  ChevronRight,
-  Package
+  ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";

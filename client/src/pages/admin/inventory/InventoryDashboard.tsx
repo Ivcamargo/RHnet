@@ -88,15 +88,16 @@ export default function InventoryDashboard() {
   const isLoading = itemsLoading || stockLoading || lowStockLoading || expiringLoading;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gestão de Estoque e EPIs</h1>
-          <p className="text-muted-foreground mt-1">
-            Controle completo de materiais e equipamentos de proteção
-          </p>
-        </div>
+    <div className="flex-1 overflow-y-auto">
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Gestão de Estoque e EPIs</h1>
+            <p className="text-muted-foreground mt-1">
+              Controle completo de materiais e equipamentos de proteção
+            </p>
+          </div>
         <div className="flex gap-2">
           {isAdmin && (
             <Link href="/admin/inventory/items">
@@ -276,6 +277,7 @@ export default function InventoryDashboard() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -183,6 +183,13 @@ export default function InventoryItems() {
       setNewCategoryName("");
       setNewCategoryType("epi");
     },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao criar categoria",
+        description: error.message || "Ocorreu um erro ao criar a categoria. Tente novamente.",
+        variant: "destructive",
+      });
+    },
   });
 
   const onSubmit = (data: ItemFormValues) => {
