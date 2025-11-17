@@ -10,7 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 17, 2025** (latest): Improved Inventory module navigation consistency:
+**November 17, 2025** (latest): Enhanced Inventory Dashboard with clickable filter cards and fixed Sidebar navigation:
+- **Interactive Filters**: Transformed the 3 statistics cards (Total de Itens Ativos, Estoque Baixo, Vencimentos Próximos) into clickable filters that dynamically filter the items table below
+- **Visual Feedback**: Added ring borders, hover effects, and active state indicators (blue/yellow/red rings) to show which filter is active
+- **Filter Logic**: Implemented combined filtering - card filters work alongside existing search text and category filters
+- **Clear Filter Button**: Added "Limpar Filtro" button (with X icon) that appears when a card filter is active, positioned next to search controls
+- **Sidebar Fix**: Changed expandedMenus initial state from ["Controle de Ponto"] to [] so all submenus (Controle de Ponto and Estoque e EPIs) start collapsed and open only on user click
+- **User Experience**: Cards show contextual messages when active ("🔍 Filtrando itens ativos" etc.) and are clickable to toggle filters on/off
+
+**November 17, 2025**: Improved Inventory module navigation consistency:
 - **Navigation UX**: Removed redundant "← Voltar ao Dashboard" buttons from InventoryItems, InventoryDistribution, and InventoryHistory pages to maintain consistent navigation pattern using only Sidebar menu
 - **Layout Consistency**: All inventory pages now use identical layout structure (TopBar + Sidebar + internal H1 title with description)
 - **Code Quality**: Verified all titles (H1) and descriptions are properly positioned and visible across all 3 pages
