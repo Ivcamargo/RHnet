@@ -10,23 +10,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 17, 2025** (latest): Comprehensive UI improvements across inventory management:
-- **Form Simplification**: Removed "Tipo de Movimentação" field, eliminating redundancy with "Motivo"
-- **Smart Motivo Field**: Single dropdown now shows all 10 movement reasons with visual emojis and inline indicators:
-  - Entradas: 📦 (+) Compra, ↩️ (+) Devolução, 🎁 (+) Doação Recebida
-  - Saídas: 👷 (-) Distribuição de EPI, ❌ (-) Perda/Estravio, 🔨 (-) Dano/Avaria, 📅 (-) Vencimento, 🗑️ (-) Descarte
-  - Ajustes: ✏️ (±) Correção de Inventário, 🔢 (±) Recontagem
-- **Inline Operation Indicators**: (+), (-), and (±) symbols directly in dropdown options eliminate need for separate reference legend
-- **Header Consistency**: All 5 inventory pages follow system-wide pattern with h1 title + descriptive subtitle matching other modules (e.g., Capacitação)
-- **Automatic Type Calculation**: System automatically determines if movement is entrada/saída/ajuste based on selected reason
-- **Improved UX**: Cleaner interface, one less field to fill, faster data entry, immediate clarity on stock impact
-- **Previous Enhancements** (same session):
-  - TopBar standardization with specific titles per page
+**November 17, 2025** (latest): Inventory module UX improvements and layout standardization:
+- **Searchable Employee Field**: Transformed employee selection in Distribution page from Select dropdown to searchable Combobox
+  - Users can now type to filter employees by internal ID, first name, or last name
+  - Instant filtering improves workflow for large employee lists
+  - Properly integrated with react-hook-form using field.onChange for state management
+  - Uses shadcn/ui Command + Popover pattern for accessibility
+- **Layout Consistency**: Fixed sidebar alignment issues across all inventory pages
+  - InventoryHistory and InventoryItems now show properly aligned sidebar for unauthorized users
+  - All 5 inventory pages maintain consistent TopBar + Sidebar + Main content structure
+- **Previous UI Enhancements**:
+  - Form Simplification: Removed "Tipo de Movimentação" field, eliminating redundancy with "Motivo"
+  - Smart Motivo Field: Single dropdown now shows all 10 movement reasons with visual emojis and inline indicators:
+    - Entradas: 📦 (+) Compra, ↩️ (+) Devolução, 🎁 (+) Doação Recebida
+    - Saídas: 👷 (-) Distribuição de EPI, ❌ (-) Perda/Estravio, 🔨 (-) Dano/Avaria, 📅 (-) Vencimento, 🗑️ (-) Descarte
+    - Ajustes: ✏️ (±) Correção de Inventário, 🔢 (±) Recontagem
+  - Inline Operation Indicators: (+), (-), and (±) symbols directly in dropdown options
+  - Header Consistency: All 5 inventory pages follow system-wide pattern with h1 title + descriptive subtitle
+  - Automatic Type Calculation: System determines entrada/saída/ajuste based on selected reason
   - Searchable Combobox for item selection (type to filter by code or name)
   - Transaction date field with calendar picker (pt-BR format)
-  - Timezone-safe date handling (normalizes to noon before ISO conversion)
-  - Enhanced validation with specific error messages
-  - Database column `transaction_date` added to track actual movement dates
+  - Timezone-safe date handling and enhanced validation
 
 ## System Architecture
 
