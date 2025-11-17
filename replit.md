@@ -18,6 +18,7 @@ Preferred communication style: Simple, everyday language.
 - **UI Improvements**: 
   - Removed Inventory & EPIs card from main dashboard (changed grid from 5 to 4 columns)
   - Added "Gestão de Estoque e EPIs de Funcionários" feature section to landing page with Package icon and turquoise branding
+  - **Sidebar Navigation**: Added "Estoque e EPIs" menu item with submenu (Dashboard, Gestão de Itens [admin-only], Distribuir EPIs, Histórico) positioned after "Capacitação"
 - **Documentation**: Updated system manual with comprehensive Inventory & EPI Management section
 - **Quality Assurance**: All changes reviewed and approved by Architect agent with confirmed functionality via server logs
 
