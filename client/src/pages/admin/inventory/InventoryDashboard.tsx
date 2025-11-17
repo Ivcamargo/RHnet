@@ -269,9 +269,9 @@ export default function InventoryDashboard() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/admin/inventory/items/${item.id}`}>
+                        <Link href="/admin/inventory/items">
                           <Button variant="ghost" size="sm" data-testid={`button-view-item-${item.id}`}>
-                            Ver detalhes
+                            Gerenciar
                           </Button>
                         </Link>
                       </TableCell>

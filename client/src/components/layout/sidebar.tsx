@@ -27,7 +27,8 @@ import {
   Book,
   UserPlus,
   Package,
-  History
+  History,
+  ArrowLeftRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -75,6 +76,7 @@ export default function Sidebar() {
       submenu: [
         { name: "Dashboard", href: "/admin/inventory", icon: LayoutDashboard },
         { name: "Gestão de Itens", href: "/admin/inventory/items", icon: Package, adminOnly: true },
+        { name: "Movimentações", href: "/admin/inventory/movements", icon: ArrowLeftRight, adminOnly: true },
         { name: "Distribuir EPIs", href: "/admin/inventory/distribute", icon: UserPlus },
         { name: "Histórico", href: "/admin/inventory/history", icon: History },
       ]

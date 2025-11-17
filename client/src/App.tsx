@@ -37,6 +37,7 @@ import InventoryDashboard from "@/pages/admin/inventory/InventoryDashboard";
 import InventoryItems from "@/pages/admin/inventory/InventoryItems";
 import InventoryDistribution from "@/pages/admin/inventory/InventoryDistribution";
 import InventoryHistory from "@/pages/admin/inventory/InventoryHistory";
+import InventoryMovements from "@/pages/admin/inventory/InventoryMovements";
 import PublicJobs from "@/pages/public-jobs";
 import JobApply from "@/pages/job-apply";
 import Manual from "@/pages/manual";
@@ -133,6 +134,7 @@ function Router() {
       <Route path="/admin/leads" component={(routeProps) => <ProtectedRoute component={AdminLeads} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/admin/inventory" component={(routeProps) => <ProtectedRoute component={InventoryDashboard} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/admin/inventory/items" component={(routeProps) => <ProtectedRoute component={InventoryItems} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
+      <Route path="/admin/inventory/movements" component={(routeProps) => <ProtectedRoute component={InventoryMovements} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/admin/inventory/distribute" component={(routeProps) => <ProtectedRoute component={InventoryDistribution} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/admin/inventory/history" component={(routeProps) => <ProtectedRoute component={InventoryHistory} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/recruitment" component={(routeProps) => <ProtectedRoute component={Recruitment} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
