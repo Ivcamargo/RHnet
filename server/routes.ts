@@ -7844,6 +7844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: user.companyId,
         name: req.body.name,
         description: req.body.description,
+        type: req.body.type || 'epi',
       });
 
       res.status(201).json(category);

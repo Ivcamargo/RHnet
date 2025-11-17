@@ -58,6 +58,7 @@ export default function InventoryItems() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryType, setNewCategoryType] = useState("epi");
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
@@ -168,9 +169,9 @@ export default function InventoryItems() {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("/api/inventory/categories", {
+    mutationFn: (data: { name: string; type: string }) => apiRequest("/api/inventory/categories", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(data),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory/categories"] });
@@ -180,6 +181,7 @@ export default function InventoryItems() {
       });
       setCategoryDialogOpen(false);
       setNewCategoryName("");
+      setNewCategoryType("epi");
     },
   });
 
@@ -557,19 +559,37 @@ export default function InventoryItems() {
             <DialogDescription>Criar uma nova categoria para organizar os itens</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              placeholder="Nome da categoria"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              data-testid="input-category-name"
-            />
+            <div>
+              <label className="text-sm font-medium">Nome da Categoria</label>
+              <Input
+                placeholder="Nome da categoria"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                data-testid="input-category-name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Tipo</label>
+              <Select value={newCategoryType} onValueChange={setNewCategoryType}>
+                <SelectTrigger data-testid="select-category-type" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="epi">EPI (Equipamento de Proteção Individual)</SelectItem>
+                  <SelectItem value="uniform">Uniformes</SelectItem>
+                  <SelectItem value="material">Materiais</SelectItem>
+                  <SelectItem value="tool">Ferramentas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
               Cancelar
             </Button>
             <Button
-              onClick={() => createCategoryMutation.mutate(newCategoryName)}
+              onClick={() => createCategoryMutation.mutate({ name: newCategoryName, type: newCategoryType })}
               disabled={!newCategoryName || createCategoryMutation.isPending}
               data-testid="button-create-category"
             >
