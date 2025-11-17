@@ -24,7 +24,8 @@ import {
   Book,
   MessageCircle,
   Brain,
-  Scale
+  Scale,
+  Package,
 } from "lucide-react";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import peopleUsingApp from "@assets/generated_images/Happy_people_using_smartphones_professionally_2c92555f.png";
@@ -232,6 +233,24 @@ export default function Landing() {
                 <p className="text-gray-600">
                   Cursos online com quizzes, certificados e acompanhamento do 
                   desenvolvimento profissional.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Gestão de Estoque e EPIs */}
+            <Card className="border-[hsl(175,65%,45%)]/20 hover:shadow-xl transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-[hsl(175,65%,45%)]/10 rounded-lg">
+                    <Package className="h-6 w-6 text-[hsl(175,65%,45%)]" />
+                  </div>
+                  <CardTitle className="text-xl">Estoque & EPIs de Funcionários</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Controle completo de materiais e equipamentos de proteção individual. 
+                  Distribuição com assinatura digital, rastreamento de validade e histórico de movimentações.
                 </p>
               </CardContent>
             </Card>
