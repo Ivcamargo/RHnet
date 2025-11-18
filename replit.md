@@ -10,7 +10,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 18, 2025** (latest): System manual documentation updates:
+**November 18, 2025** (latest): Enhanced recruitment and inventory functionality:
+- **Inventory Movement Filters**: Added comprehensive filtering system to Inventory Movements page
+  - Date range filters: Data Inicial and Data Final (calendar pickers with pt-BR format)
+  - Item-specific filter: Searchable combobox to filter movements by specific inventory item
+  - "Limpar Filtros" button to reset all filters instantly
+  - Dynamic query keys and URLSearchParams integration for efficient data fetching
+  - Backend already supported filtering via GET /api/inventory/movements?startDate=X&endDate=Y&itemId=Z
+- **Job Opening Salary and DISC Fields**: Fixed backend to correctly return salary and DISC configuration
+  - Backend now returns: salaryMin, salaryMax, requiresDISC, discTiming, idealDISCProfile in all job queries
+  - Editing job openings now properly loads and saves salary ranges and DISC requirements
+  - Resolved issue where these fields were sent but not returned during edit operations
+- **DISC Mandatory During Application**: Complete DISC test enforcement when discTiming='on_application'
+  - Public endpoint GET /api/disc-questions provides ~24 questions without authentication
+  - Inline DISC questionnaire embedded in job application form (job-apply.tsx)
+  - Frontend validation blocks submission if test incomplete with clear toast error
+  - Backend validation: accepts numeric values 1-5 (both number and string formats), verifies all questions answered
+  - Robust error handling: retry mechanism (retry=3), staleTime=5min, "Tentar Novamente" button if questions fail to load
+  - Automatic assessment creation and response storage with proper discAssessmentId linkage
+  - Number conversion in frontend ensures type safety, backend tolerates numeric strings for resilience
+
+**November 18, 2025**: System manual documentation updates:
 - **LSP Error Resolution**: Fixed 4 import errors by adding Award, Package, and CalendarDays icons to lucide-react imports
 - **Inventory Movements Documentation**: Added complete section documenting the stock movements system with:
   - 10 categorized movement reasons (Entradas, Saídas, Ajustes) with visual emojis and inline indicators (+/-/±)
