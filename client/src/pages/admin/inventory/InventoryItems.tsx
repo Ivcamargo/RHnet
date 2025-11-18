@@ -66,11 +66,11 @@ export default function InventoryItems() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-        <TopBar title="Gestão de Itens" />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-6">
+      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+        <Sidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <TopBar title="Gestão de Itens" />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
             <Card>
               <CardHeader>
                 <CardTitle>Acesso Negado</CardTitle>
@@ -237,12 +237,12 @@ export default function InventoryItems() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
-      <TopBar title="Gestão de Itens" />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          <div className="space-y-6 p-6">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar title="Gestão de Itens" />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+          <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
