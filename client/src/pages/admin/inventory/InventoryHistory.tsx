@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,6 +103,13 @@ export default function InventoryHistory() {
       (emp.internalId?.toLowerCase() ?? '').includes(searchLower)
     );
   });
+
+  // Auto-select when only one result
+  useEffect(() => {
+    if (filteredEmployees.length === 1 && searchTerm) {
+      setSelectedEmployeeId(filteredEmployees[0].id);
+    }
+  }, [filteredEmployees, searchTerm]);
 
   const { data: employeeItems = [], isLoading } = useQuery<EmployeeItem[]>({
     queryKey: ["/api/inventory/employee-items", selectedEmployeeId],
@@ -260,7 +267,7 @@ export default function InventoryHistory() {
                         ) : (
                           filteredEmployees.map((employee) => (
                             <SelectItem key={employee.id} value={employee.id}>
-                              {employee.internalId} - {employee.firstName} {employee.lastName}
+                              {employee.internalId ? `${employee.internalId} - ` : ''}{employee.firstName} {employee.lastName}
                             </SelectItem>
                           ))
                         )}
