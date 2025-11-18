@@ -98,9 +98,9 @@ export default function InventoryHistory() {
   const filteredEmployees = employees.filter((emp) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      emp.firstName.toLowerCase().includes(searchLower) ||
-      emp.lastName.toLowerCase().includes(searchLower) ||
-      emp.internalId.toLowerCase().includes(searchLower)
+      (emp.firstName?.toLowerCase() ?? '').includes(searchLower) ||
+      (emp.lastName?.toLowerCase() ?? '').includes(searchLower) ||
+      (emp.internalId?.toLowerCase() ?? '').includes(searchLower)
     );
   });
 

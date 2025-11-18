@@ -423,8 +423,8 @@ export default function InventoryMovements() {
                                   .filter(item => item.isActive !== false)
                                   .filter(item => 
                                     filterSearchValue === "" ||
-                                    item.name.toLowerCase().includes(filterSearchValue.toLowerCase()) ||
-                                    item.code.toLowerCase().includes(filterSearchValue.toLowerCase())
+                                    (item.name?.toLowerCase() ?? '').includes(filterSearchValue.toLowerCase()) ||
+                                    (item.code?.toLowerCase() ?? '').includes(filterSearchValue.toLowerCase())
                                   )
                                   .map((item) => (
                                     <CommandItem
@@ -559,8 +559,8 @@ export default function InventoryMovements() {
                                 .filter((item) => {
                                   const search = searchValue.toLowerCase();
                                   return (
-                                    item.code.toLowerCase().includes(search) ||
-                                    item.name.toLowerCase().includes(search)
+                                    (item.code?.toLowerCase() ?? '').includes(search) ||
+                                    (item.name?.toLowerCase() ?? '').includes(search)
                                   );
                                 })
                                 .map((item) => (

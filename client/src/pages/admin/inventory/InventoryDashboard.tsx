@@ -89,8 +89,8 @@ export default function InventoryDashboard() {
 
   // Filter items
   const filteredItems = items.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         item.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (item.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || 
+                         (item.code?.toLowerCase() ?? '').includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || item.categoryId.toString() === categoryFilter;
     
     // Apply card filter
