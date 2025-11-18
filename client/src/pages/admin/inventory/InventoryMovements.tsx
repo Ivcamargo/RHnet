@@ -80,6 +80,13 @@ export default function InventoryMovements() {
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
+  // Filter states
+  const [filterStartDate, setFilterStartDate] = useState<Date | undefined>(undefined);
+  const [filterEndDate, setFilterEndDate] = useState<Date | undefined>(undefined);
+  const [filterItemId, setFilterItemId] = useState<number | undefined>(undefined);
+  const [filterComboboxOpen, setFilterComboboxOpen] = useState(false);
+  const [filterSearchValue, setFilterSearchValue] = useState("");
+
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   if (!isAdmin) {
@@ -111,8 +118,24 @@ export default function InventoryMovements() {
     queryKey: ["/api/inventory/stock"],
   });
 
+  // Build query string for filters
+  const buildMovementsQueryKey = () => {
+    const params = new URLSearchParams();
+    if (filterStartDate) {
+      params.append('startDate', filterStartDate.toISOString());
+    }
+    if (filterEndDate) {
+      params.append('endDate', filterEndDate.toISOString());
+    }
+    if (filterItemId) {
+      params.append('itemId', filterItemId.toString());
+    }
+    const queryString = params.toString();
+    return queryString ? `/api/inventory/movements?${queryString}` : '/api/inventory/movements';
+  };
+
   const { data: movements = [], isLoading: movementsLoading } = useQuery<InventoryMovement[]>({
-    queryKey: ["/api/inventory/movements"],
+    queryKey: [buildMovementsQueryKey()],
   });
 
   const createMovementMutation = useMutation({
@@ -291,6 +314,164 @@ export default function InventoryMovements() {
                 <CardDescription>Últimas entradas e saídas registradas</CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Filters Section */}
+                <div className="mb-6 p-4 border rounded-lg bg-muted/30">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Start Date Filter */}
+                    <div className="space-y-2">
+                      <Label>Data Inicial</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !filterStartDate && "text-muted-foreground"
+                            )}
+                            data-testid="button-filter-start-date"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {filterStartDate ? format(filterStartDate, 'dd/MM/yyyy', { locale: ptBR }) : "Selecione"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={filterStartDate}
+                            onSelect={setFilterStartDate}
+                            initialFocus
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* End Date Filter */}
+                    <div className="space-y-2">
+                      <Label>Data Final</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !filterEndDate && "text-muted-foreground"
+                            )}
+                            data-testid="button-filter-end-date"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {filterEndDate ? format(filterEndDate, 'dd/MM/yyyy', { locale: ptBR }) : "Selecione"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={filterEndDate}
+                            onSelect={setFilterEndDate}
+                            initialFocus
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Item Filter */}
+                    <div className="space-y-2">
+                      <Label>Filtrar por Item</Label>
+                      <Popover open={filterComboboxOpen} onOpenChange={setFilterComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={filterComboboxOpen}
+                            className="w-full justify-between"
+                            data-testid="button-filter-item"
+                          >
+                            {filterItemId
+                              ? items.find((item) => item.id === filterItemId)?.name
+                              : "Todos os itens"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Buscar item..." 
+                              value={filterSearchValue}
+                              onValueChange={setFilterSearchValue}
+                            />
+                            <CommandList>
+                              <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="all"
+                                  onSelect={() => {
+                                    setFilterItemId(undefined);
+                                    setFilterComboboxOpen(false);
+                                    setFilterSearchValue("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      !filterItemId ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  Todos os itens
+                                </CommandItem>
+                                {items
+                                  .filter(item => item.isActive !== false)
+                                  .filter(item => 
+                                    filterSearchValue === "" ||
+                                    item.name.toLowerCase().includes(filterSearchValue.toLowerCase()) ||
+                                    item.code.toLowerCase().includes(filterSearchValue.toLowerCase())
+                                  )
+                                  .map((item) => (
+                                    <CommandItem
+                                      key={item.id}
+                                      value={item.id.toString()}
+                                      onSelect={() => {
+                                        setFilterItemId(item.id);
+                                        setFilterComboboxOpen(false);
+                                        setFilterSearchValue("");
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          filterItemId === item.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {item.code} - {item.name}
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  {(filterStartDate || filterEndDate || filterItemId) && (
+                    <div className="mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFilterStartDate(undefined);
+                          setFilterEndDate(undefined);
+                          setFilterItemId(undefined);
+                          setFilterSearchValue("");
+                        }}
+                        data-testid="button-clear-filters"
+                      >
+                        Limpar Filtros
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {movementsLoading ? (
                   <p>Carregando...</p>
                 ) : movements.length === 0 ? (
