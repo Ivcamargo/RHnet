@@ -10,7 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 17, 2025** (latest): Inventory module UX improvements and layout standardization:
+**November 18, 2025** (latest): System manual documentation updates:
+- **LSP Error Resolution**: Fixed 4 import errors by adding Award, Package, and CalendarDays icons to lucide-react imports
+- **Inventory Movements Documentation**: Added complete section documenting the stock movements system with:
+  - 10 categorized movement reasons (Entradas, Saídas, Ajustes) with visual emojis and inline indicators (+/-/±)
+  - Item search field and transaction date picker documentation
+  - Complete movement history tracking features
+- **Searchable Employee Field**: Documented the searchable Combobox for employee selection in Distribution page (filter by ID, name, or surname)
+- **Documentation Accuracy**: Moved implemented features (stock movements, PDF receipts) from "Em Desenvolvimento" to main sections; renamed section to "Recursos Futuros" listing only pending features
+- **DISC Section Validation**: Reviewed and confirmed DISC documentation is complete and accurate
+
+**November 17, 2025**: Inventory module UX improvements and layout standardization:
 - **Searchable Employee Field**: Transformed employee selection in Distribution page from Select dropdown to searchable Combobox
   - Users can now type to filter employees by internal ID, first name, or last name
   - Instant filtering improves workflow for large employee lists
