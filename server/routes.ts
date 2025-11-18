@@ -6960,6 +6960,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Process DISC responses if provided (when discTiming='on_application')
+      let discAssessmentId = null;
+      if (req.body.discResponses) {
+        try {
+          let discResponses = typeof req.body.discResponses === 'string' 
+            ? JSON.parse(req.body.discResponses) 
+            : req.body.discResponses;
+
+          if (discResponses && Object.keys(discResponses).length > 0) {
+            // Validate DISC responses format and values
+            const validResponses: Record<string, number> = {};
+            for (const [questionId, value] of Object.entries(discResponses)) {
+              // Convert to number, accepting both number and string inputs
+              const numValue = typeof value === 'number' ? value : parseInt(String(value), 10);
+              
+              // Validate value is between 1-5 and is a valid integer
+              if (isNaN(numValue) || !Number.isInteger(numValue) || numValue < 1 || numValue > 5) {
+                throw new Error(`Invalid DISC response value: ${value}. Must be integer between 1-5.`);
+              }
+              
+              validResponses[questionId] = numValue;
+            }
+
+            // Verify minimum number of questions answered
+            const activeQuestions = await storage.getActiveDISCQuestions();
+            if (Object.keys(validResponses).length < activeQuestions.length) {
+              throw new Error(`Incomplete DISC assessment: ${Object.keys(validResponses).length}/${activeQuestions.length} questions answered.`);
+            }
+
+            // Generate access token for DISC assessment
+            const discAccessToken = crypto.randomBytes(32).toString('hex');
+
+            // Create DISC assessment
+            const discAssessment = await storage.createDISCAssessment({
+              applicationId: application.id,
+              candidateId: candidate.id,
+              jobOpeningId: parseInt(jobOpeningId),
+              accessToken: discAccessToken,
+              status: 'completed',
+            });
+
+            discAssessmentId = discAssessment.id;
+
+            // Save DISC responses and calculate scores
+            const responses = Object.entries(validResponses).map(([questionId, value]) => ({
+              assessmentId: discAssessment.id,
+              questionId: parseInt(questionId, 10),
+              selectedValue: value,
+            }));
+
+            await storage.saveDISCResponses(discAssessment.id, responses);
+            console.log(`DISC assessment completed for candidate ${name} (${email}) - ${responses.length} questions answered`);
+          }
+        } catch (discError: any) {
+          console.error("Error processing DISC responses:", discError);
+          // Fail the application if DISC was required but processing failed
+          if (jobOpening.requiresDISC && jobOpening.discTiming === 'on_application') {
+            return res.status(400).json({ 
+              message: `Erro ao processar teste DISC: ${discError.message || 'Falha no processamento'}`,
+              error: 'DISC_PROCESSING_FAILED'
+            });
+          }
+        }
+      }
+
       // NOTE: In-app message notifications removed as candidates are not system users
       // Admins can view new applications in the Recruitment & Selection dashboard
       console.log(`New application submitted for ${jobOpening.title} by ${name} (${email}) with score: ${scoreResult?.score || 0}`);
@@ -6969,11 +7034,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicationId: application.id,
         candidateId: candidate.id,
         score: scoreResult?.score || 0,
-        isQualified: scoreResult?.isQualified ?? true
+        isQualified: scoreResult?.isQualified ?? true,
+        discAssessmentId: discAssessmentId
       });
     } catch (error) {
       console.error("Error submitting application:", error);
       res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // Public DISC questions endpoint (for job application forms)
+  app.get('/api/disc-questions', async (req, res) => {
+    try {
+      const questions = await storage.getActiveDISCQuestions();
+      res.json(questions);
+    } catch (error: any) {
+      console.error("Error fetching DISC questions:", error);
+      res.status(500).json({ message: "Erro ao carregar questões DISC" });
     }
   });
 
