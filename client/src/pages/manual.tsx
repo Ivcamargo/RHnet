@@ -1,4 +1,4 @@
-import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Tablet, Camera, DollarSign, Coins, FileDown, Building2 } from "lucide-react";
+import { Book, Clock, Users, MapPin, FileText, MessageSquare, Calendar, GraduationCap, Briefcase, Shield, Settings, TrendingUp, Download, Upload, CheckCircle, AlertCircle, Tablet, Camera, DollarSign, Coins, FileDown, Building2, Award, Package, CalendarDays } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -2691,7 +2691,7 @@ export default function Manual() {
                     <CardContent className="space-y-2 text-sm text-muted-foreground">
                       <p><strong>Entrega com assinatura digital:</strong></p>
                       <ul className="ml-4 space-y-1">
-                        <li>• Seleção de funcionário (filtrado por departamento para supervisores)</li>
+                        <li>• <strong>Campo de busca pesquisável de funcionários:</strong> Digite nome, sobrenome ou ID interno para filtrar (filtrado por departamento para supervisores)</li>
                         <li>• Adição de múltiplos itens com quantidade</li>
                         <li>• Cálculo automático de validade (data + meses de validade)</li>
                         <li>• Assinatura digital do funcionário no recebimento</li>
@@ -2718,6 +2718,49 @@ export default function Manual() {
                       </ul>
                     </CardContent>
                   </Card>
+
+                  <Card className="bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        5. Movimentações de Estoque (Somente Admin)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <p><strong>Sistema completo de controle de entradas e saídas:</strong></p>
+                      <ul className="ml-4 space-y-1">
+                        <li>• <strong>10 motivos categorizados</strong> com emojis visuais:</li>
+                      </ul>
+                      <div className="ml-8 space-y-1 text-xs">
+                        <p className="font-semibold text-green-700 dark:text-green-400">Entradas (+):</p>
+                        <ul className="ml-4 space-y-0.5">
+                          <li>📦 (+) Compra</li>
+                          <li>↩️ (+) Devolução</li>
+                          <li>🎁 (+) Doação Recebida</li>
+                        </ul>
+                        <p className="font-semibold text-red-700 dark:text-red-400 mt-2">Saídas (-):</p>
+                        <ul className="ml-4 space-y-0.5">
+                          <li>👷 (-) Distribuição de EPI</li>
+                          <li>❌ (-) Perda/Estravio</li>
+                          <li>🔨 (-) Dano/Avaria</li>
+                          <li>📅 (-) Vencimento</li>
+                          <li>🗑️ (-) Descarte</li>
+                        </ul>
+                        <p className="font-semibold text-blue-700 dark:text-blue-400 mt-2">Ajustes (±):</p>
+                        <ul className="ml-4 space-y-0.5">
+                          <li>✏️ (±) Correção de Inventário</li>
+                          <li>🔢 (±) Recontagem</li>
+                        </ul>
+                      </div>
+                      <ul className="ml-4 space-y-1 mt-2">
+                        <li>• Campo de busca de item com filtro por código ou nome</li>
+                        <li>• Seleção de data da transação (calendário pt-BR)</li>
+                        <li>• Cálculo automático do tipo (entrada/saída/ajuste) baseado no motivo</li>
+                        <li>• Histórico completo de todas as movimentações com filtros</li>
+                        <li>• Atualização automática do estoque após cada operação</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
                 </div>
               </section>
 
@@ -2741,27 +2784,23 @@ export default function Manual() {
               <Separator />
 
               <section>
-                <h3 className="text-lg font-semibold mb-3">Recursos Avançados (Em Desenvolvimento)</h3>
+                <h3 className="text-lg font-semibold mb-3">Recursos Futuros</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                    <p>Geração automática de recibos PDF com assinaturas</p>
+                    <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+                    <p>Notificações automáticas por email de vencimento (30/15/7 dias antes)</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                    <p>Integração com sistema de documentos (PDFs salvos automaticamente)</p>
+                    <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+                    <p>Relatórios personalizados avançados com exportação Excel/PDF</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                    <p>Notificações automáticas de vencimento (30/15/7 dias antes)</p>
+                    <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+                    <p>Dashboard com gráficos de consumo e tendências de estoque</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                    <p>Relatórios personalizados com exportação Excel/PDF</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                    <p>Movimentação de estoque (entrada/saída) com histórico</p>
+                    <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+                    <p>Integração com código de barras para leitura rápida de itens</p>
                   </div>
                 </div>
               </section>
