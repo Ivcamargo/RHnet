@@ -62,7 +62,13 @@ export default function JobApply() {
 
   // Fetch job details
   const { data: job, isLoading } = useQuery<JobOpening>({
-    queryKey: [`/api/public/jobs/${jobId}`],
+    queryKey: ['/api/public/jobs', jobId],
+    queryFn: async () => {
+      const res = await fetch(`/api/public/jobs/${jobId}`);
+      if (!res.ok) throw new Error('Failed to fetch job');
+      return res.json();
+    },
+    enabled: !!jobId,
   });
 
   // Fetch DISC questions if required
