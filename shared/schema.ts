@@ -835,7 +835,10 @@ export const insertSupervisorAssignmentSchema = createInsertSchema(supervisorAss
 export type InsertSupervisorAssignment = z.infer<typeof insertSupervisorAssignmentSchema>;
 
 // Base complete employee registration schema for HR
+// Apenas campos básicos são obrigatórios. Demais campos são opcionais e podem ser preenchidos depois.
 export const baseCompleteEmployeeSchema = insertUserSchema.extend({
+  // ===== CAMPOS OBRIGATÓRIOS (BÁSICOS) =====
+  
   // Dados pessoais obrigatórios
   firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
@@ -848,59 +851,117 @@ export const baseCompleteEmployeeSchema = insertUserSchema.extend({
       return numbers.length === 11 && !numbers.split('').every(n => n === numbers[0]);
     }, "CPF inválido"),
   
-  // Documentos
-  rg: z.string().min(5, "RG é obrigatório").optional(),
-  rgIssuingOrgan: z.string().min(2, "Órgão emissor é obrigatório").optional(),
-  ctps: z.string().optional(),
-  pisPasep: z.string().optional(),
-  
-  // Dados pessoais
-  birthDate: z.string().min(1, "Data de nascimento é obrigatória").refine((date) => {
-    const birthDate = new Date(date);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    return age >= 16 && age <= 100;
-  }, "Idade deve estar entre 16 e 100 anos"),
-  
-  maritalStatus: z.enum(["solteiro", "casado", "divorciado", "viuvo", "uniao_estavel"]),
-  gender: z.enum(["masculino", "feminino", "outro", "prefiro_nao_informar"]),
-  
-  // Endereço
-  cep: z.string().regex(/^\d{5}-\d{3}$/, "CEP deve estar no formato XXXXX-XXX"),
-  address: z.string().min(10, "Endereço deve ter pelo menos 10 caracteres"),
-  addressNumber: z.string().min(1, "Número é obrigatório"),
-  neighborhood: z.string().min(2, "Bairro é obrigatório"),
-  city: z.string().min(2, "Cidade é obrigatória"),
-  state: z.string().length(2, "Estado deve ter 2 caracteres"),
-  
-  // Contatos
-  personalPhone: z.string()
-    .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone deve estar no formato (XX) XXXXX-XXXX"),
-  emergencyContactName: z.string().min(2, "Nome do contato de emergência é obrigatório"),
-  emergencyContactPhone: z.string()
-    .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone deve estar no formato (XX) XXXXX-XXXX"),
-  emergencyContactRelationship: z.string().min(2, "Parentesco é obrigatório"),
-  
-  // Dados profissionais
+  // Dados profissionais obrigatórios
   position: z.string().min(2, "Cargo é obrigatório"),
-  admissionDate: z.string().min(1, "Data de admissão é obrigatória").refine((date) => {
-    const admissionDate = new Date(date);
-    const today = new Date();
-    return admissionDate <= today;
-  }, "Data de admissão não pode ser futura"),
-  contractType: z.enum(["clt", "pj", "estagio", "terceirizado", "temporario"]),
-  workSchedule: z.enum(["integral", "meio_periodo", "flexivel"]),
-  salary: z.coerce.number().min(0, "Salário deve ser positivo"),
   
-  // Dados bancários
-  bankCode: z.string().length(3, "Código do banco deve ter 3 dígitos"),
-  bankName: z.string().min(2, "Nome do banco é obrigatório"),
-  agencyNumber: z.string().min(1, "Número da agência é obrigatório"),
-  accountNumber: z.string().min(1, "Número da conta é obrigatório"),
-  accountType: z.enum(["corrente", "poupanca"]),
+  // ===== CAMPOS OPCIONAIS COM VALIDAÇÃO CONDICIONAL =====
   
-  // Escolaridade
-  educationLevel: z.enum(["fundamental", "medio", "superior", "pos_graduacao", "mestrado", "doutorado"]),
+  // Documentos opcionais (validam formato apenas se preenchidos)
+  rg: z.string().min(5, "RG deve ter pelo menos 5 caracteres").or(z.literal("")).optional(),
+  rgIssuingOrgan: z.string().min(2, "Órgão emissor deve ter pelo menos 2 caracteres").or(z.literal("")).optional(),
+  ctps: z.string().or(z.literal("")).optional(),
+  pisPasep: z.string().or(z.literal("")).optional(),
+  tituloEleitor: z.string().or(z.literal("")).optional(),
+  
+  // Dados pessoais opcionais
+  birthDate: z.string()
+    .refine((date) => {
+      if (!date || date === "") return true; // Aceita vazio
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      return age >= 16 && age <= 100;
+    }, "Idade deve estar entre 16 e 100 anos")
+    .or(z.literal(""))
+    .optional(),
+  
+  maritalStatus: z.enum(["solteiro", "casado", "divorciado", "viuvo", "uniao_estavel"]).or(z.literal("")).optional(),
+  gender: z.enum(["masculino", "feminino", "outro", "prefiro_nao_informar"]).or(z.literal("")).optional(),
+  nationality: z.string().or(z.literal("")).optional(),
+  naturalness: z.string().or(z.literal("")).optional(),
+  
+  // Endereço opcional
+  cep: z.string()
+    .refine((cep) => {
+      if (!cep || cep === "") return true; // Aceita vazio
+      return /^\d{5}-\d{3}$/.test(cep);
+    }, "CEP deve estar no formato XXXXX-XXX")
+    .or(z.literal(""))
+    .optional(),
+  address: z.string().or(z.literal("")).optional(),
+  addressNumber: z.string().or(z.literal("")).optional(),
+  addressComplement: z.string().or(z.literal("")).optional(),
+  neighborhood: z.string().or(z.literal("")).optional(),
+  city: z.string().or(z.literal("")).optional(),
+  state: z.string()
+    .refine((state) => {
+      if (!state || state === "") return true; // Aceita vazio
+      return state.length === 2;
+    }, "Estado deve ter 2 caracteres")
+    .or(z.literal(""))
+    .optional(),
+  country: z.string().or(z.literal("")).optional(),
+  
+  // Contatos opcionais
+  personalPhone: z.string()
+    .refine((phone) => {
+      if (!phone || phone === "") return true; // Aceita vazio
+      return /^\(\d{2}\) \d{4,5}-\d{4}$/.test(phone);
+    }, "Telefone deve estar no formato (XX) XXXXX-XXXX")
+    .or(z.literal(""))
+    .optional(),
+  commercialPhone: z.string()
+    .refine((phone) => {
+      if (!phone || phone === "") return true; // Aceita vazio
+      return /^\(\d{2}\) \d{4,5}-\d{4}$/.test(phone);
+    }, "Telefone deve estar no formato (XX) XXXXX-XXXX")
+    .or(z.literal(""))
+    .optional(),
+  emergencyContactName: z.string().or(z.literal("")).optional(),
+  emergencyContactPhone: z.string()
+    .refine((phone) => {
+      if (!phone || phone === "") return true; // Aceita vazio
+      return /^\(\d{2}\) \d{4,5}-\d{4}$/.test(phone);
+    }, "Telefone deve estar no formato (XX) XXXXX-XXXX")
+    .or(z.literal(""))
+    .optional(),
+  emergencyContactRelationship: z.string().or(z.literal("")).optional(),
+  
+  // Dados profissionais opcionais
+  internalId: z.string().or(z.literal("")).optional(),
+  admissionDate: z.string()
+    .refine((date) => {
+      if (!date || date === "") return true; // Aceita vazio
+      const admissionDate = new Date(date);
+      const today = new Date();
+      return admissionDate <= today;
+    }, "Data de admissão não pode ser futura")
+    .or(z.literal(""))
+    .optional(),
+  contractType: z.enum(["clt", "pj", "estagio", "terceirizado", "temporario"]).or(z.literal("")).optional(),
+  workSchedule: z.enum(["integral", "meio_periodo", "flexivel"]).or(z.literal("")).optional(),
+  salary: z.coerce.number().min(0, "Salário deve ser positivo").or(z.literal("")).or(z.literal(0)).optional(),
+  benefits: z.string().or(z.literal("")).optional(),
+  
+  // Dados bancários opcionais
+  bankCode: z.string()
+    .refine((code) => {
+      if (!code || code === "") return true; // Aceita vazio
+      return code.length === 3;
+    }, "Código do banco deve ter 3 dígitos")
+    .or(z.literal(""))
+    .optional(),
+  bankName: z.string().or(z.literal("")).optional(),
+  agencyNumber: z.string().or(z.literal("")).optional(),
+  accountNumber: z.string().or(z.literal("")).optional(),
+  accountType: z.enum(["corrente", "poupanca"]).or(z.literal("")).optional(),
+  pixKey: z.string().or(z.literal("")).optional(),
+  
+  // Escolaridade opcional
+  educationLevel: z.enum(["fundamental", "medio", "superior", "pos_graduacao", "mestrado", "doutorado"]).or(z.literal("")).optional(),
+  institution: z.string().or(z.literal("")).optional(),
+  course: z.string().or(z.literal("")).optional(),
+  graduationYear: z.coerce.number().or(z.literal("")).or(z.literal(0)).optional(),
 });
 
 // Complete employee registration schema with conditional validation for departmentId

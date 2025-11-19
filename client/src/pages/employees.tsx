@@ -93,6 +93,9 @@ export default function Employees() {
   // Form for editing employee
   const editForm = useForm<InsertCompleteEmployee>({
     resolver: zodResolver(insertCompleteEmployeeSchema),
+    mode: "onSubmit",
+    criteriaMode: "firstError",
+    shouldFocusError: true,
     defaultValues: {
       // Dados pessoais
       firstName: "",
@@ -160,6 +163,9 @@ export default function Employees() {
   // Form for adding complete employee
   const addForm = useForm<InsertCompleteEmployee>({
     resolver: zodResolver(insertCompleteEmployeeSchema),
+    mode: "onSubmit",
+    criteriaMode: "firstError",
+    shouldFocusError: true,
     defaultValues: {
       // Dados pessoais
       firstName: "",
