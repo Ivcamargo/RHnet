@@ -89,6 +89,7 @@ export default function Recruitment() {
   const [selectedAssessment, setSelectedAssessment] = useState<any>(null);
   const [isViewResultsDialogOpen, setIsViewResultsDialogOpen] = useState(false);
   const [isLoadingJobData, setIsLoadingJobData] = useState(false);
+  const [jobFilter, setJobFilter] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -506,6 +507,11 @@ export default function Recruitment() {
     const config = variants[status] || variants.applied;
     return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   };
+
+  // Filter applications by selected job
+  const filteredApplications = jobFilter === 'all' 
+    ? allApplications 
+    : allApplications.filter((app: any) => app.jobOpeningId === parseInt(jobFilter));
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
@@ -1112,14 +1118,10 @@ export default function Recruitment() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="jobs" data-testid="tab-jobs">
             <Briefcase className="mr-2 h-4 w-4" />
             Vagas ({jobOpenings.length})
-          </TabsTrigger>
-          <TabsTrigger value="candidates" data-testid="tab-candidates">
-            <Users className="mr-2 h-4 w-4" />
-            Candidatos ({candidates.length})
           </TabsTrigger>
           <TabsTrigger value="applications" data-testid="tab-applications">
             <ClipboardList className="mr-2 h-4 w-4" />
@@ -1244,69 +1246,11 @@ export default function Recruitment() {
           )}
         </TabsContent>
 
-        <TabsContent value="candidates" className="space-y-4">
-          {candidates.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                <p>Nenhum candidato cadastrado</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {candidates.map((candidate: any) => (
-                <Card key={candidate.id} data-testid={`card-candidate-${candidate.id}`}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle data-testid={`text-candidate-name-${candidate.id}`}>
-                          {candidate.name}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {candidate.email}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      {candidate.phone && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Telefone:</span>
-                          <span>{candidate.phone}</span>
-                        </div>
-                      )}
-                      {candidate.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{candidate.location}</span>
-                        </div>
-                      )}
-                      {candidate.resumeUrl && (
-                        <div className="mt-4">
-                          <a 
-                            href={candidate.resumeUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline inline-flex items-center gap-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Ver Currículo
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
         <TabsContent value="applications" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Gerenciar Candidaturas</h2>
-            <Dialog open={isCreateApplicationDialogOpen} onOpenChange={setIsCreateApplicationDialogOpen}>
+          <div className="flex flex-col gap-4 mb-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Gerenciar Candidaturas</h2>
+              <Dialog open={isCreateApplicationDialogOpen} onOpenChange={setIsCreateApplicationDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-application">
                   <UserPlus className="mr-2 h-4 w-4" />
@@ -1389,19 +1333,51 @@ export default function Recruitment() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
+
+            {/* Filter by Job */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label htmlFor="job-filter" className="text-sm font-medium mb-2 block">
+                  Filtrar por Vaga
+                </Label>
+                <Select value={jobFilter} onValueChange={setJobFilter}>
+                  <SelectTrigger id="job-filter" className="w-full" data-testid="select-job-filter">
+                    <SelectValue placeholder="Todas as vagas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as vagas</SelectItem>
+                    {jobOpenings.filter(j => j.status === 'published').map((job: any) => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Badge variant="outline" className="text-base px-3 py-1">
+                  {filteredApplications.length} de {allApplications.length} candidaturas
+                </Badge>
+              </div>
+            </div>
           </div>
 
-          {allApplications.length === 0 ? (
+          {filteredApplications.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
                 <ClipboardList className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                <p>Nenhuma candidatura registrada</p>
-                <p className="text-sm mt-2">Vincule candidatos às vagas para iniciar</p>
+                <p>Nenhuma candidatura encontrada</p>
+                <p className="text-sm mt-2">
+                  {jobFilter === 'all' 
+                    ? 'Vincule candidatos às vagas para iniciar' 
+                    : 'Nenhuma candidatura para esta vaga'}
+                </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4">
-              {allApplications.map((application: any) => (
+              {filteredApplications.map((application: any) => (
                 <Card key={application.id} data-testid={`card-application-${application.id}`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
