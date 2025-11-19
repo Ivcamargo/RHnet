@@ -60,16 +60,26 @@ export default function JobApply() {
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const [discResponses, setDiscResponses] = useState<Record<number, number>>({});
 
+  console.log("=== JOB APPLY DEBUG ===");
+  console.log("jobId from useParams:", jobId);
+  console.log("jobId type:", typeof jobId);
+  console.log("enabled:", !!jobId);
+  console.log("=====================");
+
   // Fetch job details
-  const { data: job, isLoading } = useQuery<JobOpening>({
+  const { data: job, isLoading, error: jobError } = useQuery<JobOpening>({
     queryKey: ['/api/public/jobs', jobId],
     queryFn: async () => {
+      console.log("QUERY FN EXECUTING for jobId:", jobId);
       const res = await fetch(`/api/public/jobs/${jobId}`);
       if (!res.ok) throw new Error('Failed to fetch job');
       return res.json();
     },
     enabled: !!jobId,
   });
+
+  console.log("Query state:", { job, isLoading, jobError });
+  console.log("Job data received:", job);
 
   // Fetch DISC questions if required
   const { data: discQuestions = [], isLoading: discQuestionsLoading, error: discQuestionsError, refetch: refetchDiscQuestions } = useQuery<DISCQuestion[]>({
