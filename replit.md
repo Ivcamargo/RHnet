@@ -10,7 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 19, 2025** (latest): System manual PDF generation updated:
+**November 19, 2025** (latest): Critical DISC application flow fix:
+- **Public Application DISC Storage Fix**: Resolved database constraint error preventing public job applications with DISC requirements
+  - Database schema: Modified disc_assessments.created_by column to nullable (removed NOT NULL constraint)
+  - Storage layer: Implemented saveDISCResponses() function for bulk DISC response insertion (server/storage.ts lines 3834-3843)
+  - Public applications now successfully create DISC assessments with created_by=NULL (unauthenticated users)
+  - POST /api/public/apply now returns 201 (success) instead of 400 (constraint violation)
+  - Complete end-to-end test confirmed: inline DISC form → answers submission → assessment storage → application creation
+  - Visual UX: Progress badge turns green with checkmark when complete, submit button becomes green with "✓ Teste DISC Completo - Enviar Candidatura"
+
+**November 19, 2025**: System manual PDF generation updated:
 - **PDF Content Synchronization**: Updated PDF generation code to match current system features
   - Added Section 7 (Avaliação DISC de Personalidade) with methodology, configuration, 24-28 questions assessment, and compatibility analysis
   - Added Section 8 (Gestão de Estoque e EPIs) with 5 main functionalities, 10 categorized movement reasons with emojis, filters, and complete workflow
