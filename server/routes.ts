@@ -6826,6 +6826,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobId = parseInt(req.params.id);
       const jobOpening = await storage.getJobOpening(jobId);
       
+      console.log("=== PUBLIC JOB DETAILS DEBUG ===");
+      console.log("Job ID:", jobId);
+      console.log("requiresDISC:", jobOpening?.requiresDISC);
+      console.log("discTiming:", jobOpening?.discTiming);
+      console.log("idealDISCProfile:", jobOpening?.idealDISCProfile);
+      console.log("================================");
+      
       if (!jobOpening) {
         return res.status(404).json({ message: "Job opening not found" });
       }
