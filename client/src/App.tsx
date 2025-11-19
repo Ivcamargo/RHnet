@@ -93,6 +93,7 @@ function Router() {
       <Route path="/vagas/:id" component={PublicJobs} />
       <Route path="/vagas" component={PublicJobs} />
       <Route path="/apply/:jobId" component={JobApply} />
+      <Route path="/trabalhe-conosco/:jobId" component={JobApply} />
       
       {/* DISC Assessment - acessível para candidatos via token */}
       <Route path="/disc-assessment" component={DISCAssessment} />
