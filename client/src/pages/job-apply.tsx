@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, MapPin, DollarSign, Clock, Building, FileText, CheckCircle, Upload } from "lucide-react";
+import { Briefcase, MapPin, DollarSign, Clock, Building, FileText, CheckCircle, Upload, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 // Job opening interface
@@ -60,26 +60,16 @@ export default function JobApply() {
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const [discResponses, setDiscResponses] = useState<Record<number, number>>({});
 
-  console.log("=== JOB APPLY DEBUG ===");
-  console.log("jobId from useParams:", jobId);
-  console.log("jobId type:", typeof jobId);
-  console.log("enabled:", !!jobId);
-  console.log("=====================");
-
   // Fetch job details
-  const { data: job, isLoading, error: jobError } = useQuery<JobOpening>({
+  const { data: job, isLoading } = useQuery<JobOpening>({
     queryKey: ['/api/public/jobs', jobId],
     queryFn: async () => {
-      console.log("QUERY FN EXECUTING for jobId:", jobId);
       const res = await fetch(`/api/public/jobs/${jobId}`);
       if (!res.ok) throw new Error('Failed to fetch job');
       return res.json();
     },
     enabled: !!jobId,
   });
-
-  console.log("Query state:", { job, isLoading, jobError });
-  console.log("Job data received:", job);
 
   // Fetch DISC questions if required
   const { data: discQuestions = [], isLoading: discQuestionsLoading, error: discQuestionsError, refetch: refetchDiscQuestions } = useQuery<DISCQuestion[]>({
@@ -164,20 +154,21 @@ export default function JobApply() {
     },
   });
 
+  // Check if DISC is complete (if required)
+  const discRequired = job?.requiresDISC && job?.discTiming === 'on_application';
+  const discQuestionsCount = discQuestions.length;
+  const discAnsweredCount = Object.keys(discResponses).length;
+  const discComplete = !discRequired || (discQuestionsCount > 0 && discAnsweredCount === discQuestionsCount);
+
   const onSubmit = (data: ApplicationForm) => {
     // Validate DISC responses if required
-    if (job?.requiresDISC && job?.discTiming === 'on_application') {
-      const totalQuestions = discQuestions.length;
-      const answeredQuestions = Object.keys(discResponses).length;
-      
-      if (answeredQuestions < totalQuestions) {
-        toast({
-          title: "Teste DISC incompleto",
-          description: `Por favor, responda todas as ${totalQuestions} questões do teste DISC antes de enviar sua candidatura.`,
-          variant: "destructive",
-        });
-        return;
-      }
+    if (discRequired && !discComplete) {
+      toast({
+        title: "Teste DISC incompleto",
+        description: `Por favor, responda todas as ${discQuestionsCount} questões do teste DISC antes de enviar sua candidatura.`,
+        variant: "destructive",
+      });
+      return;
     }
     
     submitApplicationMutation.mutate(data);
@@ -513,23 +504,42 @@ export default function JobApply() {
                       </div>
                     )}
 
-                    <div className="text-sm text-muted-foreground">
-                      Questões respondidas: {Object.keys(discResponses).length} de {discQuestions.length}
-                    </div>
+                    {/* Progress Indicator */}
+                    {discQuestions.length > 0 && (
+                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm font-medium">Progresso do Teste DISC:</span>
+                        <Badge 
+                          variant={Object.keys(discResponses).length === discQuestions.length ? "default" : "secondary"}
+                          className={Object.keys(discResponses).length === discQuestions.length ? "bg-green-600 hover:bg-green-700" : ""}
+                        >
+                          {Object.keys(discResponses).length === discQuestions.length && <Check className="h-3 w-3 mr-1" />}
+                          {Object.keys(discResponses).length} de {discQuestions.length} questões
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className="flex gap-3">
                   <Button
                     type="submit"
-                    className="flex-1"
+                    className={`flex-1 ${discRequired && discComplete ? "bg-green-600 hover:bg-green-700" : ""}`}
                     disabled={
                       submitApplicationMutation.isPending || 
-                      (job?.requiresDISC && job?.discTiming === 'on_application' && (discQuestionsLoading || !!discQuestionsError))
+                      (discRequired && (discQuestionsLoading || !!discQuestionsError || !discComplete))
                     }
                     data-testid="button-submit-application"
                   >
-                    {submitApplicationMutation.isPending ? "Enviando..." : "Enviar Candidatura"}
+                    {submitApplicationMutation.isPending ? (
+                      "Enviando..."
+                    ) : discRequired && discComplete ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Teste DISC Completo - Enviar Candidatura
+                      </>
+                    ) : (
+                      "Enviar Candidatura"
+                    )}
                   </Button>
                   <Button
                     type="button"
