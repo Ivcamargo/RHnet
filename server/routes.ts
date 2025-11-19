@@ -6851,6 +6851,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("req.body:", req.body);
       console.log("req.body keys:", Object.keys(req.body));
       console.log("req.body.jobOpeningId:", req.body.jobOpeningId);
+      console.log("req.body.discResponses:", req.body.discResponses);
+      console.log("discResponses type:", typeof req.body.discResponses);
       console.log("=========================");
       
       let { jobOpeningId, name, email, phone, cpf, coverLetter, city, state, requirementResponses } = req.body;
