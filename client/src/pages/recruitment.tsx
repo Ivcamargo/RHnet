@@ -101,6 +101,9 @@ export default function Recruitment() {
   const [isViewResultsDialogOpen, setIsViewResultsDialogOpen] = useState(false);
   const [isLoadingJobData, setIsLoadingJobData] = useState(false);
   const [jobFilter, setJobFilter] = useState<string>('all');
+  const [phaseFilter, setPhaseFilter] = useState<string>('all');
+  const [selectedApplicationIds, setSelectedApplicationIds] = useState<Set<number>>(new Set());
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -263,6 +266,31 @@ export default function Recruitment() {
       toast({
         title: "Erro ao atualizar status",
         description: "Não foi possível atualizar o status. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteBulkApplicationsMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      return await apiRequest('/api/applications/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      });
+    },
+    onSuccess: async (data: any) => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/applications/all'] });
+      clearSelection();
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Candidaturas excluídas!",
+        description: `${data.deletedCount} candidatura(s) foram removidas do sistema.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao excluir candidaturas",
+        description: "Não foi possível excluir as candidaturas. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -535,10 +563,37 @@ export default function Recruitment() {
     return labels[profile] || profile;
   };
 
-  // Filter applications by selected job
-  const filteredApplications = jobFilter === 'all' 
-    ? allApplications 
-    : allApplications.filter((app: any) => app.jobOpeningId === parseInt(jobFilter));
+  // Filter applications by selected job and phase
+  const filteredApplications = allApplications.filter((app: any) => {
+    const matchesJob = jobFilter === 'all' || app.jobOpeningId === parseInt(jobFilter);
+    const matchesPhase = phaseFilter === 'all' || app.status === phaseFilter;
+    return matchesJob && matchesPhase;
+  });
+
+  // Functions to handle selection
+  const toggleSelectApplication = (id: number) => {
+    setSelectedApplicationIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedApplicationIds.size === filteredApplications.length) {
+      setSelectedApplicationIds(new Set());
+    } else {
+      setSelectedApplicationIds(new Set(filteredApplications.map((app: any) => app.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedApplicationIds(new Set());
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
@@ -1362,13 +1417,48 @@ export default function Recruitment() {
             </Dialog>
             </div>
 
-            {/* Filter by Job */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
+            {/* Selection Actions Bar */}
+            {selectedApplicationIds.size > 0 && (
+              <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={selectedApplicationIds.size === filteredApplications.length}
+                    onCheckedChange={toggleSelectAll}
+                    data-testid="checkbox-select-all"
+                  />
+                  <span className="font-medium">
+                    {selectedApplicationIds.size} candidatura(s) selecionada(s)
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearSelection}
+                    data-testid="button-clear-selection"
+                  >
+                    Limpar seleção
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    data-testid="button-delete-selected"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Selecionados
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
                 <Label htmlFor="job-filter" className="text-sm font-medium mb-2 block">
                   Filtrar por Vaga
                 </Label>
-                <Select value={jobFilter} onValueChange={setJobFilter}>
+                <Select value={jobFilter} onValueChange={(value) => { setJobFilter(value); clearSelection(); }}>
                   <SelectTrigger id="job-filter" className="w-full" data-testid="select-job-filter">
                     <SelectValue placeholder="Todas as vagas" />
                   </SelectTrigger>
@@ -1382,8 +1472,30 @@ export default function Recruitment() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2 pt-6">
-                <Badge variant="outline" className="text-base px-3 py-1">
+
+              <div>
+                <Label htmlFor="phase-filter" className="text-sm font-medium mb-2 block">
+                  Filtrar por Fase
+                </Label>
+                <Select value={phaseFilter} onValueChange={(value) => { setPhaseFilter(value); clearSelection(); }}>
+                  <SelectTrigger id="phase-filter" className="w-full" data-testid="select-phase-filter">
+                    <SelectValue placeholder="Todas as fases" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as fases</SelectItem>
+                    <SelectItem value="applied">Candidatura Enviada</SelectItem>
+                    <SelectItem value="screening">Em Triagem</SelectItem>
+                    <SelectItem value="interview">Entrevista</SelectItem>
+                    <SelectItem value="test">Teste/Avaliação</SelectItem>
+                    <SelectItem value="approved">Aprovados</SelectItem>
+                    <SelectItem value="rejected">Reprovados</SelectItem>
+                    <SelectItem value="hired">Contratados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Badge variant="outline" className="text-base px-3 py-2 h-10">
                   {filteredApplications.length} de {allApplications.length} candidaturas
                 </Badge>
               </div>
@@ -1407,7 +1519,13 @@ export default function Recruitment() {
               {filteredApplications.map((application: any) => (
                 <Card key={application.id} data-testid={`card-application-${application.id}`}>
                   <CardHeader>
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-4">
+                      <Checkbox
+                        checked={selectedApplicationIds.has(application.id)}
+                        onCheckedChange={() => toggleSelectApplication(application.id)}
+                        data-testid={`checkbox-application-${application.id}`}
+                        className="mt-1"
+                      />
                       <div className="flex-1">
                         <CardTitle className="text-lg" data-testid={`text-application-title-${application.id}`}>
                           {application.candidateName}
@@ -1652,6 +1770,57 @@ export default function Recruitment() {
               ))}
             </div>
           )}
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmar Exclusão</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Você está prestes a excluir <strong>{selectedApplicationIds.size}</strong> candidatura(s). 
+                  Esta ação não pode ser desfeita.
+                </p>
+                
+                {selectedApplicationIds.size > 0 && (
+                  <div className="max-h-60 overflow-y-auto border rounded-lg p-3 space-y-2">
+                    {Array.from(selectedApplicationIds).map(id => {
+                      const app = allApplications.find((a: any) => a.id === id);
+                      return app ? (
+                        <div key={id} className="flex items-center justify-between text-sm p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                          <div>
+                            <span className="font-medium">{app.candidateName}</span>
+                            <span className="text-muted-foreground ml-2">({app.candidateEmail})</span>
+                          </div>
+                          {getApplicationStatusBadge(app.status)}
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDeleteDialogOpen(false)}
+                    disabled={deleteBulkApplicationsMutation.isPending}
+                    data-testid="button-cancel-delete"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => deleteBulkApplicationsMutation.mutate(Array.from(selectedApplicationIds))}
+                    disabled={deleteBulkApplicationsMutation.isPending}
+                    data-testid="button-confirm-delete"
+                  >
+                    {deleteBulkApplicationsMutation.isPending ? "Excluindo..." : "Excluir Candidaturas"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="disc" className="space-y-4">

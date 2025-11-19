@@ -428,6 +428,7 @@ export interface IStorage {
   getApplication(id: number): Promise<any | undefined>;
   createApplication(application: any): Promise<any>;
   updateApplication(id: number, application: Partial<any>): Promise<any>;
+  deleteApplicationsBulk(ids: number[]): Promise<number>;
   getCandidateApplications(candidateId: number): Promise<any[]>;
   getApplicationsByStatus(jobOpeningId: number, status: string): Promise<any[]>;
   
@@ -2991,6 +2992,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(applications.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteApplicationsBulk(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    await db
+      .delete(applications)
+      .where(inArray(applications.id, ids));
+    // Return the count of IDs requested for deletion
+    // Note: Drizzle delete doesn't return rowCount, so we return the input length
+    return ids.length;
   }
 
   async getCandidateApplications(candidateId: number): Promise<any[]> {

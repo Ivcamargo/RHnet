@@ -7542,6 +7542,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/applications/bulk-delete', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid request: ids array is required" });
+      }
+
+      const deletedCount = await storage.deleteApplicationsBulk(ids);
+      res.json({ deletedCount, message: `${deletedCount} application(s) deleted successfully` });
+    } catch (error) {
+      console.error("Error deleting applications:", error);
+      res.status(500).json({ message: "Failed to delete applications" });
+    }
+  });
+
   // Onboarding Links Routes
   app.get('/api/onboarding-links', isAuthenticatedHybrid, async (req: any, res) => {
     try {
