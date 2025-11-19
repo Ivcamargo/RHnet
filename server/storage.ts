@@ -2851,72 +2851,14 @@ export class DatabaseStorage implements IStorage {
   async getJobOpenings(companyId: number, status?: string): Promise<any[]> {
     if (status) {
       return await db
-        .select({
-          id: jobOpenings.id,
-          companyId: jobOpenings.companyId,
-          companyName: companies.name,
-          departmentId: jobOpenings.departmentId,
-          title: jobOpenings.title,
-          description: jobOpenings.description,
-          requirements: jobOpenings.requirements,
-          responsibilities: jobOpenings.responsibilities,
-          benefits: jobOpenings.benefits,
-          location: jobOpenings.location,
-          employmentType: jobOpenings.employmentType,
-          salaryRange: jobOpenings.salaryRange,
-          salaryMin: jobOpenings.salaryMin,
-          salaryMax: jobOpenings.salaryMax,
-          experienceLevel: jobOpenings.experienceLevel,
-          workSchedule: jobOpenings.workSchedule,
-          vacancies: jobOpenings.vacancies,
-          status: jobOpenings.status,
-          requiresDISC: jobOpenings.requiresDISC,
-          discTiming: jobOpenings.discTiming,
-          idealDISCProfile: jobOpenings.idealDISCProfile,
-          publishedAt: jobOpenings.publishedAt,
-          closedAt: jobOpenings.closedAt,
-          expiresAt: jobOpenings.expiresAt,
-          createdBy: jobOpenings.createdBy,
-          createdAt: jobOpenings.createdAt,
-          updatedAt: jobOpenings.updatedAt,
-        })
+        .select()
         .from(jobOpenings)
-        .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(eq(jobOpenings.companyId, companyId), eq(jobOpenings.status, status)))
         .orderBy(desc(jobOpenings.createdAt));
     }
     return await db
-      .select({
-        id: jobOpenings.id,
-        companyId: jobOpenings.companyId,
-        companyName: companies.name,
-        departmentId: jobOpenings.departmentId,
-        title: jobOpenings.title,
-        description: jobOpenings.description,
-        requirements: jobOpenings.requirements,
-        responsibilities: jobOpenings.responsibilities,
-        benefits: jobOpenings.benefits,
-        location: jobOpenings.location,
-        employmentType: jobOpenings.employmentType,
-        salaryRange: jobOpenings.salaryRange,
-        salaryMin: jobOpenings.salaryMin,
-        salaryMax: jobOpenings.salaryMax,
-        experienceLevel: jobOpenings.experienceLevel,
-        workSchedule: jobOpenings.workSchedule,
-        vacancies: jobOpenings.vacancies,
-        status: jobOpenings.status,
-        requiresDISC: jobOpenings.requiresDISC,
-        discTiming: jobOpenings.discTiming,
-        idealDISCProfile: jobOpenings.idealDISCProfile,
-        publishedAt: jobOpenings.publishedAt,
-        closedAt: jobOpenings.closedAt,
-        expiresAt: jobOpenings.expiresAt,
-        createdBy: jobOpenings.createdBy,
-        createdAt: jobOpenings.createdAt,
-        updatedAt: jobOpenings.updatedAt,
-      })
+      .select()
       .from(jobOpenings)
-      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.companyId, companyId))
       .orderBy(desc(jobOpenings.createdAt));
   }
@@ -2925,37 +2867,8 @@ export class DatabaseStorage implements IStorage {
     // Return only published job openings for public viewing
     if (companyId) {
       return await db
-        .select({
-          id: jobOpenings.id,
-          companyId: jobOpenings.companyId,
-          companyName: companies.name,
-          departmentId: jobOpenings.departmentId,
-          title: jobOpenings.title,
-          description: jobOpenings.description,
-          requirements: jobOpenings.requirements,
-          responsibilities: jobOpenings.responsibilities,
-          benefits: jobOpenings.benefits,
-          location: jobOpenings.location,
-          employmentType: jobOpenings.employmentType,
-          salaryRange: jobOpenings.salaryRange,
-          salaryMin: jobOpenings.salaryMin,
-          salaryMax: jobOpenings.salaryMax,
-          experienceLevel: jobOpenings.experienceLevel,
-          workSchedule: jobOpenings.workSchedule,
-          vacancies: jobOpenings.vacancies,
-          status: jobOpenings.status,
-          requiresDISC: jobOpenings.requiresDISC,
-          discTiming: jobOpenings.discTiming,
-          idealDISCProfile: jobOpenings.idealDISCProfile,
-          publishedAt: jobOpenings.publishedAt,
-          closedAt: jobOpenings.closedAt,
-          expiresAt: jobOpenings.expiresAt,
-          createdBy: jobOpenings.createdBy,
-          createdAt: jobOpenings.createdAt,
-          updatedAt: jobOpenings.updatedAt,
-        })
+        .select()
         .from(jobOpenings)
-        .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
         .where(and(
           eq(jobOpenings.companyId, companyId),
           eq(jobOpenings.status, 'published')
@@ -2965,74 +2878,16 @@ export class DatabaseStorage implements IStorage {
     
     // Return all published job openings if no company specified
     return await db
-      .select({
-        id: jobOpenings.id,
-        companyId: jobOpenings.companyId,
-        companyName: companies.name,
-        departmentId: jobOpenings.departmentId,
-        title: jobOpenings.title,
-        description: jobOpenings.description,
-        requirements: jobOpenings.requirements,
-        responsibilities: jobOpenings.responsibilities,
-        benefits: jobOpenings.benefits,
-        location: jobOpenings.location,
-        employmentType: jobOpenings.employmentType,
-        salaryRange: jobOpenings.salaryRange,
-        salaryMin: jobOpenings.salaryMin,
-        salaryMax: jobOpenings.salaryMax,
-        experienceLevel: jobOpenings.experienceLevel,
-        workSchedule: jobOpenings.workSchedule,
-        vacancies: jobOpenings.vacancies,
-        status: jobOpenings.status,
-        requiresDISC: jobOpenings.requiresDISC,
-        discTiming: jobOpenings.discTiming,
-        idealDISCProfile: jobOpenings.idealDISCProfile,
-        publishedAt: jobOpenings.publishedAt,
-        closedAt: jobOpenings.closedAt,
-        expiresAt: jobOpenings.expiresAt,
-        createdBy: jobOpenings.createdBy,
-        createdAt: jobOpenings.createdAt,
-        updatedAt: jobOpenings.updatedAt,
-      })
+      .select()
       .from(jobOpenings)
-      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.status, 'published'))
       .orderBy(desc(jobOpenings.createdAt));
   }
 
   async getJobOpening(id: number): Promise<any | undefined> {
     const [job] = await db
-      .select({
-        id: jobOpenings.id,
-        companyId: jobOpenings.companyId,
-        companyName: companies.name,
-        departmentId: jobOpenings.departmentId,
-        title: jobOpenings.title,
-        description: jobOpenings.description,
-        requirements: jobOpenings.requirements,
-        responsibilities: jobOpenings.responsibilities,
-        benefits: jobOpenings.benefits,
-        location: jobOpenings.location,
-        employmentType: jobOpenings.employmentType,
-        salaryRange: jobOpenings.salaryRange,
-        salaryMin: jobOpenings.salaryMin,
-        salaryMax: jobOpenings.salaryMax,
-        experienceLevel: jobOpenings.experienceLevel,
-        workSchedule: jobOpenings.workSchedule,
-        vacancies: jobOpenings.vacancies,
-        status: jobOpenings.status,
-        requiresDISC: jobOpenings.requiresDISC,
-        discTiming: jobOpenings.discTiming,
-        idealDISCProfile: jobOpenings.idealDISCProfile,
-        publishedAt: jobOpenings.publishedAt,
-        closedAt: jobOpenings.closedAt,
-        expiresAt: jobOpenings.expiresAt,
-        createdBy: jobOpenings.createdBy,
-        createdAt: jobOpenings.createdAt,
-        updatedAt: jobOpenings.updatedAt,
-      })
+      .select()
       .from(jobOpenings)
-      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.id, id));
     return job;
   }
