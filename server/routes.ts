@@ -7151,6 +7151,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/job-openings/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Verify ownership: check that the job opening belongs to user's company
+      const jobOpening = await storage.getJobOpening(parseInt(req.params.id));
+      if (!jobOpening) {
+        return res.status(404).json({ message: "Job opening not found" });
+      }
+      if (user.role === 'admin' && jobOpening.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Cannot delete other companies' job openings" });
+      }
+
+      await storage.deleteJobOpening(parseInt(req.params.id));
+      res.json({ message: "Job opening deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting job opening:", error);
+      res.status(500).json({ message: "Failed to delete job opening" });
+    }
+  });
+
   // Job Requirements Routes
   app.get('/api/job-openings/:id/requirements', async (req: any, res) => {
     try {
