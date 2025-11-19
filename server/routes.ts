@@ -7444,15 +7444,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const job of jobOpenings) {
         const applications = await storage.getApplications(job.id);
+        const jobRequirements = await storage.getJobRequirements(job.id);
+        
         for (const app of applications) {
           const candidate = await storage.getCandidate(app.candidateId);
+          
+          // Get DISC assessment for candidate (if exists)
+          const discAssessments = await storage.getDISCAssessmentsByCandidate(app.candidateId);
+          const candidateDISC = discAssessments.find(
+            d => d.jobOpeningId === job.id && d.status === 'completed'
+          );
+          
+          // Calculate DISC compatibility if both exist
+          let discCompatibility = null;
+          if (candidateDISC && job.requiresDISC && job.idealDISCProfile) {
+            const { calculateCompatibility } = await import('./services/discAssessmentService');
+            const compatibility = calculateCompatibility(
+              {
+                dScore: candidateDISC.dScore || 0,
+                iScore: candidateDISC.iScore || 0,
+                sScore: candidateDISC.sScore || 0,
+                cScore: candidateDISC.cScore || 0
+              },
+              job.idealDISCProfile
+            );
+            discCompatibility = compatibility.compatibilityScore;
+          }
+          
+          // Get requirement responses
+          const requirementResponses = await storage.getApplicationRequirementResponses(app.id);
+          
           allApplications.push({
             ...app,
             jobTitle: job.title,
             jobLocation: job.location,
+            jobDescription: job.description,
+            jobRequirements: jobRequirements,
+            requirementResponses: requirementResponses,
             candidateName: candidate?.name,
             candidateEmail: candidate?.email,
-            candidatePhone: candidate?.phone
+            candidatePhone: candidate?.phone,
+            candidateDISC: candidateDISC ? {
+              dScore: candidateDISC.dScore,
+              iScore: candidateDISC.iScore,
+              sScore: candidateDISC.sScore,
+              cScore: candidateDISC.cScore,
+              primaryProfile: candidateDISC.primaryProfile,
+              completedAt: candidateDISC.completedAt
+            } : null,
+            discCompatibility: discCompatibility,
+            idealDISCProfile: job.idealDISCProfile
           });
         }
       }
