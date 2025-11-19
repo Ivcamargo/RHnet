@@ -249,8 +249,10 @@ export default function Manual() {
         { title: "4. Gestão de Recursos", page: 11 },
         { title: "5. Relatórios", page: 15 },
         { title: "6. Recrutamento e Seleção", page: 18 },
-        { title: "7. Arquivos Legais AFD/AEJ", page: 21 },
-        { title: "8. Outros Recursos", page: 24 },
+        { title: "7. Avaliação DISC", page: 21 },
+        { title: "8. Gestão de Estoque e EPIs", page: 24 },
+        { title: "9. Arquivos Legais AFD/AEJ", page: 28 },
+        { title: "10. Outros Recursos", page: 32 },
       ];
 
       pdf.setFontSize(12);
@@ -593,7 +595,9 @@ export default function Manual() {
         "",
         "• Acesse Admin > Recrutamento > Vagas",
         "• Crie novas oportunidades de emprego",
-        "• Defina cargo, departamento, salário e requisitos",
+        "• Defina cargo, departamento, faixa salarial (mín/máx) e requisitos",
+        "• Configure requisitos DISC opcionais e perfil ideal desejado",
+        "• Configure sistema de pontuação ponderada por requisito",
         "• Publique ou mantenha como rascunho",
         "• Acompanhe status de cada vaga",
       ];
@@ -616,12 +620,16 @@ export default function Manual() {
         "• Acesse Admin > Recrutamento > Candidatos",
         "• Registre informações completas dos candidatos",
         "• Anexe currículos e documentos",
+        "• Candidatos podem aplicar via link público da vaga",
+        "• Avaliação DISC pode ser obrigatória durante candidatura (se configurado)",
         "• Gerencie banco de talentos",
         "",
         "PROCESSO SELETIVO:",
         "",
         "• Acesse Admin > Recrutamento > Candidaturas",
         "• Vincule candidatos às vagas abertas",
+        "• Sistema calcula pontuação automática baseada nos requisitos configurados",
+        "• Visualize compatibilidade DISC com indicadores visuais (↑ ↓ ✓)",
         "• Acompanhe status: Em Análise, Entrevista, Aprovado, Reprovado",
         "• Atualize etapas conforme o processo avança",
         "• Gere links de onboarding digital para aprovados",
@@ -632,6 +640,14 @@ export default function Manual() {
         "• Candidato preenche dados pessoais e documentos",
         "• Upload seguro de documentação",
         "• Integração automática com cadastro de funcionários",
+        "",
+        "INTEGRAÇÃO COM DISC:",
+        "",
+        "• Configure se a vaga exige teste DISC obrigatório",
+        "• Defina quando o teste deve ser feito: na candidatura ou após triagem",
+        "• Especifique perfil DISC ideal para a vaga (D, I, S, C)",
+        "• Sistema compara automaticamente perfil do candidato com o ideal",
+        "• Indicadores visuais facilitam análise de compatibilidade",
       ];
 
       recrutamentoText2.forEach(line => {
@@ -640,12 +656,226 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Seção 7: Arquivos Legais AFD/AEJ
+      // Seção 7: Avaliação DISC
       addNewPage();
       pdf.setFontSize(20);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(26, 57, 96);
-      pdf.text("7. Arquivos Legais AFD/AEJ", margin, yPosition);
+      pdf.text("7. Avaliação DISC de Personalidade", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const discText = [
+        "O QUE É O DISC?",
+        "",
+        "O DISC é uma metodologia de avaliação comportamental que identifica padrões de",
+        "personalidade e estilo de trabalho. O sistema avalia quatro dimensões principais:",
+        "",
+        "D (Dominância): Determinação, foco em resultados, tomada rápida de decisões",
+        "I (Influência): Comunicação, persuasão, entusiasmo, relacionamentos",
+        "S (Estabilidade): Paciência, lealdade, trabalho em equipe, consistência",
+        "C (Conformidade): Precisão, análise, atenção aos detalhes, organização",
+        "",
+        "COMO FUNCIONA NO RHNET:",
+        "",
+        "• Sistema com 24-28 questões de múltipla escolha (escala 1-5)",
+        "• Avaliação pode ser obrigatória durante candidatura ou após triagem",
+        "• Cálculo automático de pontuações para cada dimensão (0-100)",
+        "• Comparação com perfil ideal definido na vaga",
+        "• Indicadores visuais de compatibilidade (↑ ↓ ✓)",
+      ];
+
+      discText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const discText2 = [
+        "",
+        "CONFIGURAÇÃO NAS VAGAS:",
+        "",
+        "• Ao criar/editar vaga, ative 'Requer Avaliação DISC'",
+        "• Defina quando aplicar: 'Durante candidatura' ou 'Após triagem'",
+        "• Configure perfil ideal para cada dimensão:",
+        "  - Não relevante: Dimensão não é critério de seleção",
+        "  - Baixo: 0-25 pontos desejados",
+        "  - Médio: 26-50 pontos desejados",
+        "  - Alto: 51-75 pontos desejados",
+        "  - Muito Alto: 76-100 pontos desejados",
+        "",
+        "AVALIAÇÃO DOS CANDIDATOS:",
+        "",
+        "• Candidatos respondem questionário de 24-28 perguntas",
+        "• Cada pergunta avalia aspectos de D, I, S ou C",
+        "• Sistema calcula pontuação automaticamente",
+        "• Perfil gerado fica vinculado à candidatura",
+        "",
+        "ANÁLISE DE COMPATIBILIDADE:",
+        "",
+        "• Sistema compara perfil do candidato com perfil ideal da vaga",
+        "• Indicadores visuais facilitam triagem rápida:",
+        "  ↑ Candidato está acima do ideal (pode ser positivo ou negativo)",
+        "  ↓ Candidato está abaixo do ideal (pode indicar incompatibilidade)",
+        "  ✓ Candidato está dentro da faixa ideal",
+        "",
+        "IMPORTANTE:",
+        "",
+        "• DISC é ferramenta COMPLEMENTAR, não substitui análise técnica",
+        "• Use junto com experiência, habilidades e adequação cultural",
+        "• Não deve ser único critério de seleção",
+        "• Ajuda a entender estilo de trabalho e potencial fit cultural",
+      ];
+
+      discText2.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 8: Estoque & EPIs
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("8. Gestão de Estoque e EPIs", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const estoqueText = [
+        "VISÃO GERAL:",
+        "",
+        "O módulo de Estoque & EPIs permite controle completo de materiais e Equipamentos",
+        "de Proteção Individual, desde cadastro até distribuição com assinatura digital,",
+        "rastreamento de validade e histórico de movimentações.",
+        "",
+        "NÍVEIS DE ACESSO:",
+        "",
+        "• Admin: Acesso total (CRUD itens, distribuição, histórico, relatórios)",
+        "• Supervisor: Distribuição e histórico apenas do seu departamento",
+        "• Funcionário: Visualização apenas dos próprios EPIs",
+        "",
+        "FUNCIONALIDADES PRINCIPAIS:",
+        "",
+        "1. DASHBOARD DE ESTOQUE",
+        "",
+        "• Total de itens ativos cadastrados",
+        "• Alertas de estoque baixo (itens abaixo do mínimo)",
+        "• Vencimentos próximos (EPIs vencendo em 30 dias)",
+        "• Lista completa com filtros por nome, código e categoria",
+      ];
+
+      estoqueText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const estoqueText2 = [
+        "",
+        "2. GESTÃO DE ITENS (Somente Admin)",
+        "",
+        "• Cadastro de código, nome, descrição e categoria",
+        "• Unidade de medida: UN, CX, PC, KG, L, M",
+        "• Validade em meses (para itens com prazo)",
+        "• Estoque mínimo para alertas",
+        "• Status ativo/inativo",
+        "• Criação de novas categorias",
+        "",
+        "3. DISTRIBUIÇÃO DE EPIs",
+        "",
+        "• Campo de busca pesquisável: digite nome, sobrenome ou ID interno",
+        "• Filtrado por departamento (para supervisores)",
+        "• Adição de múltiplos itens com quantidade",
+        "• Cálculo automático de validade (data + meses de validade)",
+        "• Assinatura digital do funcionário no recebimento",
+        "• Preview da distribuição antes de confirmar",
+        "",
+        "4. HISTÓRICO POR FUNCIONÁRIO",
+        "",
+        "• EPIs atualmente em uso com status de validade",
+        "• Histórico de devoluções com motivos",
+        "• Estatísticas: total em uso, devolvidos, total recebido",
+        "• Modal de devolução com motivo e assinatura",
+        "• Badges coloridos para status (vencido, vence em X dias, em uso)",
+      ];
+
+      estoqueText2.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const estoqueText3 = [
+        "",
+        "5. MOVIMENTAÇÕES DE ESTOQUE (Somente Admin)",
+        "",
+        "Sistema completo de controle com 10 motivos categorizados:",
+        "",
+        "ENTRADAS (+):",
+        "  📦 (+) Compra - Aquisição de novos itens",
+        "  ↩️ (+) Devolução - Retorno de itens emprestados",
+        "  🎁 (+) Doação Recebida - Itens recebidos sem custo",
+        "",
+        "SAÍDAS (-):",
+        "  👷 (-) Distribuição de EPI - Entrega para funcionários",
+        "  ❌ (-) Perda/Estravio - Itens perdidos ou extraviados",
+        "  🔨 (-) Dano/Avaria - Itens danificados",
+        "  📅 (-) Vencimento - Descarte por prazo expirado",
+        "  🗑️ (-) Descarte - Eliminação por outros motivos",
+        "",
+        "AJUSTES (±):",
+        "  ✏️ (±) Correção de Inventário - Ajuste de divergências",
+        "  🔢 (±) Recontagem - Atualização após contagem física",
+        "",
+        "RECURSOS:",
+        "",
+        "• Campo de busca de item (filtra por código ou nome)",
+        "• Seleção de data da transação (calendário pt-BR)",
+        "• Cálculo automático do tipo baseado no motivo selecionado",
+        "• Filtros por data inicial/final e item específico",
+        "• Histórico completo de todas as movimentações",
+        "• Atualização automática do estoque após operação",
+      ];
+
+      estoqueText3.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const estoqueText4 = [
+        "",
+        "FLUXO DE TRABALHO:",
+        "",
+        "1. Admin cria categorias e itens no sistema",
+        "2. Configura validade em meses (se aplicável)",
+        "3. Admin/Supervisor distribui EPIs para funcionários",
+        "4. Funcionário assina digitalmente confirmando recebimento",
+        "5. Sistema calcula automaticamente data de vencimento",
+        "6. Admin/Supervisor monitora vencimentos e estoque baixo",
+        "7. Registra devoluções quando necessário (com motivo e assinatura)",
+        "8. Mantém histórico completo de movimentações",
+      ];
+
+      estoqueText4.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 9: Arquivos Legais AFD/AEJ
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("9. Arquivos Legais AFD/AEJ", margin, yPosition);
       yPosition += 12;
 
       pdf.setFontSize(11);
@@ -720,12 +950,12 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Seção 8: Outros Recursos
+      // Seção 10: Outros Recursos
       addNewPage();
       pdf.setFontSize(20);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(26, 57, 96);
-      pdf.text("8. Outros Recursos", margin, yPosition);
+      pdf.text("10. Outros Recursos", margin, yPosition);
       yPosition += 12;
 
       pdf.setFontSize(11);
