@@ -517,6 +517,7 @@ export interface IStorage {
   updateDISCAssessment(id: number, assessment: Partial<InsertDISCAssessment>): Promise<DISCAssessment>;
   createDISCResponse(response: InsertDISCResponse): Promise<DISCResponse>;
   getDISCResponses(assessmentId: number): Promise<DISCResponse[]>;
+  saveDISCResponses(assessmentId: number, responses: InsertDISCResponse[]): Promise<DISCResponse[]>;
   finalizeDISCAssessment(assessmentId: number, scores: { dScore: number; iScore: number; sScore: number; cScore: number; primaryProfile: string }): Promise<DISCAssessment>;
   
   // Inventory Category operations
@@ -3825,6 +3826,17 @@ export class DatabaseStorage implements IStorage {
       .from(discResponses)
       .where(eq(discResponses.assessmentId, assessmentId))
       .orderBy(discResponses.questionId);
+  }
+
+  async saveDISCResponses(assessmentId: number, responses: InsertDISCResponse[]): Promise<DISCResponse[]> {
+    if (responses.length === 0) return [];
+    
+    const insertedResponses = await db
+      .insert(discResponses)
+      .values(responses)
+      .returning();
+    
+    return insertedResponses;
   }
 
   async finalizeDISCAssessment(

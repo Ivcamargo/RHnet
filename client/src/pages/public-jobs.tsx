@@ -13,7 +13,8 @@ import {
   Send,
   CheckCircle,
   Filter,
-  Home
+  Home,
+  Check
 } from 'lucide-react';
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import {
@@ -35,12 +36,20 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 
+interface DISCQuestion {
+  id: number;
+  questionText: string;
+  profileType: string;
+  order: number;
+}
+
 export default function PublicJobs() {
   const [match, params] = useRoute('/vagas/:id');
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
   const [requirementResponses, setRequirementResponses] = useState<Record<number, string>>({});
+  const [discResponses, setDiscResponses] = useState<Record<number, number>>({});
   const { toast } = useToast();
   
   // Filtros
@@ -69,6 +78,19 @@ export default function PublicJobs() {
       return res.json();
     },
     enabled: !!selectedJob?.id && isApplyDialogOpen,
+  });
+
+  // Buscar questões DISC se required
+  const { data: discQuestions = [], isLoading: discQuestionsLoading, error: discQuestionsError, refetch: refetchDiscQuestions } = useQuery<DISCQuestion[]>({
+    queryKey: ['/api/disc-questions'],
+    queryFn: async () => {
+      const res = await fetch('/api/disc-questions');
+      if (!res.ok) throw new Error('Failed to fetch DISC questions');
+      return res.json();
+    },
+    enabled: !!selectedJob?.requiresDISC && selectedJob?.discTiming === 'on_application' && isApplyDialogOpen,
+    retry: 3,
+    staleTime: 5 * 60 * 1000,
   });
 
   const applyMutation = useMutation({
@@ -106,11 +128,29 @@ export default function PublicJobs() {
     setSelectedJob(job);
     setApplicationSuccess(false);
     setRequirementResponses({});
+    setDiscResponses({});
     setIsApplyDialogOpen(true);
   };
 
+  // Check if DISC is complete (if required)
+  const discRequired = selectedJob?.requiresDISC && selectedJob?.discTiming === 'on_application';
+  const discQuestionsCount = discQuestions.length;
+  const discAnsweredCount = Object.keys(discResponses).length;
+  const discComplete = !discRequired || (discQuestionsCount > 0 && discAnsweredCount === discQuestionsCount);
+
   const handleSubmitApplication = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Validate DISC responses if required
+    if (discRequired && !discComplete) {
+      toast({
+        title: "Teste DISC incompleto",
+        description: `Por favor, responda todas as ${discQuestionsCount} questões do teste DISC antes de enviar sua candidatura.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     
     // Adicionar jobOpeningId
@@ -124,6 +164,12 @@ export default function PublicJobs() {
     
     if (responses.length > 0) {
       formData.append('requirementResponses', JSON.stringify(responses));
+    }
+
+    // Add DISC responses if required
+    if (discRequired) {
+      const discResponsesJson = JSON.stringify(discResponses);
+      formData.append("discResponses", discResponsesJson);
     }
     
     applyMutation.mutate(formData);
@@ -770,6 +816,86 @@ export default function PublicJobs() {
                 />
               </div>
 
+              {/* DISC Assessment Section - Only show if required during application */}
+              {discRequired && (
+                <div className="border-t pt-6 mt-6 space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Teste DISC de Personalidade (Obrigatório)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Para esta vaga, pedimos que você complete o teste DISC. 
+                      Avalie cada afirmação de 1 (discordo totalmente) a 5 (concordo totalmente).
+                    </p>
+                  </div>
+
+                  {discQuestionsLoading ? (
+                    <p className="text-sm text-muted-foreground">Carregando questões...</p>
+                  ) : discQuestionsError ? (
+                    <div className="p-4 border border-red-200 rounded-lg bg-red-50 space-y-3">
+                      <p className="text-sm text-red-800">
+                        Erro ao carregar questões do teste DISC. Por favor, tente novamente.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetchDiscQuestions()}
+                        data-testid="button-retry-disc"
+                      >
+                        Tentar Novamente
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {discQuestions.map((question, index) => (
+                        <div key={question.id} className="space-y-2 p-4 border rounded-lg">
+                          <Label className="text-sm font-medium">
+                            {index + 1}. {question.questionText}
+                          </Label>
+                          <div className="flex gap-2 justify-between items-center">
+                            <span className="text-xs text-muted-foreground">Discordo totalmente</span>
+                            <div className="flex gap-2">
+                              {[1, 2, 3, 4, 5].map((value) => (
+                                <Button
+                                  key={value}
+                                  type="button"
+                                  variant={discResponses[question.id] === value ? "default" : "outline"}
+                                  size="sm"
+                                  className="w-10 h-10"
+                                  onClick={() => {
+                                    setDiscResponses(prev => ({
+                                      ...prev,
+                                      [question.id]: Number(value)
+                                    }));
+                                  }}
+                                  data-testid={`button-disc-${question.id}-${value}`}
+                                >
+                                  {value}
+                                </Button>
+                              ))}
+                            </div>
+                            <span className="text-xs text-muted-foreground">Concordo totalmente</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Progress Indicator */}
+                  {discQuestions.length > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Progresso do Teste DISC:</span>
+                      <Badge 
+                        variant={discComplete ? "default" : "secondary"}
+                        className={discComplete ? "bg-green-600 hover:bg-green-700" : ""}
+                      >
+                        {discComplete && <Check className="h-3 w-3 mr-1" />}
+                        {discAnsweredCount} de {discQuestionsCount} questões
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
@@ -781,10 +907,23 @@ export default function PublicJobs() {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={applyMutation.isPending}
+                  className={discRequired && discComplete ? "bg-green-600 hover:bg-green-700" : ""}
+                  disabled={
+                    applyMutation.isPending || 
+                    (discRequired && (discQuestionsLoading || !!discQuestionsError || !discComplete))
+                  }
                   data-testid="button-submit-application"
                 >
-                  {applyMutation.isPending ? "Enviando..." : "Enviar Candidatura"}
+                  {applyMutation.isPending ? (
+                    "Enviando..."
+                  ) : discRequired && discComplete ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Teste DISC Completo - Enviar Candidatura
+                    </>
+                  ) : (
+                    "Enviar Candidatura"
+                  )}
                 </Button>
               </div>
             </form>

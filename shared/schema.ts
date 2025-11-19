@@ -1687,7 +1687,7 @@ export const discAssessments = pgTable("disc_assessments", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   expiresAt: timestamp("expires_at"), // Data de expiração do link
-  createdBy: varchar("created_by").notNull(), // Quem enviou o teste
+  createdBy: varchar("created_by"), // Quem enviou o teste (NULL para candidaturas públicas)
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   applicationReference: foreignKey({
@@ -1702,10 +1702,6 @@ export const discAssessments = pgTable("disc_assessments", {
     columns: [table.jobOpeningId],
     foreignColumns: [jobOpenings.id],
   }).onDelete('cascade'),
-  createdByReference: foreignKey({
-    columns: [table.createdBy],
-    foreignColumns: [users.id],
-  }),
   accessTokenIndex: index("disc_access_token_idx").on(table.accessToken),
 }));
 
