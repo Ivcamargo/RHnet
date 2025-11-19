@@ -247,34 +247,61 @@ export default function InventoryHistory() {
               <CardContent>
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <div className="relative mb-2">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Buscar por nome ou matrícula..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                        data-testid="input-search-employee"
-                      />
-                    </div>
-                    <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                      <SelectTrigger data-testid="select-employee">
-                        <SelectValue placeholder="Selecione o funcionário" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredEmployees.length === 0 ? (
-                          <div className="py-6 text-center text-sm text-muted-foreground">
-                            Nenhum funcionário encontrado
-                          </div>
-                        ) : (
-                          filteredEmployees.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.internalId ? `${employee.internalId} - ` : ''}{employee.firstName} {employee.lastName}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={comboboxOpen}
+                          className="w-full justify-between"
+                          data-testid="select-employee"
+                        >
+                          {selectedEmployeeId
+                            ? (() => {
+                                const employee = employees.find((e) => e.id === selectedEmployeeId);
+                                return employee
+                                  ? `${employee.internalId ? `${employee.internalId} - ` : ''}${employee.firstName} ${employee.lastName}`
+                                  : "Selecione um funcionário";
+                              })()
+                            : "Selecione um funcionário ou digite para buscar"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar por nome ou matrícula..." 
+                            value={searchTerm}
+                            onValueChange={setSearchTerm}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {filteredEmployees.map((employee) => (
+                                <CommandItem
+                                  key={employee.id}
+                                  value={employee.id}
+                                  onSelect={() => {
+                                    setSelectedEmployeeId(employee.id);
+                                    setComboboxOpen(false);
+                                    setSearchTerm("");
+                                  }}
+                                  data-testid={`employee-${employee.id}`}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {employee.internalId ? `${employee.internalId} - ` : ''}{employee.firstName} {employee.lastName}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </CardContent>
