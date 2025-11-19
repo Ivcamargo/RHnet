@@ -25,7 +25,12 @@ import {
   FileText,
   Send,
   Brain,
-  Copy
+  Copy,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  Award
 } from 'lucide-react';
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 import {
@@ -35,6 +40,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -506,6 +517,22 @@ export default function Recruitment() {
     };
     const config = variants[status] || variants.applied;
     return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return { bg: "bg-green-100 dark:bg-green-950", text: "text-green-700 dark:text-green-400", border: "border-green-300 dark:border-green-800" };
+    if (score >= 40) return { bg: "bg-yellow-100 dark:bg-yellow-950", text: "text-yellow-700 dark:text-yellow-400", border: "border-yellow-300 dark:border-yellow-800" };
+    return { bg: "bg-red-100 dark:bg-red-950", text: "text-red-700 dark:text-red-400", border: "border-red-300 dark:border-red-800" };
+  };
+
+  const getDiscProfileLabel = (profile: string) => {
+    const labels: Record<string, string> = {
+      D: "Dominância",
+      I: "Influência",
+      S: "Estabilidade",
+      C: "Conformidade"
+    };
+    return labels[profile] || profile;
   };
 
   // Filter applications by selected job
@@ -1399,30 +1426,155 @@ export default function Recruitment() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {application.candidatePhone && (
-                        <div className="text-sm">
-                          <span className="font-medium">Telefone:</span> {application.candidatePhone}
+                    <div className="space-y-4">
+                      {/* Scores and Compatibility Section */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-3 border-b">
+                        {/* Requirements Score */}
+                        <div className={`p-3 rounded-lg border ${getScoreColor(application.score || 0).bg} ${getScoreColor(application.score || 0).border}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4" />
+                              <span className="text-sm font-medium">Aptidão (Requisitos)</span>
+                            </div>
+                            <Badge variant="outline" className={`${getScoreColor(application.score || 0).text} font-bold`}>
+                              {application.score || 0}%
+                            </Badge>
+                          </div>
+                          <Progress value={application.score || 0} className="h-2" />
                         </div>
+
+                        {/* DISC Compatibility */}
+                        {application.discCompatibility !== null && application.candidateDISC ? (
+                          <div className={`p-3 rounded-lg border ${getScoreColor(application.discCompatibility).bg} ${getScoreColor(application.discCompatibility).border}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Brain className="h-4 w-4" />
+                                <span className="text-sm font-medium">Compatibilidade DISC</span>
+                              </div>
+                              <Badge variant="outline" className={`${getScoreColor(application.discCompatibility).text} font-bold`}>
+                                {application.discCompatibility}%
+                              </Badge>
+                            </div>
+                            <Progress value={application.discCompatibility} className="h-2" />
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              Perfil: <span className="font-medium">{getDiscProfileLabel(application.candidateDISC.primaryProfile)}</span>
+                            </div>
+                          </div>
+                        ) : application.candidateDISC ? (
+                          <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Brain className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Teste DISC Completo</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Perfil: <span className="font-medium">{getDiscProfileLabel(application.candidateDISC.primaryProfile)}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              (Vaga sem perfil ideal configurado)
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Brain className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Teste DISC</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Não realizado
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Basic Info */}
+                      <div className="space-y-2">
+                        {application.candidatePhone && (
+                          <div className="text-sm">
+                            <span className="font-medium">Telefone:</span> {application.candidatePhone}
+                          </div>
+                        )}
+                        {application.jobLocation && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span>{application.jobLocation}</span>
+                          </div>
+                        )}
+                        {application.appliedAt && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                              Candidatura: {new Date(application.appliedAt).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Job Details Collapsible */}
+                      {(application.jobDescription || (application.jobRequirements && application.jobRequirements.length > 0)) && (
+                        <Collapsible className="border-t pt-3">
+                          <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium hover:underline">
+                            <span className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Ver Detalhes da Vaga e Requisitos
+                            </span>
+                            <ChevronDown className="h-4 w-4" />
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="mt-3 space-y-3">
+                            {application.jobDescription && (
+                              <div>
+                                <Label className="text-xs font-semibold text-muted-foreground">DESCRIÇÃO DA VAGA</Label>
+                                <p className="text-sm mt-1 text-muted-foreground whitespace-pre-wrap">{application.jobDescription}</p>
+                              </div>
+                            )}
+                            
+                            {application.jobRequirements && application.jobRequirements.length > 0 && (
+                              <div>
+                                <Label className="text-xs font-semibold text-muted-foreground">REQUISITOS</Label>
+                                <div className="mt-2 space-y-2">
+                                  {application.jobRequirements.map((req: any) => {
+                                    const response = application.requirementResponses?.find((r: any) => r.requirementId === req.id);
+                                    return (
+                                      <div key={req.id} className="text-sm p-2 rounded border border-gray-200 dark:border-gray-700">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1">
+                                            <div className="font-medium flex items-center gap-2">
+                                              {req.title}
+                                              <Badge variant="outline" className="text-xs">
+                                                {req.category === 'hard_skill' ? 'Hard Skill' : req.category === 'soft_skill' ? 'Soft Skill' : 'Administrativo'}
+                                              </Badge>
+                                              {req.requirementType === 'mandatory' && (
+                                                <Badge variant="destructive" className="text-xs">Obrigatório</Badge>
+                                              )}
+                                            </div>
+                                            {req.description && (
+                                              <p className="text-xs text-muted-foreground mt-1">{req.description}</p>
+                                            )}
+                                          </div>
+                                          {response && (
+                                            <div className="text-right">
+                                              <Badge variant="default" className="bg-[hsl(175,65%,45%)]">
+                                                {response.proficiencyLevel}
+                                              </Badge>
+                                              <div className="text-xs text-muted-foreground mt-1">
+                                                {response.pointsEarned} pts
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </CollapsibleContent>
+                        </Collapsible>
                       )}
-                      {application.jobLocation && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{application.jobLocation}</span>
-                        </div>
-                      )}
+
                       {application.notes && (
-                        <div className="text-sm">
+                        <div className="text-sm border-t pt-3">
                           <span className="font-medium">Observações:</span>
                           <p className="text-muted-foreground mt-1">{application.notes}</p>
-                        </div>
-                      )}
-                      {application.appliedAt && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            Candidatura: {new Date(application.appliedAt).toLocaleDateString('pt-BR')}
-                          </span>
                         </div>
                       )}
                       
