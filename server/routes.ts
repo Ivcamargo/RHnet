@@ -6617,21 +6617,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========================================================================================
 
   // PUBLIC ROUTES (No authentication required)
-  
-  // Get published job openings (public)
-  app.get('/api/public/jobs', async (req, res) => {
-    try {
-      // For now, get all published jobs from all companies
-      // In production, you might want to filter by company based on subdomain or query param
-      const allJobs = await storage.getJobOpenings(2, 'published'); // Company ID 2 for now
-      res.json(allJobs);
-    } catch (error) {
-      console.error("Error fetching public jobs:", error);
-      res.status(500).json({ message: "Failed to fetch jobs" });
-    }
-  });
-
-  // NOTE: Public job application endpoint is now defined later in the file with multipart support
+  // NOTE: Public job routes are defined later in the file (after LEAD CAPTURE section)
+  // to avoid duplication and ensure proper company filtering
 
   // ========================================================================================
   // LEAD CAPTURE ROUTES
