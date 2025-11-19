@@ -10,7 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 19, 2025** (latest): Critical DISC application flow fix:
+**November 19, 2025** (latest): Recruitment UI streamlining and job filtering:
+- **Removed Candidates Tab**: Eliminated redundant "Candidatos" tab from recruitment interface
+  - Streamlined from 5 tabs to 4 tabs: Vagas, Candidaturas, Testes DISC, Admissão Digital
+  - All candidate information accessible through Applications view with filtering
+  - Maintained "Vincular Candidato à Vaga" dialog functionality (uses candidates query internally)
+- **Job Filter in Applications Tab**: Added comprehensive filtering system
+  - Select dropdown with "Todas as vagas" (default) + all published job openings
+  - Dynamic filter state: `jobFilter` updates `filteredApplications` array in real-time
+  - Visual counter badge: "X de Y candidaturas" shows filtered/total count
+  - Smart empty states: differentiates "no applications" vs "no applications for selected job"
+  - Filter controls always visible regardless of results (prevents UI disappearing when filter has 0 results)
+  - End-to-end tested: selecting specific job shows only its applications, counter updates correctly
+- **Route Clarification**: Recruitment page accessible at `/recruitment` (English path with Portuguese UI)
+
+**November 19, 2025**: Critical DISC application flow fix:
 - **Public Application DISC Storage Fix**: Resolved database constraint error preventing public job applications with DISC requirements
   - Database schema: Modified disc_assessments.created_by column to nullable (removed NOT NULL constraint)
   - Storage layer: Implemented saveDISCResponses() function for bulk DISC response insertion (server/storage.ts lines 3834-3843)
