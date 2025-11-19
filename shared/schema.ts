@@ -873,6 +873,7 @@ export const baseCompleteEmployeeSchema = insertUserSchema.extend({
       return age >= 16 && age <= 100;
     }, "Idade deve estar entre 16 e 100 anos")
     .or(z.literal(""))
+    .nullable()
     .optional(),
   
   maritalStatus: z.enum(["solteiro", "casado", "divorciado", "viuvo", "uniao_estavel"]).or(z.literal("")).optional(),
@@ -937,6 +938,7 @@ export const baseCompleteEmployeeSchema = insertUserSchema.extend({
       return admissionDate <= today;
     }, "Data de admissão não pode ser futura")
     .or(z.literal(""))
+    .nullable()
     .optional(),
   contractType: z.enum(["clt", "pj", "estagio", "terceirizado", "temporario"]).or(z.literal("")).optional(),
   workSchedule: z.enum(["integral", "meio_periodo", "flexivel"]).or(z.literal("")).optional(),
