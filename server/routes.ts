@@ -240,10 +240,15 @@ async function computeNetWorkedHours(
 
 // Helper function to calculate standard working hours for a shift (considering unpaid breaks)
 async function calculateStandardWorkingHours(
-  departmentId: number,
+  departmentId: number | undefined,
   storage: Storage
 ): Promise<number> {
   try {
+    // If no department assigned, default to 8 hours
+    if (!departmentId) {
+      return 8;
+    }
+    
     // Get department shifts
     const shifts = await storage.getDepartmentShifts(departmentId);
     
@@ -328,7 +333,7 @@ function calculateShiftWorkedHours(shift: any): number {
 // Helper function to calculate regular vs overtime hours using net worked hours
 async function calculateOvertimeHours(
   netWorkedHours: number, 
-  departmentId: number, 
+  departmentId: number | undefined, 
   storage: Storage
 ): Promise<{ regularHours: number; overtimeHours: number }> {
   try {
@@ -2735,8 +2740,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.departmentId || !user.companyId) {
-        return res.status(400).json({ message: "User must be assigned to a department and company" });
+      if (!user || !user.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
       // Check if user is already clocked in
@@ -2770,33 +2775,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validationMessages: string[] = [];
       
       // Skip geolocation validation if this is a fallback registration (camera not available)
-      if (!locationFallback) {
-        // Get department for geofence validation
+      // OR if user doesn't have department/sector configured
+      if (!locationFallback && user.departmentId) {
+        // Get department for geofence validation (optional)
         const department = await storage.getDepartment(user.departmentId);
-        if (!department) {
-          return res.status(400).json({ message: "Department not found" });
-        }
-
-        // Get sector for geolocation (lat/lng moved from departments to sectors)
-        const sector = await storage.getSector(department.sectorId);
-        if (!sector) {
-          return res.status(400).json({ message: "Sector not found" });
-        }
-
-        // Validate geolocation only if sector has valid coordinates
-        if (sector.latitude !== 0 || sector.longitude !== 0) {
-          const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
-          const radius = sector.radius || 100; // Default to 100m if null
-          withinGeofence = distance <= radius;
+        
+        if (department && department.sectorId) {
+          // Get sector for geolocation (lat/lng moved from departments to sectors)
+          const sector = await storage.getSector(department.sectorId);
           
-          if (withinGeofence) {
-            validationMessages.push(`✓ Localização OK (${Math.round(distance)}m do setor)`);
-          } else {
-            validationMessages.push(`⚠ Fora da área permitida (${Math.round(distance)}m de distância, máximo: ${radius}m)`);
+          if (sector) {
+            // Validate geolocation only if sector has valid coordinates
+            if (sector.latitude !== 0 || sector.longitude !== 0) {
+              const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
+              const radius = sector.radius || 100; // Default to 100m if null
+              withinGeofence = distance <= radius;
+              
+              if (withinGeofence) {
+                validationMessages.push(`✓ Localização OK (${Math.round(distance)}m do setor)`);
+              } else {
+                validationMessages.push(`⚠ Fora da área permitida (${Math.round(distance)}m de distância, máximo: ${radius}m)`);
+              }
+            }
           }
         }
         
-        // Validate shift schedule
+        // Validate shift schedule (optional - only if user has shifts configured)
         const userShifts = await storage.getUserShiftAssignments(userId);
         if (userShifts && userShifts.length > 0) {
           // Find active shift for today
@@ -2923,8 +2927,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.departmentId || !user.companyId) {
-        return res.status(400).json({ message: "User must be assigned to a department and company" });
+      if (!user || !user.companyId) {
+        return res.status(400).json({ message: "User must be assigned to a company" });
       }
 
       // Check if user is clocked in
@@ -2957,33 +2961,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validationMessages: string[] = [];
       
       // Skip geolocation validation if this is a fallback registration (camera not available)
-      if (!locationFallback) {
-        // Get department for geofence validation
+      // OR if user doesn't have department/sector configured
+      if (!locationFallback && user.departmentId) {
+        // Get department for geofence validation (optional)
         const department = await storage.getDepartment(user.departmentId);
-        if (!department) {
-          return res.status(400).json({ message: "Department not found" });
-        }
-
-        // Get sector for geolocation (lat/lng moved from departments to sectors)
-        const sector = await storage.getSector(department.sectorId);
-        if (!sector) {
-          return res.status(400).json({ message: "Sector not found" });
-        }
-
-        // Validate geolocation only if sector has valid coordinates
-        if (sector.latitude !== 0 || sector.longitude !== 0) {
-          const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
-          const radius = sector.radius || 100; // Default to 100m if null
-          withinGeofence = distance <= radius;
+        
+        if (department && department.sectorId) {
+          // Get sector for geolocation (lat/lng moved from departments to sectors)
+          const sector = await storage.getSector(department.sectorId);
           
-          if (withinGeofence) {
-            validationMessages.push(`✓ Localização OK (${Math.round(distance)}m do setor)`);
-          } else {
-            validationMessages.push(`⚠ Fora da área permitida (${Math.round(distance)}m de distância, máximo: ${radius}m)`);
+          if (sector) {
+            // Validate geolocation only if sector has valid coordinates
+            if (sector.latitude !== 0 || sector.longitude !== 0) {
+              const distance = calculateDistance(latitude, longitude, sector.latitude, sector.longitude);
+              const radius = sector.radius || 100; // Default to 100m if null
+              withinGeofence = distance <= radius;
+              
+              if (withinGeofence) {
+                validationMessages.push(`✓ Localização OK (${Math.round(distance)}m do setor)`);
+              } else {
+                validationMessages.push(`⚠ Fora da área permitida (${Math.round(distance)}m de distância, máximo: ${radius}m)`);
+              }
+            }
           }
         }
         
-        // Validate shift schedule
+        // Validate shift schedule (optional - only if user has shifts configured)
         const userShifts = await storage.getUserShiftAssignments(userId);
         if (userShifts && userShifts.length > 0) {
           // Find active shift for today
