@@ -10,7 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 18, 2025** (latest): Enhanced recruitment and inventory functionality:
+**November 19, 2025** (latest): System manual PDF generation updated:
+- **PDF Content Synchronization**: Updated PDF generation code to match current system features
+  - Added Section 7 (Avaliação DISC de Personalidade) with methodology, configuration, 24-28 questions assessment, and compatibility analysis
+  - Added Section 8 (Gestão de Estoque e EPIs) with 5 main functionalities, 10 categorized movement reasons with emojis, filters, and complete workflow
+  - Updated Section 6 (Recrutamento) to include salary ranges, DISC integration, automatic scoring system, and public application flow
+  - Renumbered sections: Arquivos Legais (now Section 9), Outros Recursos (now Section 10)
+  - Updated PDF table of contents to reflect all 10 sections with approximate page numbers
+  - PDF now accurately represents all implemented features in the system
+- **Employee Search Field UX**: Enhanced Inventory History page employee selector
+  - Replaced Command/Popover component with native Input + custom filtered dropdown
+  - Free typing capability with instant filtering as you type
+  - Auto-close on click outside, auto-selection when single match found
+  - Maintains conditional display based on internalId presence (no hyphen for missing IDs)
+
+**November 18, 2025**: Enhanced recruitment and inventory functionality:
 - **Inventory Movement Filters**: Added comprehensive filtering system to Inventory Movements page
   - Date range filters: Data Inicial and Data Final (calendar pickers with pt-BR format)
   - Item-specific filter: Searchable combobox to filter movements by specific inventory item
