@@ -55,6 +55,7 @@ export default function InventoryHistory() {
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [comboboxOpen, setComboboxOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [returnDialog, setReturnDialog] = useState<{ open: boolean; item: EmployeeItem | null }>({
     open: false,
