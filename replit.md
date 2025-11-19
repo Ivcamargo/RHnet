@@ -10,7 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 19, 2025** (latest): Recruitment UI streamlining and job filtering:
+**November 19, 2025** (latest): Enhanced application cards with compatibility scoring and triage tools:
+- **Compatibility Scoring Display**: Added visual scoring sections to application cards for rapid candidate triage
+  - Backend enrichment: `/api/applications/all` now returns score, candidateDISC, discCompatibility, jobRequirements, and requirementResponses
+  - Requirements Score card: Shows weighted score % with color-coded badge (green ≥70%, yellow 40-69%, red <40%) and Progress bar
+  - DISC Compatibility card: Displays DISC compatibility % calculated against job's ideal profile, shows candidate's primary DISC profile
+  - Conditional DISC states: "Completo" (with/without ideal profile), "Não realizado" for missing assessments
+- **Job Details Collapsible**: Expandable section reveals comprehensive job and requirements information
+  - Full job description displayed with proper formatting
+  - Requirements list showing category badges (Hard Skill, Soft Skill, Administrativo) and mandatory indicators
+  - Candidate responses integrated: proficiency level + points earned displayed for each requirement
+- **Visual Triage System**: Color-coded badges and progress bars enable quick candidate assessment
+  - Helper functions: `getScoreColor()` provides consistent color mapping, `getDiscProfileLabel()` translates DISC profiles to Portuguese
+  - Architect-reviewed: Approved implementation with note on N+1 query pattern (performance optimization opportunity for large datasets)
+
+**November 19, 2025**: Recruitment UI streamlining and job filtering:
 - **Removed Candidates Tab**: Eliminated redundant "Candidatos" tab from recruitment interface
   - Streamlined from 5 tabs to 4 tabs: Vagas, Candidaturas, Testes DISC, Admissão Digital
   - All candidate information accessible through Applications view with filtering
