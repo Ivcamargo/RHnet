@@ -303,7 +303,7 @@ export default function InventoryDistribution() {
                               {field.value
                                 ? (() => {
                                     const emp = employees.find((e) => e.id === field.value);
-                                    return emp ? `${emp.internalId} - ${emp.firstName} ${emp.lastName}` : "Selecione o funcionário";
+                                    return emp ? `${emp.internalId ? `${emp.internalId} - ` : ''}${emp.firstName} ${emp.lastName}` : "Selecione o funcionário";
                                   })()
                                 : "Selecione o funcionário"}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -331,7 +331,7 @@ export default function InventoryDistribution() {
                                         field.value === employee.id ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    {employee.internalId} - {employee.firstName} {employee.lastName}
+                                    {employee.internalId ? `${employee.internalId} - ` : ''}{employee.firstName} {employee.lastName}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
