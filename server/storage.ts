@@ -2866,32 +2866,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPublicJobOpenings(companyId?: number): Promise<any[]> {
-    // Return only published job openings for public viewing
-    if (companyId) {
-      return await db
-        .select()
-        .from(jobOpenings)
-        .where(and(
-          eq(jobOpenings.companyId, companyId),
-          eq(jobOpenings.status, 'published')
-        ))
-        .orderBy(desc(jobOpenings.createdAt));
-    }
-    
-    // Return all published job openings if no company specified
-    return await db
-      .select()
+    // Return only published job openings for public viewing with company name
+    const whereConditions = companyId
+      ? and(eq(jobOpenings.companyId, companyId), eq(jobOpenings.status, 'published'))
+      : eq(jobOpenings.status, 'published');
+
+    const results = await db
+      .select({
+        job: jobOpenings,
+        company: companies,
+      })
       .from(jobOpenings)
-      .where(eq(jobOpenings.status, 'published'))
+      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
+      .where(whereConditions)
       .orderBy(desc(jobOpenings.createdAt));
+
+    // Map results to include companyName at the top level
+    return results.map((row) => ({
+      ...row.job,
+      companyName: row.company?.name || null,
+    }));
   }
 
   async getJobOpening(id: number): Promise<any | undefined> {
-    const [job] = await db
-      .select()
+    const [result] = await db
+      .select({
+        job: jobOpenings,
+        company: companies,
+      })
       .from(jobOpenings)
+      .leftJoin(companies, eq(jobOpenings.companyId, companies.id))
       .where(eq(jobOpenings.id, id));
-    return job;
+    
+    if (!result) return undefined;
+    
+    return {
+      ...result.job,
+      companyName: result.company?.name || null,
+    };
   }
 
   async createJobOpening(jobOpening: any): Promise<any> {
