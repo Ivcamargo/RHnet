@@ -111,7 +111,13 @@ export default function JobApply() {
 
       // Add DISC responses if required
       if (job?.requiresDISC && job?.discTiming === 'on_application') {
-        formData.append("discResponses", JSON.stringify(discResponses));
+        const discResponsesJson = JSON.stringify(discResponses);
+        console.log("=== DISC RESPONSES DEBUG ===");
+        console.log("discResponses object:", discResponses);
+        console.log("discResponses JSON:", discResponsesJson);
+        console.log("Number of responses:", Object.keys(discResponses).length);
+        console.log("===========================");
+        formData.append("discResponses", discResponsesJson);
       }
 
       const response = await fetch("/api/public/apply", {

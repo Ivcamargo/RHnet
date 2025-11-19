@@ -6929,23 +6929,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingApplications = await storage.getApplications(parseInt(jobOpeningId));
       const existingApplication = existingApplications.find(app => app.candidateId === candidate.id);
       
-      if (existingApplication) {
-        return res.status(400).json({ message: "You have already applied to this position" });
-      }
-
-      // Generate unique access token for this application
       const crypto = await import('crypto');
-      const accessToken = crypto.randomBytes(32).toString('hex');
+      let application;
+      
+      if (existingApplication) {
+        // Update existing application with new data
+        const accessToken = existingApplication.accessToken || crypto.randomBytes(32).toString('hex');
+        application = await storage.updateApplication(existingApplication.id, {
+          coverLetter: coverLetter || existingApplication.coverLetter,
+          status: 'applied', // Reset to applied
+          score: 0, // Will be recalculated
+          accessToken
+        });
+        application.id = existingApplication.id;
+      } else {
+        // Generate unique access token for new application
+        const accessToken = crypto.randomBytes(32).toString('hex');
 
-      // Create application
-      const application = await storage.createApplication({
-        jobOpeningId: parseInt(jobOpeningId),
-        candidateId: candidate.id,
-        status: 'applied',
-        coverLetter: coverLetter || null,
-        score: 0,
-        accessToken
-      });
+        // Create new application
+        application = await storage.createApplication({
+          jobOpeningId: parseInt(jobOpeningId),
+          candidateId: candidate.id,
+          status: 'applied',
+          coverLetter: coverLetter || null,
+          score: 0,
+          accessToken
+        });
+      }
 
       // Process requirement responses and calculate score if provided
       let scoreResult = null;
