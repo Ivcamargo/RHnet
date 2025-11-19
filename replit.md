@@ -2,116 +2,11 @@
 
 ## Overview
 
-RHNet is a comprehensive human resources management system designed to streamline HR-employee interactions. It integrates electronic timekeeping with geolocation and facial recognition, corporate messaging, document management, and employee training. Key capabilities include advanced reporting, PWA support, and a dedicated terminal/kiosk mode for time clocking. The system aims to provide a unified, full-stack web solution for efficient HR management, enhancing communication, and ensuring data accuracy, ultimately improving operational efficiency and employee engagement.
+RHNet is a comprehensive human resources management system designed to streamline HR-employee interactions. It integrates electronic timekeeping with geolocation and facial recognition, corporate messaging, document management, employee training, and a robust recruitment module with DISC assessment. The system provides a unified, full-stack web solution for efficient HR management, enhancing communication, ensuring data accuracy, and improving operational efficiency and employee engagement. Key capabilities include advanced reporting, PWA support, a dedicated terminal/kiosk mode for time clocking, and an integrated inventory management system for EPIs.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-
-## Recent Changes
-
-**November 19, 2025** (latest): Enhanced application cards with compatibility scoring and triage tools:
-- **Compatibility Scoring Display**: Added visual scoring sections to application cards for rapid candidate triage
-  - Backend enrichment: `/api/applications/all` now returns score, candidateDISC, discCompatibility, jobRequirements, and requirementResponses
-  - Requirements Score card: Shows weighted score % with color-coded badge (green ≥70%, yellow 40-69%, red <40%) and Progress bar
-  - DISC Compatibility card: Displays DISC compatibility % calculated against job's ideal profile, shows candidate's primary DISC profile
-  - Conditional DISC states: "Completo" (with/without ideal profile), "Não realizado" for missing assessments
-- **Job Details Collapsible**: Expandable section reveals comprehensive job and requirements information
-  - Full job description displayed with proper formatting
-  - Requirements list showing category badges (Hard Skill, Soft Skill, Administrativo) and mandatory indicators
-  - Candidate responses integrated: proficiency level + points earned displayed for each requirement
-- **Visual Triage System**: Color-coded badges and progress bars enable quick candidate assessment
-  - Helper functions: `getScoreColor()` provides consistent color mapping, `getDiscProfileLabel()` translates DISC profiles to Portuguese
-  - Architect-reviewed: Approved implementation with note on N+1 query pattern (performance optimization opportunity for large datasets)
-
-**November 19, 2025**: Recruitment UI streamlining and job filtering:
-- **Removed Candidates Tab**: Eliminated redundant "Candidatos" tab from recruitment interface
-  - Streamlined from 5 tabs to 4 tabs: Vagas, Candidaturas, Testes DISC, Admissão Digital
-  - All candidate information accessible through Applications view with filtering
-  - Maintained "Vincular Candidato à Vaga" dialog functionality (uses candidates query internally)
-- **Job Filter in Applications Tab**: Added comprehensive filtering system
-  - Select dropdown with "Todas as vagas" (default) + all published job openings
-  - Dynamic filter state: `jobFilter` updates `filteredApplications` array in real-time
-  - Visual counter badge: "X de Y candidaturas" shows filtered/total count
-  - Smart empty states: differentiates "no applications" vs "no applications for selected job"
-  - Filter controls always visible regardless of results (prevents UI disappearing when filter has 0 results)
-  - End-to-end tested: selecting specific job shows only its applications, counter updates correctly
-- **Route Clarification**: Recruitment page accessible at `/recruitment` (English path with Portuguese UI)
-
-**November 19, 2025**: Critical DISC application flow fix:
-- **Public Application DISC Storage Fix**: Resolved database constraint error preventing public job applications with DISC requirements
-  - Database schema: Modified disc_assessments.created_by column to nullable (removed NOT NULL constraint)
-  - Storage layer: Implemented saveDISCResponses() function for bulk DISC response insertion (server/storage.ts lines 3834-3843)
-  - Public applications now successfully create DISC assessments with created_by=NULL (unauthenticated users)
-  - POST /api/public/apply now returns 201 (success) instead of 400 (constraint violation)
-  - Complete end-to-end test confirmed: inline DISC form → answers submission → assessment storage → application creation
-  - Visual UX: Progress badge turns green with checkmark when complete, submit button becomes green with "✓ Teste DISC Completo - Enviar Candidatura"
-
-**November 19, 2025**: System manual PDF generation updated:
-- **PDF Content Synchronization**: Updated PDF generation code to match current system features
-  - Added Section 7 (Avaliação DISC de Personalidade) with methodology, configuration, 24-28 questions assessment, and compatibility analysis
-  - Added Section 8 (Gestão de Estoque e EPIs) with 5 main functionalities, 10 categorized movement reasons with emojis, filters, and complete workflow
-  - Updated Section 6 (Recrutamento) to include salary ranges, DISC integration, automatic scoring system, and public application flow
-  - Renumbered sections: Arquivos Legais (now Section 9), Outros Recursos (now Section 10)
-  - Updated PDF table of contents to reflect all 10 sections with approximate page numbers
-  - PDF now accurately represents all implemented features in the system
-- **Employee Search Field UX**: Enhanced Inventory History page employee selector
-  - Replaced Command/Popover component with native Input + custom filtered dropdown
-  - Free typing capability with instant filtering as you type
-  - Auto-close on click outside, auto-selection when single match found
-  - Maintains conditional display based on internalId presence (no hyphen for missing IDs)
-
-**November 18, 2025**: Enhanced recruitment and inventory functionality:
-- **Inventory Movement Filters**: Added comprehensive filtering system to Inventory Movements page
-  - Date range filters: Data Inicial and Data Final (calendar pickers with pt-BR format)
-  - Item-specific filter: Searchable combobox to filter movements by specific inventory item
-  - "Limpar Filtros" button to reset all filters instantly
-  - Dynamic query keys and URLSearchParams integration for efficient data fetching
-  - Backend already supported filtering via GET /api/inventory/movements?startDate=X&endDate=Y&itemId=Z
-- **Job Opening Salary and DISC Fields**: Fixed backend to correctly return salary and DISC configuration
-  - Backend now returns: salaryMin, salaryMax, requiresDISC, discTiming, idealDISCProfile in all job queries
-  - Editing job openings now properly loads and saves salary ranges and DISC requirements
-  - Resolved issue where these fields were sent but not returned during edit operations
-- **DISC Mandatory During Application**: Complete DISC test enforcement when discTiming='on_application'
-  - Public endpoint GET /api/disc-questions provides ~24 questions without authentication
-  - Inline DISC questionnaire embedded in job application form (job-apply.tsx)
-  - Frontend validation blocks submission if test incomplete with clear toast error
-  - Backend validation: accepts numeric values 1-5 (both number and string formats), verifies all questions answered
-  - Robust error handling: retry mechanism (retry=3), staleTime=5min, "Tentar Novamente" button if questions fail to load
-  - Automatic assessment creation and response storage with proper discAssessmentId linkage
-  - Number conversion in frontend ensures type safety, backend tolerates numeric strings for resilience
-
-**November 18, 2025**: System manual documentation updates:
-- **LSP Error Resolution**: Fixed 4 import errors by adding Award, Package, and CalendarDays icons to lucide-react imports
-- **Inventory Movements Documentation**: Added complete section documenting the stock movements system with:
-  - 10 categorized movement reasons (Entradas, Saídas, Ajustes) with visual emojis and inline indicators (+/-/±)
-  - Item search field and transaction date picker documentation
-  - Complete movement history tracking features
-- **Searchable Employee Field**: Documented the searchable Combobox for employee selection in Distribution page (filter by ID, name, or surname)
-- **Documentation Accuracy**: Moved implemented features (stock movements, PDF receipts) from "Em Desenvolvimento" to main sections; renamed section to "Recursos Futuros" listing only pending features
-- **DISC Section Validation**: Reviewed and confirmed DISC documentation is complete and accurate
-
-**November 17, 2025**: Inventory module UX improvements and layout standardization:
-- **Searchable Employee Field**: Transformed employee selection in Distribution page from Select dropdown to searchable Combobox
-  - Users can now type to filter employees by internal ID, first name, or last name
-  - Instant filtering improves workflow for large employee lists
-  - Properly integrated with react-hook-form using field.onChange for state management
-  - Uses shadcn/ui Command + Popover pattern for accessibility
-- **Layout Consistency**: Fixed sidebar alignment issues across all inventory pages
-  - InventoryHistory and InventoryItems now show properly aligned sidebar for unauthorized users
-  - All 5 inventory pages maintain consistent TopBar + Sidebar + Main content structure
-- **Previous UI Enhancements**:
-  - Form Simplification: Removed "Tipo de Movimentação" field, eliminating redundancy with "Motivo"
-  - Smart Motivo Field: Single dropdown now shows all 10 movement reasons with visual emojis and inline indicators:
-    - Entradas: 📦 (+) Compra, ↩️ (+) Devolução, 🎁 (+) Doação Recebida
-    - Saídas: 👷 (-) Distribuição de EPI, ❌ (-) Perda/Estravio, 🔨 (-) Dano/Avaria, 📅 (-) Vencimento, 🗑️ (-) Descarte
-    - Ajustes: ✏️ (±) Correção de Inventário, 🔢 (±) Recontagem
-  - Inline Operation Indicators: (+), (-), and (±) symbols directly in dropdown options
-  - Header Consistency: All 5 inventory pages follow system-wide pattern with h1 title + descriptive subtitle
-  - Automatic Type Calculation: System determines entrada/saída/ajuste based on selected reason
-  - Searchable Combobox for item selection (type to filter by code or name)
-  - Transaction date field with calendar picker (pt-BR format)
-  - Timezone-safe date handling and enhanced validation
 
 ## System Architecture
 
@@ -132,29 +27,26 @@ Preferred communication style: Simple, everyday language.
 - **Security**: Rate limiting, argon2id password hashing, role-based access control.
 
 ### Database Schema
-- **Core Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments.
-- **Key Fields**: `passwordHash`, `mustChangePassword`, `passwordResetToken`, `internalId`.
+- **Core Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments, Job Openings, Applications, DISC Assessments, Inventory Items, Inventory Movements.
 
 ### Core Features
-- **System Initialization**: First-time setup flow for production deployments, including superadmin creation.
-- **Geolocation & Geofencing**: Time tracking with location verification, geofencing, and address search.
-- **Time Tracking**: Clock in/out with location/facial verification, break management, IP address tracking, geofence proximity, shift schedule compliance, and UTC timestamp storage with timezone conversion. Includes audited admin edits and configurable tolerance.
-- **Terminal/Kiosk Mode**: Tablet-optimized interface for time clock stations with device registration and stateless authentication.
-- **Shift & Rotation Management**: CRUD for shifts and rotation templates.
-- **Automatic Break Management**: Configurable automatic breaks per shift.
-- **Employee-Shift Assignment**: Flexible system for assigning employees to shifts.
+- **System Initialization**: First-time setup flow for production deployments.
+- **Geolocation & Geofencing**: Time tracking with location verification and geofencing.
+- **Time Tracking**: Clock in/out with location/facial verification, break management, IP tracking, shift schedule compliance, and UTC timestamp storage.
+- **Terminal/Kiosk Mode**: Tablet-optimized interface for time clock stations.
+- **Shift & Rotation Management**: CRUD for shifts and rotation templates, with automatic break management.
 - **Password Management**: Self-service password change.
-- **Course Management**: Admin interface for quizzes with question CRUD.
+- **Course Management**: Admin interface for quizzes.
 - **Messaging System**: Multi-target messaging with contextual messaging from documents.
-- **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files (Portaria 671/2021) with integrity checks.
+- **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files (Portaria 671/2021).
 - **CSV Import/Export**: Bulk employee management.
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export, and "Inconsistency Reporting".
-- **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding. Includes job postings, candidate database, application tracking, secure digital onboarding links, and a weighted scoring system based on configurable job requirements.
-- **DISC Personality Assessment**: Integrated 24-28 question DISC assessment embedded in the recruitment workflow, with configurable requirements, timing, ideal profile specification, and compatibility scoring.
-- **Overtime & Time Bank System**: Configurable overtime management with percentage rates by department/shift, supporting multiple tiers and dual modes (paid overtime or time bank credits).
-- **System User Manual**: In-app documentation with tabbed sections and PDF export functionality.
-- **Lead Capture System**: Commercial prospecting functionality with lead lifecycle management, public-facing form, automated email notifications to sales, and an admin interface for lead management, status updates, and tracking.
-- **Inventory & EPI Management**: Comprehensive system including inventory categories, items, stock, movements, and employee-assigned items. Features digital signatures for distribution/returns, role-based access control (Admin, Supervisor, Employee), department filtering, and automatic expiry calculation.
+- **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding, including a weighted scoring system based on configurable job requirements.
+- **DISC Personality Assessment**: Integrated 24-28 question DISC assessment within recruitment, with configurable requirements, timing, ideal profile specification, and compatibility scoring.
+- **Overtime & Time Bank System**: Configurable overtime management with percentage rates and dual modes (paid overtime or time bank credits).
+- **System User Manual**: In-app documentation with PDF export.
+- **Lead Capture System**: Commercial prospecting functionality with lead lifecycle management, public-facing forms, and admin interface.
+- **Inventory & EPI Management**: Comprehensive system including categories, items, stock, movements, and employee-assigned items with digital signatures, role-based access, and expiry calculation.
 
 ## External Dependencies
 
