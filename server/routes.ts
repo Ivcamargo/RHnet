@@ -3465,7 +3465,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Helper function to check admin/superadmin role
   const requireAdminRole = (req: any, res: any, next: any) => {
-    const userRole = req.user.claims.role;
+    // Support both OAuth (claims.role) and local auth (user.role)
+    const userRole = req.user?.claims?.role || req.user?.role;
     if (!userRole || !['admin', 'superadmin'].includes(userRole)) {
       return res.status(403).json({ message: "Access denied: admin privileges required" });
     }

@@ -112,7 +112,7 @@ export default function Recruitment() {
     enabled: activeTab === 'applications',
   });
 
-  const { data: discAssessments = [] } = useQuery<any[]>({
+  const { data: discAssessments = [], isLoading: isLoadingDISC, isError: isErrorDISC, error: discError } = useQuery<any[]>({
     queryKey: ['/api/disc/assessments'],
     enabled: activeTab === 'disc',
   });
@@ -1531,7 +1531,9 @@ export default function Recruitment() {
             jobOpenings={jobOpenings}
             candidates={candidates}
             assessments={discAssessments}
-            isLoading={activeTab === 'disc' && !discAssessments.length}
+            isLoading={isLoadingDISC}
+            isError={isErrorDISC}
+            error={discError}
           />
         </TabsContent>
 

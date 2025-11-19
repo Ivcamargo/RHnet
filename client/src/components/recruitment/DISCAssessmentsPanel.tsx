@@ -38,9 +38,11 @@ interface DISCAssessmentsPanelProps {
   candidates: any[];
   assessments: any[];
   isLoading: boolean;
+  isError?: boolean;
+  error?: any;
 }
 
-export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isLoading }: DISCAssessmentsPanelProps) {
+export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isLoading, isError, error }: DISCAssessmentsPanelProps) {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string>('');
@@ -317,7 +319,25 @@ export function DISCAssessmentsPanel({ jobOpenings, candidates, assessments, isL
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            <XCircle className="mx-auto h-12 w-12 mb-4 text-destructive opacity-50" />
+            <p className="font-semibold text-destructive mb-2">Erro ao carregar avaliações DISC</p>
+            <p className="text-sm">
+              {error?.message || "Não foi possível carregar a lista de avaliações. Tente recarregar a página."}
+            </p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+              data-testid="button-reload-page"
+            >
+              Recarregar Página
+            </Button>
+          </CardContent>
+        </Card>
+      ) : isLoading ? (
         <div className="text-center py-8">Carregando avaliações...</div>
       ) : filteredAssessments.length === 0 ? (
         <Card>
