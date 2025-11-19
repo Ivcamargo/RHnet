@@ -8382,7 +8382,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
     try {
       const { candidateId, jobOpeningId, applicationId } = req.body;
-      const userId = req.user.claims.sub; // Fixed: use sub instead of userId
+      
+      // Defensive guard: ensure we have a valid userId from claims
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "Usuário não autenticado corretamente" });
+      }
 
       if (!candidateId || !jobOpeningId) {
         return res.status(400).json({ message: "candidateId e jobOpeningId são obrigatórios" });

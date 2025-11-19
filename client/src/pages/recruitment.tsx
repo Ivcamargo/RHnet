@@ -92,20 +92,12 @@ export default function Recruitment() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: jobOpenings = [], isLoading, refetch, error } = useQuery<any[]>({
+  const { data: jobOpenings = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/job-openings'],
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
-
-  // DEBUG: Log para diagnosticar problema de vagas
-  console.log('=== RECRUITMENT DEBUG ===');
-  console.log('isLoading:', isLoading);
-  console.log('jobOpenings:', jobOpenings);
-  console.log('jobOpenings.length:', jobOpenings?.length);
-  console.log('error:', error);
-  console.log('========================');
 
   const { data: candidates = [] } = useQuery<any[]>({
     queryKey: ['/api/candidates'],
