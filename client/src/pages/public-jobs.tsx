@@ -78,6 +78,8 @@ export default function PublicJobs() {
       return res.json();
     },
     enabled: !!selectedJob?.id && isApplyDialogOpen,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   // Buscar questões DISC se required
@@ -815,6 +817,67 @@ export default function PublicJobs() {
                   data-testid="input-cover-letter"
                 />
               </div>
+
+              {/* Seção de Requisitos */}
+              {requirementsLoading ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  Carregando requisitos...
+                </div>
+              ) : jobRequirements.length > 0 && (
+                <div className="border-t pt-4 space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Requisitos da Vaga</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Avalie seu nível de conhecimento em cada requisito abaixo. Isso nos ajudará a entender melhor seu perfil.
+                    </p>
+                  </div>
+
+                  {jobRequirements.map((requirement: any) => {
+                    const levels = requirement.proficiencyLevels || [];
+                    const isMandatory = requirement.requirementType === 'mandatory';
+                    
+                    return (
+                      <div key={requirement.id} className="space-y-2">
+                        <Label htmlFor={`requirement-${requirement.id}`}>
+                          {requirement.title}
+                          {isMandatory && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        {requirement.description && (
+                          <p className="text-sm text-muted-foreground">{requirement.description}</p>
+                        )}
+                        <Select
+                          value={requirementResponses[requirement.id] || ''}
+                          onValueChange={(value) => {
+                            setRequirementResponses(prev => ({
+                              ...prev,
+                              [requirement.id]: value
+                            }));
+                          }}
+                          required={isMandatory}
+                        >
+                          <SelectTrigger 
+                            id={`requirement-${requirement.id}`}
+                            data-testid={`select-requirement-${requirement.id}`}
+                          >
+                            <SelectValue placeholder="Selecione seu nível" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {levels.map((level: any, idx: number) => (
+                              <SelectItem 
+                                key={idx} 
+                                value={level.level}
+                                data-testid={`requirement-${requirement.id}-level-${level.level}`}
+                              >
+                                {level.level} ({level.points} pontos)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* DISC Assessment Section - Only show if required during application */}
               {discRequired && (
