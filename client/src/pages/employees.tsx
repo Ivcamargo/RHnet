@@ -54,6 +54,56 @@ const createPhoneHandler = (field: any) => ({
   }
 });
 
+// Mapeia nomes de campos para as abas correspondentes
+const FIELD_TO_TAB_MAP: Record<string, string> = {
+  firstName: 'pessoais',
+  lastName: 'pessoais',
+  email: 'pessoais',
+  birthDate: 'pessoais',
+  maritalStatus: 'pessoais',
+  gender: 'pessoais',
+  nationality: 'pessoais',
+  naturalness: 'pessoais',
+  cpf: 'documentos',
+  rg: 'documentos',
+  rgIssuingOrgan: 'documentos',
+  ctps: 'documentos',
+  pisPasep: 'documentos',
+  tituloEleitor: 'documentos',
+  cep: 'endereco',
+  address: 'endereco',
+  addressNumber: 'endereco',
+  addressComplement: 'endereco',
+  neighborhood: 'endereco',
+  city: 'endereco',
+  state: 'endereco',
+  country: 'endereco',
+  personalPhone: 'contatos',
+  commercialPhone: 'contatos',
+  emergencyContactName: 'contatos',
+  emergencyContactPhone: 'contatos',
+  emergencyContactRelationship: 'contatos',
+  position: 'profissionais',
+  internalId: 'profissionais',
+  companyId: 'profissionais',
+  departmentId: 'profissionais',
+  admissionDate: 'profissionais',
+  contractType: 'profissionais',
+  workSchedule: 'profissionais',
+  salary: 'profissionais',
+  benefits: 'profissionais',
+  bankCode: 'bancarios',
+  bankName: 'bancarios',
+  agencyNumber: 'bancarios',
+  accountNumber: 'bancarios',
+  accountType: 'bancarios',
+  pixKey: 'bancarios',
+  educationLevel: 'bancarios',
+  institution: 'bancarios',
+  course: 'bancarios',
+  graduationYear: 'bancarios',
+};
+
 export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -68,6 +118,8 @@ export default function Employees() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [importResults, setImportResults] = useState<any>(null);
+  const [activeAddTab, setActiveAddTab] = useState("pessoais");
+  const [activeEditTab, setActiveEditTab] = useState("pessoais");
   const { toast } = useToast();
 
   const { data: user } = useQuery({
@@ -483,6 +535,33 @@ export default function Employees() {
     return cleaned;
   };
 
+  // Handler para erros de validação - navega para a aba com o primeiro erro e foca no campo
+  const onAddFormInvalid = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0];
+    const targetTab = FIELD_TO_TAB_MAP[firstErrorField] || 'pessoais';
+    
+    // Navega para a aba com erro
+    setActiveAddTab(targetTab);
+    
+    // Aguarda a aba ser ativada e então foca no campo
+    setTimeout(() => {
+      addForm.setFocus(firstErrorField as any);
+    }, 100);
+  };
+
+  const onEditFormInvalid = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0];
+    const targetTab = FIELD_TO_TAB_MAP[firstErrorField] || 'pessoais';
+    
+    // Navega para a aba com erro
+    setActiveEditTab(targetTab);
+    
+    // Aguarda a aba ser ativada e então foca no campo
+    setTimeout(() => {
+      editForm.setFocus(firstErrorField as any);
+    }, 100);
+  };
+
   const onSubmitNewEmployee = (data: InsertCompleteEmployee) => {
     // Validação de companyId
     if (user?.role === 'superadmin') {
@@ -896,8 +975,8 @@ export default function Employees() {
                   <DialogTitle>Cadastro Completo de Funcionário</DialogTitle>
                 </DialogHeader>
                 <Form {...addForm}>
-                  <form onSubmit={addForm.handleSubmit(onSubmitNewEmployee)} className="space-y-6">
-                    <Tabs defaultValue="pessoais" className="w-full">
+                  <form onSubmit={addForm.handleSubmit(onSubmitNewEmployee, onAddFormInvalid)} className="space-y-6">
+                    <Tabs value={activeAddTab} onValueChange={setActiveAddTab} className="w-full">
                       <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="pessoais" className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
@@ -1784,8 +1863,8 @@ export default function Employees() {
                   <DialogTitle>Editar Funcionário</DialogTitle>
                 </DialogHeader>
                 <Form {...editForm}>
-                  <form onSubmit={editForm.handleSubmit(onSubmitEditEmployee)} className="space-y-6">
-                    <Tabs defaultValue="pessoais" className="w-full">
+                  <form onSubmit={editForm.handleSubmit(onSubmitEditEmployee, onEditFormInvalid)} className="space-y-6">
+                    <Tabs value={activeEditTab} onValueChange={setActiveEditTab} className="w-full">
                       <TabsList className="grid w-full grid-cols-6">
                         <TabsTrigger value="pessoais" className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
