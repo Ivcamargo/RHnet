@@ -8382,7 +8382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
     try {
       const { candidateId, jobOpeningId, applicationId } = req.body;
-      const userId = req.user.claims.userId;
+      const userId = req.user.claims.sub; // Fixed: use sub instead of userId
 
       if (!candidateId || !jobOpeningId) {
         return res.status(400).json({ message: "candidateId e jobOpeningId são obrigatórios" });
@@ -8558,7 +8558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/disc/assessments', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
     try {
       const { db } = storage as any;
-      const { discAssessments, candidates, jobOpenings } = await import('./db/schema');
+      const { discAssessments, candidates, jobOpenings } = await import('shared/schema');
       const { eq } = await import('drizzle-orm');
 
       const assessments = await db
