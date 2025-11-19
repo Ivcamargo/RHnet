@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import * as React from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -18,7 +18,7 @@ const initialState: ThemeProviderState = {
   setTheme: () => null,
 };
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+const ThemeProviderContext = React.createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
@@ -26,11 +26,19 @@ export function ThemeProvider({
   storageKey = "rhnet-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
-  const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = React.useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(storageKey) as Theme;
+        return stored || defaultTheme;
+      } catch {
+        return defaultTheme;
+      }
+    }
+    return defaultTheme;
+  });
 
-  useEffect(() => {
-    setMounted(true);
+  React.useEffect(() => {
     try {
       const stored = localStorage.getItem(storageKey) as Theme;
       if (stored) {
@@ -41,9 +49,7 @@ export function ThemeProvider({
     }
   }, [storageKey]);
 
-  useEffect(() => {
-    if (!mounted) return;
-
+  React.useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
 
@@ -57,19 +63,22 @@ export function ThemeProvider({
     }
 
     root.classList.add(theme);
-  }, [theme, mounted]);
+  }, [theme]);
 
-  const value = {
-    theme,
-    setTheme: (newTheme: Theme) => {
-      try {
-        localStorage.setItem(storageKey, newTheme);
-      } catch {
-        // Ignore localStorage errors
-      }
-      setTheme(newTheme);
-    },
-  };
+  const value = React.useMemo(
+    () => ({
+      theme,
+      setTheme: (newTheme: Theme) => {
+        try {
+          localStorage.setItem(storageKey, newTheme);
+        } catch {
+          // Ignore localStorage errors
+        }
+        setTheme(newTheme);
+      },
+    }),
+    [theme, storageKey]
+  );
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
@@ -79,7 +88,7 @@ export function ThemeProvider({
 }
 
 export const useTheme = () => {
-  const context = useContext(ThemeProviderContext);
+  const context = React.useContext(ThemeProviderContext);
 
   if (context === undefined)
     throw new Error("useTheme must be used within a ThemeProvider");
