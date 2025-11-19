@@ -197,6 +197,7 @@ export default function Employees() {
       // Dados profissionais
       internalId: "",
       role: "employee",
+      companyId: null,
       departmentId: null,
       position: "",
       admissionDate: "",
@@ -449,6 +450,30 @@ export default function Employees() {
 
 
   const onSubmitNewEmployee = (data: InsertCompleteEmployee) => {
+    // Validação de companyId
+    if (user?.role === 'superadmin') {
+      // Superadmin deve selecionar uma empresa
+      if (!data.companyId) {
+        toast({
+          title: "Erro",
+          description: "Por favor, selecione uma empresa para o funcionário",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Para não-superadmins, usa o companyId do usuário logado
+      if (!user?.companyId) {
+        toast({
+          title: "Erro",
+          description: "Seu perfil não possui empresa vinculada. Entre em contato com o administrador.",
+          variant: "destructive",
+        });
+        return;
+      }
+      data.companyId = user.companyId;
+    }
+    
     addEmployeeMutation.mutate(data);
   };
 
@@ -1302,6 +1327,38 @@ export default function Employees() {
                             )}
                           />
                         </div>
+
+                        {user?.role === 'superadmin' && (
+                          <FormField
+                            control={addForm.control}
+                            name="companyId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Empresa *</FormLabel>
+                                <Select 
+                                  onValueChange={(value) => {
+                                    field.onChange(parseInt(value));
+                                  }} 
+                                  value={field.value ? String(field.value) : undefined}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-company-create">
+                                      <SelectValue placeholder="Selecione uma empresa" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {companies?.map((company: any) => (
+                                      <SelectItem key={company.id} value={company.id.toString()}>
+                                        {company.tradeName || company.legalName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <FormField
                           control={addForm.control}
