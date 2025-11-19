@@ -455,6 +455,34 @@ export default function Employees() {
   };
 
 
+  // Função auxiliar para limpar dados do formulário antes de enviar
+  const cleanFormData = (data: any) => {
+    const cleaned = { ...data };
+    
+    // Converter strings vazias para null em campos de data
+    const dateFields = ['birthDate', 'admissionDate', 'dismissalDate'];
+    dateFields.forEach(field => {
+      if (cleaned[field] === "" || cleaned[field] === null || (typeof cleaned[field] === 'string' && cleaned[field].trim() === "")) {
+        cleaned[field] = null;
+      }
+    });
+    
+    // Converter strings vazias/inválidas para null em campos numéricos
+    const numericFields = ['graduationYear', 'salary'];
+    numericFields.forEach(field => {
+      if (cleaned[field] === "" || cleaned[field] === null || 
+          (typeof cleaned[field] === 'string' && cleaned[field].trim() === "") ||
+          cleaned[field] === 0) {
+        cleaned[field] = null;
+      } else if (typeof cleaned[field] === 'string') {
+        const num = Number(cleaned[field]);
+        cleaned[field] = isNaN(num) ? null : num;
+      }
+    });
+    
+    return cleaned;
+  };
+
   const onSubmitNewEmployee = (data: InsertCompleteEmployee) => {
     // Validação de companyId
     if (user?.role === 'superadmin') {
@@ -480,11 +508,17 @@ export default function Employees() {
       data.companyId = user.companyId;
     }
     
-    addEmployeeMutation.mutate(data);
+    // Limpar dados antes de enviar
+    const cleanedData = cleanFormData(data);
+    
+    addEmployeeMutation.mutate(cleanedData as any);
   };
 
   const onSubmitEditEmployee = (data: InsertCompleteEmployee) => {
-    editEmployeeMutation.mutate(data);
+    // Limpar dados antes de enviar
+    const cleanedData = cleanFormData(data);
+    
+    editEmployeeMutation.mutate(cleanedData as any);
   };
 
   const handleEditEmployee = (employee: any) => {
@@ -1334,7 +1368,7 @@ export default function Employees() {
                           />
                         </div>
 
-                        {user?.role === 'superadmin' && (
+                        {user?.role === 'superadmin' ? (
                           <FormField
                             control={addForm.control}
                             name="companyId"
@@ -1355,7 +1389,7 @@ export default function Employees() {
                                   <SelectContent>
                                     {companies?.map((company: any) => (
                                       <SelectItem key={company.id} value={company.id.toString()}>
-                                        {company.tradeName || company.legalName}
+                                        {company.tradeName || company.legalName || company.name}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -1364,6 +1398,20 @@ export default function Employees() {
                               </FormItem>
                             )}
                           />
+                        ) : (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Empresa</label>
+                            <Input 
+                              value={companies?.find((c: any) => c.id === user?.companyId)?.tradeName || 
+                                     companies?.find((c: any) => c.id === user?.companyId)?.legalName || 
+                                     companies?.find((c: any) => c.id === user?.companyId)?.name || 
+                                     "Carregando..."}
+                              disabled
+                              className="bg-muted"
+                              data-testid="input-company-readonly"
+                            />
+                            <p className="text-xs text-muted-foreground">Funcionário será cadastrado na sua empresa</p>
+                          </div>
                         )}
 
                         <FormField
