@@ -3,8 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { SignaturePad, SignaturePadRef } from "@/components/ui/signature-pad";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Package, RotateCcw, Download, Calendar, AlertCircle, ChevronsUpDown, Check } from "lucide-react";
+import { Package, RotateCcw, Download, Calendar, AlertCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { format, differenceInDays } from "date-fns";
@@ -112,6 +111,22 @@ export default function InventoryHistory() {
       setSelectedEmployeeId(filteredEmployees[0].id);
     }
   }, [filteredEmployees, searchTerm]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-testid="input-search-employee"]') && 
+          !target.closest('.absolute.z-50')) {
+        setComboboxOpen(false);
+      }
+    };
+
+    if (comboboxOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [comboboxOpen]);
 
   const { data: employeeItems = [], isLoading } = useQuery<EmployeeItem[]>({
     queryKey: ["/api/inventory/employee-items", selectedEmployeeId],
@@ -246,62 +261,63 @@ export default function InventoryHistory() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={comboboxOpen}
-                          className="w-full justify-between"
-                          data-testid="select-employee"
-                        >
-                          {selectedEmployeeId
-                            ? (() => {
-                                const employee = employees.find((e) => e.id === selectedEmployeeId);
-                                return employee
-                                  ? `${employee.internalId ? `${employee.internalId} - ` : ''}${employee.firstName} ${employee.lastName}`
-                                  : "Selecione um funcionário";
-                              })()
-                            : "Selecione um funcionário ou digite para buscar"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput 
-                            placeholder="Buscar por nome ou matrícula..." 
-                            value={searchTerm}
-                            onValueChange={setSearchTerm}
-                          />
-                          <CommandList>
-                            <CommandEmpty>Nenhum funcionário encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredEmployees.map((employee) => (
-                                <CommandItem
-                                  key={employee.id}
-                                  value={employee.id}
-                                  onSelect={() => {
-                                    setSelectedEmployeeId(employee.id);
-                                    setComboboxOpen(false);
-                                    setSearchTerm("");
-                                  }}
-                                  data-testid={`employee-${employee.id}`}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder={selectedEmployeeId 
+                        ? (() => {
+                            const employee = employees.find((e) => e.id === selectedEmployeeId);
+                            return employee
+                              ? `${employee.internalId ? `${employee.internalId} - ` : ''}${employee.firstName} ${employee.lastName}`
+                              : "Selecione um funcionário ou digite para buscar";
+                          })()
+                        : "Selecione um funcionário ou digite para buscar"
+                      }
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setComboboxOpen(true);
+                      }}
+                      onFocus={() => setComboboxOpen(true)}
+                      data-testid="input-search-employee"
+                      className="w-full"
+                    />
+                    {comboboxOpen && searchTerm && (
+                      <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {filteredEmployees.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            Nenhum funcionário encontrado
+                          </div>
+                        ) : (
+                          <div className="py-1">
+                            {filteredEmployees.map((employee) => (
+                              <div
+                                key={employee.id}
+                                className={cn(
+                                  "px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2",
+                                  selectedEmployeeId === employee.id && "bg-gray-100 dark:bg-gray-700"
+                                )}
+                                onClick={() => {
+                                  setSelectedEmployeeId(employee.id);
+                                  setSearchTerm("");
+                                  setComboboxOpen(false);
+                                }}
+                                data-testid={`employee-${employee.id}`}
+                              >
+                                <Check
+                                  className={cn(
+                                    "h-4 w-4",
+                                    selectedEmployeeId === employee.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <span className="text-sm">
                                   {employee.internalId ? `${employee.internalId} - ` : ''}{employee.firstName} {employee.lastName}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
