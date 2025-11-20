@@ -1045,7 +1045,7 @@ export default function Manual() {
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar title="Manual do Sistema" />
-        <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-blue-50 via-teal-50 to-green-50"  data-testid="main-content">
+        <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"  data-testid="main-content">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">

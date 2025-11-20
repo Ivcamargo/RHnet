@@ -282,8 +282,8 @@ export default function Dashboard() {
               <CardContent>
                 {isLoading ? (
                   <>
-                    <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded animate-pulse w-16"></div>
                   </>
                 ) : (
                   <>
@@ -311,8 +311,8 @@ export default function Dashboard() {
               <CardContent>
                 {isLoading ? (
                   <>
-                    <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded animate-pulse w-16"></div>
                   </>
                 ) : (
                   <>
@@ -340,9 +340,9 @@ export default function Dashboard() {
               <CardContent>
                 {isLoading ? (
                   <>
-                    <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-                    <div className="h-5 bg-gray-200 rounded animate-pulse w-24 mt-2"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded animate-pulse w-20"></div>
+                    <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded animate-pulse w-24 mt-2"></div>
                   </>
                 ) : (
                   <>

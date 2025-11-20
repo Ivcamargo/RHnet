@@ -811,7 +811,7 @@ export default function Employees() {
 
   if (!isAdmin) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-gray-50 dark:bg-slate-900">
         <Sidebar />
         <div className="flex-1 flex flex-col">
           <TopBar title="Funcionários" />
@@ -819,8 +819,8 @@ export default function Employees() {
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
                 <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
-                <p className="text-gray-600">Apenas administradores podem acessar esta página.</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h1>
+                <p className="text-gray-600 dark:text-gray-400">Apenas administradores podem acessar esta página.</p>
               </div>
             </div>
           </main>
@@ -2801,7 +2801,7 @@ export default function Employees() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditEmployee(employee)}
-                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-8 w-8 p-0"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 h-8 w-8 p-0"
                               data-testid={`button-edit-employee-${employee.id}`}
                             >
                               <Edit className="h-3 w-3" />
@@ -2811,7 +2811,7 @@ export default function Employees() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleManageUser(employee)}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8 p-0"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 h-8 w-8 p-0"
                                 data-testid={`button-manage-employee-${employee.id}`}
                               >
                                 <Settings className="h-3 w-3" />
