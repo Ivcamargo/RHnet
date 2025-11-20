@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Bell, MapPin } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface TopBarProps {
   title: string;
@@ -70,6 +71,9 @@ export default function TopBar({ title }: TopBarProps) {
             0
           </span>
         </Button>
+        
+        {/* Theme Toggle */}
+        <ThemeToggle />
         
         {/* User Profile */}
         {user && (
