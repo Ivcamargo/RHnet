@@ -366,11 +366,11 @@ export default function ClockInterface() {
     <div className="space-y-6">
       {/* Company and User Information */}
       {userData && (
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+        <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
           <div className="flex items-center space-x-2">
             <Building className="h-5 w-5 text-blue-600" />
             <div>
-              <h3 className="font-semibold text-lg" data-testid="company-name">
+              <h3 className="font-semibold text-lg dark:text-white" data-testid="company-name">
                 {userData.company?.name || "Carregando empresa..."}
               </h3>
               {userData.department && (
@@ -495,7 +495,7 @@ export default function ClockInterface() {
       />
       
       {/* Location Status */}
-      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+      <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
         <MapPin className="h-4 w-4" />
         <span>
           {locationError
@@ -594,7 +594,7 @@ export default function ClockInterface() {
           
           {/* Display recent breaks */}
           {breaks.length > 0 && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">
                 Intervalos de Hoje
               </h4>
