@@ -66,7 +66,7 @@ export default function InventoryItems() {
 
   if (!isAdmin) {
     return (
-      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-slate-900">
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           <TopBar title="Gestão de Itens" />
@@ -237,7 +237,7 @@ export default function InventoryItems() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[hsl(220,20%,8%)]">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-slate-900">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar title="Gestão de Itens" />

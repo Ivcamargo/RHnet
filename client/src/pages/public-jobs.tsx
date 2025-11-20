@@ -236,7 +236,7 @@ export default function PublicJobs() {
     
     if (!job) {
       return (
-        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-slate-900 dark:to-slate-900">
           {/* Header */}
           <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -272,7 +272,7 @@ export default function PublicJobs() {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-slate-900 dark:to-slate-900">
         {/* Header */}
         <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -551,7 +551,7 @@ export default function PublicJobs() {
 
   // Lista de vagas
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-slate-900 dark:to-slate-900">
       {/* Header */}
       <header className="bg-white/90 backdrop-blur-sm shadow-xl border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

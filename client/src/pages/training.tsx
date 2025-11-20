@@ -386,7 +386,7 @@ export default function Training() {
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">

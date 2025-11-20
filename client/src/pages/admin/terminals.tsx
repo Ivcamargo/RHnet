@@ -223,7 +223,7 @@ export default function Terminals() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar title="Terminais de Ponto" />

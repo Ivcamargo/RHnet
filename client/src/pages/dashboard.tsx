@@ -151,7 +151,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[hsl(220,20%,98%)] via-[hsl(175,20%,98%)] to-[hsl(220,15%,96%)] dark:from-[hsl(220,20%,10%)] dark:via-[hsl(220,20%,12%)] dark:to-[hsl(220,15%,15%)]">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[hsl(220,20%,98%)] via-[hsl(175,20%,98%)] to-[hsl(220,15%,96%)] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">

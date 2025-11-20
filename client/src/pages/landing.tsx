@@ -52,7 +52,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 text-gray-800 relative">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-gray-800 dark:text-white relative">
       {/* Logo Watermark */}
       <div 
         className="fixed inset-0 pointer-events-none z-5"

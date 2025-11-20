@@ -232,7 +232,7 @@ export default function SuperAdmin() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">

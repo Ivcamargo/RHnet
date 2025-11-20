@@ -172,7 +172,7 @@ export default function ArquivosLegais() {
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <TopBar />
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-slate-900">
           <div className="mb-6">
             <h1 className="text-3xl font-bold mb-2">Arquivos Legais</h1>
             <p className="text-muted-foreground">

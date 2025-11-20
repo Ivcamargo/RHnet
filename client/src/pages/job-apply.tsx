@@ -176,7 +176,7 @@ export default function JobApply() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-muted-foreground">Carregando vaga...</p>
@@ -187,7 +187,7 @@ export default function JobApply() {
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-900 flex items-center justify-center">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle>Vaga não encontrada</CardTitle>
@@ -200,7 +200,7 @@ export default function JobApply() {
 
   if (applicationSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-900 flex items-center justify-center p-4">
         <Card className="max-w-lg w-full">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -229,7 +229,7 @@ export default function JobApply() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-900 py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Job Details Card */}
         <Card>

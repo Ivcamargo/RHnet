@@ -57,7 +57,7 @@ export default function TimeClock() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-red-50 to-orange-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
       
       <div className="flex flex-col flex-1 overflow-hidden">
