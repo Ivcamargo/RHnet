@@ -66,11 +66,11 @@ export default function TimeClock() {
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-black mb-2">Controle de Ponto</h1>
+              <h1 className="text-3xl font-bold text-black dark:text-white mb-2">Controle de Ponto</h1>
               <div className="clock-display">
                 {formatTime(currentTime)}
               </div>
-              <div className="text-black mb-4">
+              <div className="text-black dark:text-white mb-4">
                 {formatDate(currentTime)}
               </div>
             </div>
@@ -91,7 +91,7 @@ export default function TimeClock() {
               </TabsList>
 
               <TabsContent value="clock" className="space-y-6">
-                <Card className="bg-white/90 backdrop-blur-sm border-orange-200 shadow-lg">
+                <Card className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-orange-200 dark:border-slate-700 shadow-lg">
                   <CardContent className="p-8">
                     <div className="text-center">
                       {/* Status Indicator */}
@@ -108,9 +108,9 @@ export default function TimeClock() {
                       
                       {/* Current Session Info */}
                       {clockStatus?.activeEntry && (
-                        <div className="mt-8 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                          <h3 className="font-medium text-orange-800 mb-2">Sessão Atual</h3>
-                          <div className="text-sm text-orange-600">
+                        <div className="mt-8 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                          <h3 className="font-medium text-orange-800 dark:text-orange-300 mb-2">Sessão Atual</h3>
+                          <div className="text-sm text-orange-600 dark:text-orange-400">
                             <p>Entrada: {formatBrazilianTime(clockStatus.activeEntry.clockInTime)}</p>
                             <p>Data: {formatBrazilianDate(clockStatus.activeEntry.clockInTime)}</p>
                             {clockStatus.activeEntry.faceRecognitionVerified && (

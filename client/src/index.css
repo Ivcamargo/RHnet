@@ -106,7 +106,12 @@
   }
   
   .clock-display {
-    @apply text-4xl font-bold text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)] mb-4;
+    @apply text-4xl font-bold mb-4;
+    color: hsl(220,65%,18%);
+  }
+  
+  .dark .clock-display {
+    color: hsl(175,65%,45%);
   }
   
   .status-active {
