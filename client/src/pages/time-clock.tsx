@@ -92,8 +92,8 @@ export default function TimeClock() {
 
               <TabsContent value="clock" className="space-y-6">
                 <Card className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-orange-200 dark:border-slate-700 shadow-lg">
-                  <CardContent className="p-8">
-                    <div className="text-center">
+                  <CardContent className="p-8 dark:bg-transparent">
+                    <div className="text-center dark:text-white">
                       {/* Status Indicator */}
                       <div className="flex items-center justify-center mb-8">
                         <div className={clockStatus?.isClocked ? "status-active" : "status-inactive"}>
