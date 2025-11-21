@@ -72,6 +72,7 @@ Migrated email service from SendGrid to SMTP using nodemailer and Hostinger:
 - Required secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE=true`, `SMTP_USER`, `SMTP_PASSWORD`, `FROM_EMAIL`
 - SMTP_USER must be complete email address (e.g., `infosis@infosis.com.br`)
 - All email functionality (temporary passwords, password reset) working correctly via SMTP
+- Email links use `BASE_URL` environment variable (production) or fall back to `REPLIT_DEV_DOMAIN` (development)
 
 **Status:**
 ✅ SMTP connection established successfully

@@ -71,7 +71,7 @@ export async function sendPasswordResetEmail(
   resetToken: string, 
   userName?: string | null
 ): Promise<boolean> {
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000';
+  const baseUrl = process.env.BASE_URL || process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000';
   const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
   
   const subject = 'RHNet - Redefinição de Senha';
@@ -181,7 +181,7 @@ export async function sendTemporaryPasswordEmail(
   userName: string,
   temporaryPassword: string
 ): Promise<boolean> {
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000';
+  const baseUrl = process.env.BASE_URL || process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000';
   const loginUrl = `${baseUrl}/`;
   
   const subject = 'RHNet - Bem-vindo! Suas Credenciais de Acesso';
