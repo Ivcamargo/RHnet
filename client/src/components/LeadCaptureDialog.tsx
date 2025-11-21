@@ -97,7 +97,7 @@ export function LeadCaptureDialog({ open, onOpenChange, onSuccess: onSuccessCall
       <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] bg-clip-text text-transparent">
-            Começar Agora
+            Ainda não é Cliente click aqui
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
             Preencha seus dados e entraremos em contato para apresentar o RHNet e agendar uma demonstração personalizada.

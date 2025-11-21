@@ -126,7 +126,7 @@ export default function Landing() {
                 className="bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] text-white hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
                 data-testid="button-start-now"
               >
-                Começar Agora
+                Ainda não é Cliente click aqui
               </Button>
               <Button 
                 onClick={handleJobsPage} 
