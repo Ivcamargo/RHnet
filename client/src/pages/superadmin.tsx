@@ -194,10 +194,7 @@ export default function SuperAdmin() {
     onSuccess: (data) => {
       toast({
         title: "Senha resetada",
-        description: data.emailSent 
-          ? "Nova senha temporária enviada por email." 
-          : `Email falhou. Senha temporária: ${data.temporaryPassword}`,
-        variant: data.emailSent ? "default" : "destructive"
+        description: "Nova senha temporária enviada por email com sucesso.",
       });
     },
     onError: (error: any) => {

@@ -2189,7 +2189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = {
         success: 0,
         errors: [] as Array<{ row: number; email: string; error: string }>,
-        emailsFailed: [] as Array<{ email: string; temporaryPassword: string }>
+        emailsFailed: [] as string[] // Only store emails, not passwords
       };
 
       for (let i = 0; i < records.length; i++) {
@@ -2295,11 +2295,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           
           if (!emailSent) {
-            console.warn(`Failed to send welcome email to ${newUser.email} during CSV import`);
-            results.emailsFailed.push({ 
-              email: newUser.email, 
-              temporaryPassword 
-            });
+            console.error(`[SECURITY] Failed to send welcome email to ${newUser.email} during CSV import. Temporary password: ${temporaryPassword}`);
+            results.emailsFailed.push(newUser.email);
           }
 
           // Create audit log
@@ -4465,12 +4462,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (!emailSent) {
-        console.warn(`Failed to send password reset email to ${userToReset.email}`);
-        // Still return success but include the temporary password for admin to manually share
-        return res.status(200).json({ 
-          message: "Password reset successfully, but email failed to send",
-          emailSent: false,
-          temporaryPassword // Include password so admin can manually share it
+        console.error(`[SECURITY] Failed to send password reset email to ${userToReset.email}. Temporary password: ${temporaryPassword}`);
+        // Return error - admin needs to check server logs for the password
+        return res.status(500).json({ 
+          message: "Senha resetada, mas falha ao enviar email. Verifique os logs do servidor para obter a senha temporária.",
+          emailSent: false
         });
       }
 
@@ -4727,7 +4723,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (!emailSent) {
-        console.warn(`Failed to send welcome email to ${newUser.email}, but user was created successfully`);
+        console.error(`[SECURITY] Failed to send welcome email to ${newUser.email}. Temporary password: ${temporaryPassword}`);
+        // Return error to admin - they need to manually provide credentials
+        return res.status(201).json({ 
+          ...newUser,
+          department: null,
+          emailFailed: true,
+          message: "Usuário criado, mas falha ao enviar email. Entre em contato com o administrador do sistema."
+        });
       }
       
       // Get department info if assigned
@@ -4739,9 +4742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ 
         ...newUser, 
         department,
-        // Include temporary password in response for admin to show to user if email fails
-        temporaryPassword: emailSent ? undefined : temporaryPassword,
-        emailSent
+        emailSent: true
       });
     } catch (error) {
       console.error("Error creating employee:", error);
