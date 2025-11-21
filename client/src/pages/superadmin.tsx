@@ -71,6 +71,13 @@ export default function SuperAdmin() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState<string | null>(null);
+  
+  // User filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCompany, setFilterCompany] = useState<string>("all");
+  const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  
   const { toast } = useToast();
 
   const companyForm = useForm<CompanyFormData>({
@@ -248,6 +255,30 @@ export default function SuperAdmin() {
       });
     }
   };
+
+  // Filter users based on search and filters
+  const filteredUsers = users.filter((user) => {
+    // Search term filter (name or email)
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower);
+    
+    // Company filter
+    const matchesCompany = filterCompany === "all" || 
+      (filterCompany === "none" && !user.companyId) ||
+      (user.companyId && user.companyId.toString() === filterCompany);
+    
+    // Role filter
+    const matchesRole = filterRole === "all" || user.role === filterRole;
+    
+    // Status filter
+    const matchesStatus = filterStatus === "all" || 
+      (filterStatus === "active" && user.isActive) ||
+      (filterStatus === "inactive" && !user.isActive);
+    
+    return matchesSearch && matchesCompany && matchesRole && matchesStatus;
+  });
 
   const getCompanyName = (companyId?: number) => {
     if (!companyId) return "-";
@@ -525,16 +556,93 @@ export default function SuperAdmin() {
                   <h2 className="text-xl font-semibold">Usuários do Sistema</h2>
                 </div>
 
+                {/* Filters */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Search */}
+                      <div className="space-y-2">
+                        <Label>Buscar</Label>
+                        <Input
+                          placeholder="Nome ou email..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          data-testid="input-search-users"
+                        />
+                      </div>
+
+                      {/* Company Filter */}
+                      <div className="space-y-2">
+                        <Label>Empresa</Label>
+                        <Select value={filterCompany} onValueChange={setFilterCompany}>
+                          <SelectTrigger data-testid="select-filter-company">
+                            <SelectValue placeholder="Todas as empresas" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas as empresas</SelectItem>
+                            <SelectItem value="none">Sem empresa</SelectItem>
+                            {companies.map((company) => (
+                              <SelectItem key={company.id} value={company.id.toString()}>
+                                {company.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Role Filter */}
+                      <div className="space-y-2">
+                        <Label>Papel</Label>
+                        <Select value={filterRole} onValueChange={setFilterRole}>
+                          <SelectTrigger data-testid="select-filter-role">
+                            <SelectValue placeholder="Todos os papéis" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos os papéis</SelectItem>
+                            <SelectItem value="superadmin">Super Admin</SelectItem>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="employee">Funcionário</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Status Filter */}
+                      <div className="space-y-2">
+                        <Label>Status</Label>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                          <SelectTrigger data-testid="select-filter-status">
+                            <SelectValue placeholder="Todos os status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos os status</SelectItem>
+                            <SelectItem value="active">Ativos</SelectItem>
+                            <SelectItem value="inactive">Inativos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Results counter */}
+                    <div className="mt-4 text-sm text-gray-600">
+                      Mostrando <span className="font-semibold">{filteredUsers.length}</span> de{" "}
+                      <span className="font-semibold">{users.length}</span> usuários
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardContent className="p-0">
                     {usersLoading ? (
                       <div className="flex items-center justify-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
-                    ) : users.length === 0 ? (
+                    ) : filteredUsers.length === 0 ? (
                       <div className="text-center py-8 text-gray-500" data-testid="empty-users">
                         <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>Nenhum usuário encontrado</p>
+                        {users.length > 0 && (
+                          <p className="text-sm mt-2">Tente ajustar os filtros de busca</p>
+                        )}
                       </div>
                     ) : (
                       <Table data-testid="users-table">
@@ -544,12 +652,13 @@ export default function SuperAdmin() {
                             <TableHead>Email</TableHead>
                             <TableHead>Papel</TableHead>
                             <TableHead>Empresa</TableHead>
+                            <TableHead>Status</TableHead>
                             <TableHead>Data de Cadastro</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {users.map((user) => (
+                          {filteredUsers.map((user) => (
                             <TableRow key={user.id} data-testid={`user-row-${user.id}`}>
                               <TableCell className="font-medium" data-testid={`user-name-${user.id}`}>
                                 {user.firstName} {user.lastName}
@@ -562,6 +671,13 @@ export default function SuperAdmin() {
                               </TableCell>
                               <TableCell data-testid={`user-company-${user.id}`}>
                                 {getCompanyName(user.companyId)}
+                              </TableCell>
+                              <TableCell data-testid={`user-status-${user.id}`}>
+                                {user.isActive ? (
+                                  <Badge variant="default" className="bg-green-500">Ativo</Badge>
+                                ) : (
+                                  <Badge variant="secondary">Inativo</Badge>
+                                )}
                               </TableCell>
                               <TableCell data-testid={`user-created-${user.id}`}>
                                 {formatDate(user.createdAt)}
