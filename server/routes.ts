@@ -2188,7 +2188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = {
         success: 0,
-        errors: [] as Array<{ row: number; email: string; error: string }>
+        errors: [] as Array<{ row: number; email: string; error: string }>,
+        emailsFailed: [] as Array<{ email: string; temporaryPassword: string }>
       };
 
       for (let i = 0; i < records.length; i++) {
@@ -2231,11 +2232,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Parse department ID
           const departmentId = record.departamento_id ? parseInt(record.departamento_id) : undefined;
 
-          // Create user
+          // Generate temporary password and hash it
+          const temporaryPassword = generateTemporaryPassword(10);
+          const passwordHash = await hashPassword(temporaryPassword);
+
+          // Create user with password
           const newUser = await storage.createCompleteEmployee({
             email: record.email,
             cpf: record.cpf || null,
             role: 'employee',
+            passwordHash,
+            mustChangePassword: true,
             companyId: companyId!,
             departmentId: departmentId || null,
             internalId: record.registro_interno || null,
@@ -2280,6 +2287,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           results.success++;
 
+          // Send welcome email with temporary password
+          const emailSent = await sendTemporaryPasswordEmail(
+            newUser.email,
+            record.nome,
+            temporaryPassword
+          );
+          
+          if (!emailSent) {
+            console.warn(`Failed to send welcome email to ${newUser.email} during CSV import`);
+            results.emailsFailed.push({ 
+              email: newUser.email, 
+              temporaryPassword 
+            });
+          }
+
           // Create audit log
           await createAuditLog(
             req.user.claims.sub,
@@ -2287,7 +2309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'CREATE',
             'user',
             newUser.id,
-            { source: 'csv_import', email: record.email }
+            { source: 'csv_import', email: record.email, emailSent }
           );
 
         } catch (error) {
@@ -2303,7 +2325,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         message: `Importação concluída: ${results.success} funcionários criados`,
         success: results.success,
-        errors: results.errors
+        errors: results.errors,
+        emailsFailed: results.emailsFailed
       });
 
     } catch (error) {
