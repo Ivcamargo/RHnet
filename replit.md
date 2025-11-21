@@ -31,7 +31,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Features
 - **System Initialization**: First-time setup flow for production deployments.
-- **Automatic User Provisioning**: When employees are created (individually or via CSV import), system automatically generates secure 12-character temporary passwords, sends credentials via SendGrid email with branded Portuguese template, and enforces password change on first login. Admins can reset passwords from SuperAdmin page. Temporary passwords are never exposed via API responses (only logged server-side with [SECURITY] tag for debugging).
+- **Automatic User Provisioning**: When employees are created (individually or via CSV import), system automatically generates secure 12-character temporary passwords, sends credentials via SMTP email with branded Portuguese template, and enforces password change on first login. Admins can reset passwords from SuperAdmin page. Temporary passwords are never exposed via API responses (only logged server-side with [SECURITY] tag for debugging).
 - **Geolocation & Geofencing**: Time tracking with location verification and geofencing.
 - **Time Tracking**: Clock in/out with location/facial verification, break management, IP tracking, shift schedule compliance, and UTC timestamp storage.
 - **Terminal/Kiosk Mode**: Tablet-optimized interface for time clock stations.
@@ -58,10 +58,26 @@ Preferred communication style: Simple, everyday language.
 - **Mapping**: react-leaflet, OpenStreetMap.
 - **Facial Recognition**: MediaDevices API, Canvas API.
 - **PDF Generation**: jsPDF, html2canvas.
-- **Email Notifications**: SendGrid.
+- **Email Notifications**: nodemailer with SMTP (Hostinger).
 - **Other**: WebSocket Constructor (custom for Neon).
 
 ## Recent Changes (November 2025)
+
+### Email Service Migration to SMTP (November 21, 2025)
+Migrated email service from SendGrid to SMTP using nodemailer and Hostinger:
+
+**Implementation:**
+- Replaced SendGrid API with nodemailer SMTP transport in `server/emailService.ts`
+- Configured for Hostinger SMTP: `smtp.hostinger.com:465` with SSL
+- Required secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE=true`, `SMTP_USER`, `SMTP_PASSWORD`, `FROM_EMAIL`
+- SMTP_USER must be complete email address (e.g., `infosis@infosis.com.br`)
+- All email functionality (temporary passwords, password reset) working correctly via SMTP
+
+**Status:**
+✅ SMTP connection established successfully
+✅ Email delivery confirmed working (password reset tested)
+✅ SSL/TLS configuration correct for port 465
+✅ Authentication working with Hostinger credentials
 
 ### Automatic User Account Provisioning
 Implemented automatic user account creation with temporary password generation and email delivery:
@@ -69,7 +85,7 @@ Implemented automatic user account creation with temporary password generation a
 **Implementation:**
 - `server/emailService.ts`: `generateTemporaryPassword()` (12-char passwords with crypto.randomInt), `sendTemporaryPasswordEmail()` (branded Portuguese template)
 - `POST /api/admin/users`: Auto-creates user account with role='employee', generates password, sends email, sets mustChangePassword=true
-- `POST /api/admin/users/csv/import`: Bulk import with unique passwords per employee, sequential email sending (WARNING: large batches >50 may hit SendGrid rate limits)
+- `POST /api/admin/users/csv/import`: Bulk import with unique passwords per employee, sequential email sending (WARNING: large batches >50 may encounter SMTP throttling)
 - `POST /api/admin/users/:id/reset-password`: Admin-initiated password reset with new temporary password and email delivery
 - `client/src/pages/superadmin.tsx`: Password reset button (KeyRound icon) for each user
 - `client/src/pages/employees.tsx`: Enhanced error handling for emailFailed scenarios

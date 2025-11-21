@@ -30,7 +30,6 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASSWORD) {
   });
   console.log('[EMAIL] SMTP transporter configured successfully');
   console.log(`[EMAIL] SMTP Config: ${SMTP_HOST}:${SMTP_PORT} (secure: ${SMTP_SECURE})`);
-  console.log(`[EMAIL] SMTP User: ${SMTP_USER}`);
 } else {
   console.warn('[EMAIL] SMTP not configured. Missing required environment variables (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)');
 }
