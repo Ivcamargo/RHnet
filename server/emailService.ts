@@ -116,10 +116,10 @@ Equipe RHNet
 
 /**
  * Generates a secure temporary password
- * @param length - Length of password (default: 10)
+ * @param length - Length of password (default: 12)
  * @returns Random password with letters, numbers and symbols
  */
-export function generateTemporaryPassword(length: number = 10): string {
+export function generateTemporaryPassword(length: number = 12): string {
   const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I, O for clarity
   const lowercase = 'abcdefghjkmnpqrstuvwxyz'; // Removed i, l, o for clarity
   const numbers = '23456789'; // Removed 0, 1 for clarity

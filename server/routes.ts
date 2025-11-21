@@ -2186,6 +2186,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trim: true
       });
 
+      // WARNING: CSV import is synchronous - large imports may hit SendGrid rate limits
+      if (records.length > 50) {
+        console.warn(`[CSV IMPORT] Processing ${records.length} records synchronously. Large batches may encounter SendGrid rate limiting.`);
+      }
+
       const results = {
         success: 0,
         errors: [] as Array<{ row: number; email: string; error: string }>,
