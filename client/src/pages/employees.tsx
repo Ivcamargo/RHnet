@@ -558,6 +558,7 @@ export default function Employees() {
 
   // Handler para erros de validação - navega para a aba com o primeiro erro e foca no campo
   const onAddFormInvalid = (errors: any) => {
+    console.log('[FORM VALIDATION ERROR]', JSON.stringify(errors, null, 2));
     const firstErrorField = Object.keys(errors)[0];
     const targetTab = FIELD_TO_TAB_MAP[firstErrorField] || 'pessoais';
     
@@ -584,6 +585,7 @@ export default function Employees() {
   };
 
   const onSubmitNewEmployee = (data: InsertCompleteEmployee) => {
+    console.log('[SUBMIT NEW EMPLOYEE]', data);
     // Validação de companyId
     if (user?.role === 'superadmin') {
       // Superadmin deve selecionar uma empresa
