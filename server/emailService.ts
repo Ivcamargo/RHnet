@@ -1,5 +1,6 @@
 import { MailService } from '@sendgrid/mail';
 import type { Lead } from '@shared/schema';
+import crypto from 'crypto';
 
 // Graceful fallback if SendGrid is not configured
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -99,6 +100,127 @@ Equipe RHNet
         
         <p style="color: #999; font-size: 12px; text-align: center;">
           Este é um email automático. Por favor, não responda.
+        </p>
+      </div>
+    </div>
+  `;
+
+  return await sendEmail({
+    to: userEmail,
+    from: FROM_EMAIL,
+    subject,
+    text,
+    html,
+  });
+}
+
+/**
+ * Generates a secure temporary password
+ * @param length - Length of password (default: 10)
+ * @returns Random password with letters, numbers and symbols
+ */
+export function generateTemporaryPassword(length: number = 10): string {
+  const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I, O for clarity
+  const lowercase = 'abcdefghjkmnpqrstuvwxyz'; // Removed i, l, o for clarity
+  const numbers = '23456789'; // Removed 0, 1 for clarity
+  const symbols = '!@#$%&*';
+  
+  const allChars = uppercase + lowercase + numbers + symbols;
+  
+  let password = '';
+  // Ensure at least one of each type
+  password += uppercase[crypto.randomInt(uppercase.length)];
+  password += lowercase[crypto.randomInt(lowercase.length)];
+  password += numbers[crypto.randomInt(numbers.length)];
+  password += symbols[crypto.randomInt(symbols.length)];
+  
+  // Fill the rest randomly
+  for (let i = password.length; i < length; i++) {
+    password += allChars[crypto.randomInt(allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => crypto.randomInt(3) - 1).join('');
+}
+
+/**
+ * Sends an email with temporary password credentials
+ * @param userEmail - Employee's email address
+ * @param userName - Employee's name
+ * @param temporaryPassword - The generated temporary password
+ * @returns Promise<boolean> - Success status
+ */
+export async function sendTemporaryPasswordEmail(
+  userEmail: string,
+  userName: string,
+  temporaryPassword: string
+): Promise<boolean> {
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000';
+  const loginUrl = `${baseUrl}/`;
+  
+  const subject = 'RHNet - Bem-vindo! Suas Credenciais de Acesso';
+  
+  const text = `
+Olá ${userName},
+
+Bem-vindo ao RHNet! Sua conta foi criada com sucesso.
+
+Para acessar o sistema, utilize as seguintes credenciais:
+
+Email: ${userEmail}
+Senha Temporária: ${temporaryPassword}
+
+Acesse: ${loginUrl}
+
+IMPORTANTE: Por segurança, você será solicitado a criar uma nova senha no seu primeiro acesso.
+
+Equipe RHNet
+  `.trim();
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, hsl(210, 100%, 25%) 0%, hsl(180, 60%, 70%) 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Bem-vindo ao RHNet!</h1>
+        <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Sistema de Recursos Humanos</p>
+      </div>
+      
+      <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h2 style="color: hsl(210, 100%, 25%); margin-top: 0;">Suas Credenciais de Acesso</h2>
+        
+        <p style="color: #333; line-height: 1.6;">
+          Olá <strong>${userName}</strong>,
+        </p>
+        
+        <p style="color: #333; line-height: 1.6;">
+          Sua conta no RHNet foi criada com sucesso! Utilize as credenciais abaixo para fazer seu primeiro acesso:
+        </p>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid hsl(180, 60%, 70%);">
+          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><strong>Email:</strong></p>
+          <p style="margin: 0 0 20px 0; color: #333; font-size: 16px; font-family: monospace;">${userEmail}</p>
+          
+          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;"><strong>Senha Temporária:</strong></p>
+          <p style="margin: 0; color: #333; font-size: 20px; font-weight: bold; font-family: monospace; letter-spacing: 2px;">${temporaryPassword}</p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${loginUrl}" 
+             style="background: hsl(210, 100%, 25%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            Acessar RHNet
+          </a>
+        </div>
+        
+        <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.6;">
+            <strong>⚠️ Importante:</strong> Por segurança, você será solicitado a criar uma nova senha no seu primeiro acesso. Guarde bem sua senha temporária para este primeiro login.
+          </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="color: #999; font-size: 12px; text-align: center;">
+          Este é um email automático. Por favor, não responda.<br>
+          Se você não solicitou esta conta, entre em contato com o administrador do sistema.
         </p>
       </div>
     </div>

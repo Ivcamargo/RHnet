@@ -69,7 +69,7 @@ import multer from "multer";
 import { getBrazilianTime, getBrazilianDateString, convertToLocal, convertLocalToUTC } from "../shared/timezone";
 import { parse } from "csv-parse/sync";
 import { stringify } from "csv-stringify/sync";
-import { sendLeadNotificationEmail } from "./emailService";
+import { sendLeadNotificationEmail, generateTemporaryPassword, sendTemporaryPasswordEmail } from "./emailService";
 
 // Helper function to create audit logs
 async function createAuditLog(
@@ -4587,14 +4587,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a unique ID for the new user
       const userId = `emp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Create new user with complete employee data
+      // Generate temporary password and hash it
+      const temporaryPassword = generateTemporaryPassword(10);
+      const passwordHash = await hashPassword(temporaryPassword);
+      
+      // Create new user with complete employee data, password, and force password change
       const userData = {
         id: userId,
         ...employeeData,
+        passwordHash,
+        role: employeeData.role || 'employee', // Default to employee if not specified
+        mustChangePassword: true, // Force password change on first login
         isActive: true,
       };
       
       const newUser = await storage.upsertUser(userData);
+      
+      // Send welcome email with temporary password
+      const emailSent = await sendTemporaryPasswordEmail(
+        newUser.email,
+        `${newUser.firstName} ${newUser.lastName}`,
+        temporaryPassword
+      );
+      
+      if (!emailSent) {
+        console.warn(`Failed to send welcome email to ${newUser.email}, but user was created successfully`);
+      }
       
       // Get department info if assigned
       let department = null;
@@ -4602,7 +4620,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         department = await storage.getDepartment(newUser.departmentId);
       }
       
-      res.status(201).json({ ...newUser, department });
+      res.status(201).json({ 
+        ...newUser, 
+        department,
+        // Include temporary password in response for admin to show to user if email fails
+        temporaryPassword: emailSent ? undefined : temporaryPassword,
+        emailSent
+      });
     } catch (error) {
       console.error("Error creating employee:", error);
       if (error instanceof z.ZodError) {
