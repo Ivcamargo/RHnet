@@ -178,19 +178,26 @@ export default function SuperAdmin() {
 
   // Reset password mutation
   const resetPasswordMutation = useMutation({
-    mutationFn: (userId: string) => {
-      return apiRequest(`/api/admin/users/${userId}/reset-password`, {
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
         method: "POST",
         credentials: "include",
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao resetar senha");
+      }
+      
+      return await response.json();
     },
-    onSuccess: (response) => {
+    onSuccess: (data) => {
       toast({
         title: "Senha resetada",
-        description: response.emailSent 
+        description: data.emailSent 
           ? "Nova senha temporária enviada por email." 
-          : `Email falhou. Senha temporária: ${response.temporaryPassword}`,
-        variant: response.emailSent ? "default" : "destructive"
+          : `Email falhou. Senha temporária: ${data.temporaryPassword}`,
+        variant: data.emailSent ? "default" : "destructive"
       });
     },
     onError: (error: any) => {
