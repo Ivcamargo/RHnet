@@ -4405,6 +4405,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reset user password and send new credentials via email (admin only)
+  app.post('/api/admin/users/:id/reset-password', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const userId = req.params.id;
+      
+      // Get user to reset password for
+      const userToReset = await storage.getUser(userId);
+      if (!userToReset) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // CRITICAL SECURITY: Role-based authorization
+      if (currentUser.role === 'admin') {
+        // Admins can only reset passwords for employees from their own company
+        if (!currentUser?.companyId) {
+          return res.status(400).json({ message: "Admin must be assigned to a company" });
+        }
+        if (userToReset.companyId !== currentUser.companyId) {
+          return res.status(403).json({ message: "Access denied: cannot reset password for user from different company" });
+        }
+        // Admins cannot reset passwords for other admins or superadmins
+        if (userToReset.role === 'admin' || userToReset.role === 'superadmin') {
+          return res.status(403).json({ message: "Access denied: cannot reset password for admin or superadmin users" });
+        }
+      }
+      // Superadmins can reset any user's password (no additional restrictions)
+
+      // Prevent resetting your own password through this endpoint (use normal password change flow)
+      if (userId === currentUser.id) {
+        return res.status(400).json({ message: "Use the normal password change flow to update your own password" });
+      }
+
+      // Generate new temporary password and hash it
+      const temporaryPassword = generateTemporaryPassword(10);
+      const passwordHash = await hashPassword(temporaryPassword);
+      
+      // Update user with new password hash and force password change
+      await storage.updateUser(userId, { 
+        passwordHash,
+        mustChangePassword: true
+      });
+
+      // Get user name for email
+      const userName = userToReset.firstName && userToReset.lastName 
+        ? `${userToReset.firstName} ${userToReset.lastName}`
+        : userToReset.personalInfo?.fullName || 'Usuário';
+
+      // Send email with new temporary password
+      const emailSent = await sendTemporaryPasswordEmail(
+        userToReset.email,
+        userName,
+        temporaryPassword
+      );
+      
+      if (!emailSent) {
+        console.warn(`Failed to send password reset email to ${userToReset.email}`);
+        // Still return success but include the temporary password for admin to manually share
+        return res.status(200).json({ 
+          message: "Password reset successfully, but email failed to send",
+          emailSent: false,
+          temporaryPassword // Include password so admin can manually share it
+        });
+      }
+
+      // Create audit log
+      await createAuditLog(
+        req.user.claims.sub,
+        currentUser.companyId!,
+        'UPDATE',
+        'user',
+        userId,
+        { 
+          action: 'password_reset',
+          performedBy: `${currentUser.firstName} ${currentUser.lastName}`,
+          targetUser: userToReset.email
+        }
+      );
+      
+      res.status(200).json({ 
+        message: "Password reset successfully and email sent",
+        emailSent: true
+      });
+    } catch (error) {
+      console.error("Error resetting user password:", error);
+      res.status(500).json({ message: "Failed to reset user password" });
+    }
+  });
+
   // Hard delete route - PERMANENT deletion (separate from soft delete)
   app.post('/api/admin/users/:id/hard-delete', isAuthenticatedHybrid, async (req: any, res) => {
     try {
