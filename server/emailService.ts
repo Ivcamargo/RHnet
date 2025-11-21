@@ -1,17 +1,32 @@
-import { MailService } from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import type { Lead } from '@shared/schema';
 import crypto from 'crypto';
 
-// Graceful fallback if SendGrid is not configured
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const SALES_EMAIL = process.env.SALES_EMAIL || 'infosis@infosis.com.br';
+// SMTP Configuration from environment variables
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
+const SMTP_SECURE = process.env.SMTP_SECURE === 'true'; // true for 465, false for other ports
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@rhnet.com';
+const SALES_EMAIL = process.env.SALES_EMAIL || 'infosis@infosis.com.br';
 
-const mailService = new MailService();
-if (SENDGRID_API_KEY) {
-  mailService.setApiKey(SENDGRID_API_KEY);
+// Create reusable transporter using SMTP
+let transporter: nodemailer.Transporter | null = null;
+
+if (SMTP_HOST && SMTP_USER && SMTP_PASSWORD) {
+  transporter = nodemailer.createTransporter({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASSWORD,
+    },
+  });
+  console.log('[EMAIL] SMTP transporter configured successfully');
 } else {
-  console.warn('SendGrid API key not configured. Email sending will be logged only.');
+  console.warn('[EMAIL] SMTP not configured. Missing required environment variables (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)');
 }
 
 interface EmailParams {
@@ -23,19 +38,25 @@ interface EmailParams {
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
+  if (!transporter) {
+    console.error('[EMAIL] Cannot send email - SMTP not configured');
+    return false;
+  }
+
   try {
-    const emailData: any = {
-      to: params.to,
+    const mailOptions = {
       from: params.from,
+      to: params.to,
       subject: params.subject,
+      text: params.text,
+      html: params.html,
     };
-    if (params.text) emailData.text = params.text;
-    if (params.html) emailData.html = params.html;
     
-    await mailService.send(emailData);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[EMAIL] Email sent successfully:', info.messageId);
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('[EMAIL] SMTP error:', error);
     return false;
   }
 }
@@ -236,10 +257,10 @@ Equipe RHNet
 }
 
 export async function sendLeadNotificationEmail(lead: Lead): Promise<boolean> {
-  // If SendGrid is not configured, log and return gracefully
-  if (!SENDGRID_API_KEY) {
-    console.log('SendGrid not configured. Lead notification email not sent.');
-    console.log('New lead received:', {
+  // If SMTP is not configured, log and return gracefully
+  if (!transporter) {
+    console.log('[EMAIL] SMTP not configured. Lead notification email not sent.');
+    console.log('[EMAIL] New lead received:', {
       name: lead.name,
       email: lead.email,
       company: lead.companyName || 'N/A',
