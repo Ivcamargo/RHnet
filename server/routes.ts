@@ -4499,6 +4499,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle user active status (block/unblock user)
+  app.post('/api/admin/users/:id/toggle-active', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'superadmin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const userId = req.params.id;
+      
+      // Get user to toggle status
+      const userToToggle = await storage.getUser(userId);
+      if (!userToToggle) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // CRITICAL SECURITY: Role-based authorization
+      if (currentUser.role === 'admin') {
+        // Admins can only toggle status for employees from their own company
+        if (!currentUser?.companyId) {
+          return res.status(400).json({ message: "Admin must be assigned to a company" });
+        }
+        if (userToToggle.companyId !== currentUser.companyId) {
+          return res.status(403).json({ message: "Access denied: cannot toggle status for user from different company" });
+        }
+        // Admins cannot toggle status for other admins or superadmins
+        if (userToToggle.role === 'admin' || userToToggle.role === 'superadmin') {
+          return res.status(403).json({ message: "Access denied: cannot toggle status for admin or superadmin users" });
+        }
+      }
+      // Superadmins can toggle any user's status (no additional restrictions)
+
+      // Prevent toggling your own status
+      if (userId === currentUser.id) {
+        return res.status(400).json({ message: "Cannot toggle your own account status" });
+      }
+
+      // Toggle the isActive status
+      const newStatus = !userToToggle.isActive;
+      await storage.updateUser(userId, { isActive: newStatus });
+
+      // Create audit log - use target user's companyId if currentUser has none (superadmin case)
+      // If neither has a company, use null (schema allows nullable companyId)
+      const auditCompanyId = currentUser.companyId || userToToggle.companyId || null;
+      if (auditCompanyId !== null) {
+        await createAuditLog(
+          req.user.claims.sub,
+          auditCompanyId,
+          'UPDATE',
+          'user',
+          userId,
+          { 
+            action: newStatus ? 'user_activated' : 'user_deactivated',
+            performedBy: `${currentUser.firstName} ${currentUser.lastName}`,
+            targetUser: userToToggle.email,
+            newStatus: newStatus ? 'active' : 'inactive'
+          }
+        );
+      } else {
+        // Skip audit log if no valid companyId is available
+        console.log(`[AUDIT] Skipping audit log for user toggle (no company context): user ${userId}`);
+      }
+      
+      res.status(200).json({ 
+        message: newStatus ? "Usuário ativado com sucesso" : "Usuário bloqueado com sucesso",
+        isActive: newStatus
+      });
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      res.status(500).json({ message: "Failed to toggle user status" });
+    }
+  });
+
   // Hard delete route - PERMANENT deletion (separate from soft delete)
   app.post('/api/admin/users/:id/hard-delete', isAuthenticatedHybrid, async (req: any, res) => {
     try {

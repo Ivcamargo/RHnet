@@ -20,7 +20,9 @@ import {
   Shield, 
   Plus,
   Settings,
-  KeyRound
+  KeyRound,
+  Ban,
+  ShieldCheck
 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
@@ -218,6 +220,37 @@ export default function SuperAdmin() {
       toast({
         title: "Erro ao resetar senha",
         description: error.message || "Ocorreu um erro ao resetar a senha.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle user active status mutation
+  const toggleActiveStatusMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/admin/users/${userId}/toggle-active`, {
+        method: "POST",
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao alterar status do usuário");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/users"] });
+      toast({
+        title: data.isActive ? "Usuário ativado" : "Usuário bloqueado",
+        description: data.message,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao alterar status",
+        description: error.message || "Ocorreu um erro ao alterar o status do usuário.",
         variant: "destructive",
       });
     },
@@ -705,6 +738,20 @@ export default function SuperAdmin() {
                                     title="Resetar senha e enviar email"
                                   >
                                     <KeyRound className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant={user.isActive ? "outline" : "default"}
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleActiveStatusMutation.mutate(user.id);
+                                    }}
+                                    disabled={toggleActiveStatusMutation.isPending}
+                                    data-testid={`button-toggle-active-${user.id}`}
+                                    title={user.isActive ? "Bloquear usuário" : "Ativar usuário"}
+                                    className={user.isActive ? "" : "bg-green-600 hover:bg-green-700"}
+                                  >
+                                    {user.isActive ? <Ban className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
                                   </Button>
                                 </div>
                               </TableCell>
