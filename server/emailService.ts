@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import type { Lead } from '@shared/schema';
 import crypto from 'crypto';
+import type { Transporter } from 'nodemailer';
 
 // SMTP Configuration from environment variables
 const SMTP_HOST = process.env.SMTP_HOST;
@@ -12,10 +13,10 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@rhnet.com';
 const SALES_EMAIL = process.env.SALES_EMAIL || 'infosis@infosis.com.br';
 
 // Create reusable transporter using SMTP
-let transporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
 
 if (SMTP_HOST && SMTP_USER && SMTP_PASSWORD) {
-  transporter = nodemailer.createTransporter({
+  transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
