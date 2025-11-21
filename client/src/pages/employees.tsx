@@ -309,16 +309,37 @@ export default function Employees() {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (data: InsertCompleteEmployee) => {
-      await apiRequest("/api/admin/users", { method: "POST", body: JSON.stringify(data) });
+      const response = await fetch("/api/admin/users", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data) 
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao cadastrar funcionário");
+      }
+      
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       setIsAddDialogOpen(false);
       addForm.reset();
-      toast({
-        title: "Sucesso",
-        description: "Funcionário cadastrado com sucesso",
-      });
+      
+      if (data.emailFailed) {
+        toast({
+          title: "Atenção",
+          description: data.message || "Funcionário cadastrado, mas não foi possível enviar o email com as credenciais. Entre em contato com o administrador do sistema para obter as credenciais de acesso.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sucesso",
+          description: "Funcionário cadastrado com sucesso e email com credenciais enviado!",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
