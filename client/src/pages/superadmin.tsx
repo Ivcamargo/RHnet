@@ -70,6 +70,7 @@ export default function SuperAdmin() {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const companyForm = useForm<CompanyFormData>({
@@ -179,6 +180,9 @@ export default function SuperAdmin() {
   // Reset password mutation
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: string) => {
+      console.log('[RESET PASSWORD] Iniciando reset para userId:', userId);
+      setResettingPasswordUserId(userId);
+      
       const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
         method: "POST",
         credentials: "include",
@@ -189,15 +193,21 @@ export default function SuperAdmin() {
         throw new Error(error.message || "Erro ao resetar senha");
       }
       
-      return await response.json();
+      const result = await response.json();
+      console.log('[RESET PASSWORD] Resposta do servidor:', result);
+      return result;
     },
     onSuccess: (data) => {
+      console.log('[RESET PASSWORD] Sucesso para userId:', resettingPasswordUserId);
+      setResettingPasswordUserId(null);
       toast({
         title: "Senha resetada",
         description: "Nova senha temporária enviada por email com sucesso.",
       });
     },
     onError: (error: any) => {
+      console.error('[RESET PASSWORD] Erro:', error);
+      setResettingPasswordUserId(null);
       toast({
         title: "Erro ao resetar senha",
         description: error.message || "Ocorreu um erro ao resetar a senha.",
@@ -569,8 +579,12 @@ export default function SuperAdmin() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => resetPasswordMutation.mutate(user.id)}
-                                    disabled={resetPasswordMutation.isPending}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      console.log('[BUTTON CLICK] Reset password para user.id:', user.id);
+                                      resetPasswordMutation.mutate(user.id);
+                                    }}
+                                    disabled={resettingPasswordUserId === user.id}
                                     data-testid={`button-reset-password-${user.id}`}
                                     title="Resetar senha e enviar email"
                                   >
