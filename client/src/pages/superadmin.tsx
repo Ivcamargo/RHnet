@@ -19,7 +19,8 @@ import {
   Edit, 
   Shield, 
   Plus,
-  Settings
+  Settings,
+  KeyRound
 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
@@ -170,6 +171,32 @@ export default function SuperAdmin() {
       toast({
         title: "Erro ao atualizar usuário",
         description: error.message || "Ocorreu um erro ao atualizar o usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: (userId: string) => {
+      return apiRequest(`/api/admin/users/${userId}/reset-password`, {
+        method: "POST",
+        credentials: "include",
+      });
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "Senha resetada",
+        description: response.emailSent 
+          ? "Nova senha temporária enviada por email." 
+          : `Email falhou. Senha temporária: ${response.temporaryPassword}`,
+        variant: response.emailSent ? "default" : "destructive"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao resetar senha",
+        description: error.message || "Ocorreu um erro ao resetar a senha.",
         variant: "destructive",
       });
     },
@@ -526,14 +553,26 @@ export default function SuperAdmin() {
                                 {formatDate(user.createdAt)}
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditUser(user)}
-                                  data-testid={`button-edit-user-${user.id}`}
-                                >
-                                  <Settings className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditUser(user)}
+                                    data-testid={`button-edit-user-${user.id}`}
+                                  >
+                                    <Settings className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => resetPasswordMutation.mutate(user.id)}
+                                    disabled={resetPasswordMutation.isPending}
+                                    data-testid={`button-reset-password-${user.id}`}
+                                    title="Resetar senha e enviar email"
+                                  >
+                                    <KeyRound className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
