@@ -63,6 +63,29 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
 
+### User Block/Unblock Feature (November 21, 2025)
+Implemented complete user block/unblock functionality in SuperAdmin:
+
+**Backend Implementation:**
+- POST /api/admin/users/:id/toggle-active endpoint in `server/routes.ts`
+- Role-based authorization: SuperAdmins can toggle any user, Admins can only toggle employees from their company
+- Prevents self-toggling and toggling of admin/superadmin users (for regular admins)
+- Smart audit log handling: Uses currentUser or target user's companyId, skips audit log if neither has company assignment
+- Returns updated status and success message
+
+**Frontend Implementation:**
+- Toggle button in users table with dynamic icons:
+  - Ban icon (red outline) for active users → click to block
+  - ShieldCheck icon (green fill) for inactive users → click to activate
+- Real-time UI updates via TanStack Query cache invalidation
+- Toast notifications for success/error feedback
+- Disabled state during mutation to prevent double-clicks
+- `client/src/pages/superadmin.tsx`: Added toggleActiveStatusMutation, button with conditional styling
+
+**Testing:**
+- e2e tests passed for all scenarios including edge cases (superadmin without company, user without company)
+- Verified no 500 errors, proper audit log creation, and UI updates
+
 ### User Management Filters (November 21, 2025)
 Added comprehensive filtering system for SuperAdmin user management:
 
