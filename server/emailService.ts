@@ -24,8 +24,12 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASSWORD) {
       user: SMTP_USER,
       pass: SMTP_PASSWORD,
     },
+    connectionTimeout: 10000, // 10 seconds timeout
+    greetingTimeout: 10000,   // 10 seconds for server greeting
+    socketTimeout: 10000,     // 10 seconds socket timeout
   });
   console.log('[EMAIL] SMTP transporter configured successfully');
+  console.log(`[EMAIL] SMTP Config: ${SMTP_HOST}:${SMTP_PORT} (secure: ${SMTP_SECURE})`);
 } else {
   console.warn('[EMAIL] SMTP not configured. Missing required environment variables (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)');
 }
