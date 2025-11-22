@@ -31,23 +31,25 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Features
 - **System Initialization**: First-time setup flow for production deployments.
-- **Automatic User Provisioning**: When employees are created (individually or via CSV import), system automatically generates secure 12-character temporary passwords, sends credentials via SMTP email with branded Portuguese template, and enforces password change on first login. Admins can reset passwords from SuperAdmin page. Temporary passwords are never exposed via API responses (only logged server-side with [SECURITY] tag for debugging).
-- **Geolocation & Geofencing**: Time tracking with location verification and geofencing.
-- **Time Tracking**: Clock in/out with location/facial verification, break management, IP tracking, shift schedule compliance, and UTC timestamp storage.
+- **Automatic User Provisioning**: Generates secure temporary passwords, sends credentials via SMTP email, and enforces password change on first login.
+- **Time Tracking**: Clock in/out with location/facial verification, break management, IP tracking, shift schedule compliance, and UTC timestamp storage. Includes geolocation & geofencing.
 - **Terminal/Kiosk Mode**: Tablet-optimized interface for time clock stations.
-- **Shift & Rotation Management**: CRUD for shifts and rotation templates, with automatic break management.
-- **Password Management**: Self-service password change, admin-initiated password reset, forgot password flow with token-based reset.
+- **Shift & Rotation Management**: CRUD for shifts and rotation templates.
+- **Password Management**: Self-service and admin-initiated password reset.
 - **Course Management**: Admin interface for quizzes.
 - **Messaging System**: Multi-target messaging with contextual messaging from documents.
 - **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files (Portaria 671/2021).
-- **CSV Import/Export**: Bulk employee management with automatic account creation and email delivery.
+- **CSV Import/Export**: Bulk employee management with automatic account creation.
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export, and "Inconsistency Reporting".
-- **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding, including a weighted scoring system based on configurable job requirements.
-- **DISC Personality Assessment**: Integrated 24-28 question DISC assessment within recruitment, with configurable requirements, timing, ideal profile specification, and compatibility scoring.
-- **Overtime & Time Bank System**: Configurable overtime management with percentage rates and dual modes (paid overtime or time bank credits).
+- **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding, including weighted scoring.
+- **DISC Personality Assessment**: Integrated 24-28 question DISC assessment within recruitment, with configurable requirements and compatibility scoring.
+- **Overtime & Time Bank System**: Configurable overtime management with percentage rates and dual modes.
 - **System User Manual**: In-app documentation with PDF export.
-- **Lead Capture System**: Commercial prospecting functionality with lead lifecycle management, public-facing forms, and admin interface.
-- **Inventory & EPI Management**: Comprehensive system including categories, items, stock, movements, and employee-assigned items with digital signatures, role-based access, and expiry calculation.
+- **Lead Capture System**: Commercial prospecting functionality with lead lifecycle management.
+- **Inventory & EPI Management**: Comprehensive system including categories, items, stock, movements, and employee-assigned items with digital signatures and role-based access.
+
+### Planned Features
+- **Offline Mode for Login and Time Tracking**: Allows offline operation with automatic synchronization upon regaining connectivity. This includes local authentication, IndexedDB storage for time entries, background sync via Service Worker, and a review system for HR to manage invalid offline entries.
 
 ## External Dependencies
 
@@ -58,92 +60,4 @@ Preferred communication style: Simple, everyday language.
 - **Mapping**: react-leaflet, OpenStreetMap.
 - **Facial Recognition**: MediaDevices API, Canvas API.
 - **PDF Generation**: jsPDF, html2canvas.
-- **Email Notifications**: nodemailer with SMTP (Hostinger).
-- **Other**: WebSocket Constructor (custom for Neon).
-
-## Recent Changes (November 2025)
-
-### User Block/Unblock Feature (November 21, 2025)
-Implemented complete user block/unblock functionality in SuperAdmin:
-
-**Backend Implementation:**
-- POST /api/admin/users/:id/toggle-active endpoint in `server/routes.ts`
-- Role-based authorization: SuperAdmins can toggle any user, Admins can only toggle employees from their company
-- Prevents self-toggling and toggling of admin/superadmin users (for regular admins)
-- Smart audit log handling: Uses currentUser or target user's companyId, skips audit log if neither has company assignment
-- Returns updated status and success message
-
-**Frontend Implementation:**
-- Toggle button in users table with dynamic icons:
-  - Ban icon (red outline) for active users → click to block
-  - ShieldCheck icon (green fill) for inactive users → click to activate
-- Real-time UI updates via TanStack Query cache invalidation
-- Toast notifications for success/error feedback
-- Disabled state during mutation to prevent double-clicks
-- `client/src/pages/superadmin.tsx`: Added toggleActiveStatusMutation, button with conditional styling
-
-**Testing:**
-- e2e tests passed for all scenarios including edge cases (superadmin without company, user without company)
-- Verified no 500 errors, proper audit log creation, and UI updates
-
-### User Management Filters (November 21, 2025)
-Added comprehensive filtering system for SuperAdmin user management:
-
-**Implementation:**
-- Search filter: Search users by name or email with real-time filtering
-- Company filter: Filter by specific company or "no company" users
-- Role filter: Filter by user role (SuperAdmin, Admin, Employee)
-- Status filter: Filter by active/inactive users
-- Results counter: Shows filtered results vs total users
-- Status badge: Visual indicator in table showing active/inactive status
-
-**UI Components:**
-- 4-column responsive filter grid (search, company, role, status)
-- Real-time filtering without page refresh
-- Empty state with helpful message when filters return no results
-- `client/src/pages/superadmin.tsx`: Added filter states, filteredUsers logic, and filter UI components
-
-### Email Service Migration to SMTP (November 21, 2025)
-Migrated email service from SendGrid to SMTP using nodemailer and Hostinger:
-
-**Implementation:**
-- Replaced SendGrid API with nodemailer SMTP transport in `server/emailService.ts`
-- Configured for Hostinger SMTP: `smtp.hostinger.com:465` with SSL
-- Required secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE=true`, `SMTP_USER`, `SMTP_PASSWORD`, `FROM_EMAIL`
-- SMTP_USER must be complete email address (e.g., `infosis@infosis.com.br`)
-- All email functionality (temporary passwords, password reset) working correctly via SMTP
-- Email links use `BASE_URL` environment variable (production) or fall back to `REPLIT_DEV_DOMAIN` (development)
-
-**Status:**
-✅ SMTP connection established successfully
-✅ Email delivery confirmed working (password reset tested)
-✅ SSL/TLS configuration correct for port 465
-✅ Authentication working with Hostinger credentials
-
-### Automatic User Account Provisioning
-Implemented automatic user account creation with temporary password generation and email delivery:
-
-**Implementation:**
-- `server/emailService.ts`: `generateTemporaryPassword()` (12-char passwords with crypto.randomInt), `sendTemporaryPasswordEmail()` (branded Portuguese template)
-- `POST /api/admin/users`: Auto-creates user account with role='employee', generates password, sends email, sets mustChangePassword=true
-- `POST /api/admin/users/csv/import`: Bulk import with unique passwords per employee, sequential email sending (WARNING: large batches >50 may encounter SMTP throttling)
-- `POST /api/admin/users/:id/reset-password`: Admin-initiated password reset with new temporary password and email delivery
-- `client/src/pages/superadmin.tsx`: Password reset button (KeyRound icon) for each user
-- `client/src/pages/employees.tsx`: Enhanced error handling for emailFailed scenarios
-
-**Security:**
-- Passwords NEVER returned in API responses (only logged server-side with [SECURITY] tag)
-- argon2id password hashing
-- Email delivery failures return error status (201 with emailFailed flag or 500 for reset)
-
-**Known Issues:**
-- Employee creation UI form has intermittent validation issues with `position` field appearing filled but validation failing - use API directly (POST /api/admin/users) as workaround
-- CSV import is synchronous - large batches may encounter SendGrid throttling
-- GET /api/admin/departments may return HTML in some cases instead of JSON
-
-**Testing Status:**
-✅ Core functionality tested and working via API
-✅ Password security verified (no plaintext exposure)
-✅ Email failure handling tested  
-✅ User accounts created with correct role and flags
-⚠️ UI form submission needs debugging (API workaround available)
+- **Email Notifications**: nodemailer with SMTP.

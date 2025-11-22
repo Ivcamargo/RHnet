@@ -104,6 +104,7 @@ export default function Sidebar() {
     { name: "Leads", href: "/admin/leads", icon: UserPlus },
     { name: "Departamentos", href: "/departments", icon: Building2 },
     { name: "Setores", href: "/sectors", icon: Building2 },
+    { name: "Arquivos Legais (AFD/AEJ)", href: "/admin/arquivos-legais", icon: FileText },
   ];
 
   // Superadmin-only navigation items
