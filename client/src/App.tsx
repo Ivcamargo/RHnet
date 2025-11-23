@@ -46,6 +46,8 @@ import OvertimeConfig from "@/pages/overtime-config";
 import TimeBank from "@/pages/time-bank";
 import ScreenshotHelper from "@/pages/screenshot-helper";
 import DISCAssessment from "@/pages/disc-assessment";
+import MyAbsences from "@/pages/my-absences";
+import AdminAbsences from "@/pages/admin-absences";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ 
@@ -139,6 +141,8 @@ function Router() {
       <Route path="/admin/inventory/distribute" component={(routeProps) => <ProtectedRoute component={InventoryDistribution} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/admin/inventory/history" component={(routeProps) => <ProtectedRoute component={InventoryHistory} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/recruitment" component={(routeProps) => <ProtectedRoute component={Recruitment} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
+      <Route path="/my-absences" component={(routeProps) => <ProtectedRoute component={MyAbsences} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
+      <Route path="/admin/absences" component={(routeProps) => <ProtectedRoute component={AdminAbsences} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       <Route path="/manual" component={(routeProps) => <ProtectedRoute component={Manual} isAuthenticated={isAuthenticated} isLoading={isLoading} {...routeProps} />} />
       
       <Route component={NotFound} />

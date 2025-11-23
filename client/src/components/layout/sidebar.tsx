@@ -70,6 +70,7 @@ export default function Sidebar() {
     { name: "Mensagens", href: "/messages", icon: MessageSquare },
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
+    { name: "Minhas Férias", href: "/my-absences", icon: CalendarDays },
     { 
       name: "Estoque e EPIs", 
       icon: Package,
@@ -102,6 +103,7 @@ export default function Sidebar() {
     { name: "Funcionários", href: "/employees", icon: UsersRound },
     { name: "Recrutamento", href: "/recruitment", icon: BriefcaseBusiness },
     { name: "Leads", href: "/admin/leads", icon: UserPlus },
+    { name: "Gestão de Ausências", href: "/admin/absences", icon: CalendarDays },
     { name: "Departamentos", href: "/departments", icon: Building2 },
     { name: "Setores", href: "/sectors", icon: Building2 },
     { name: "Arquivos Legais (AFD/AEJ)", href: "/admin/arquivos-legais", icon: FileText },
