@@ -14,9 +14,9 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarIcon, Clock, FileText, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { insertAbsenceSchema, type Absence, type VacationBalance } from "shared/schema";
+import { insertAbsenceSchema, type Absence, type VacationBalance } from "@shared/schema";
 import { z } from "zod";
-import { formatBrazilianDate } from "../../../shared/timezone";
+import { formatBrazilianDate } from "@shared/timezone";
 
 const absenceTypeLabels: Record<string, string> = {
   vacation: "Férias",

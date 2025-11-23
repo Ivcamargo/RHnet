@@ -13,8 +13,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertCircle, Calendar, CheckCircle, Clock, Filter, User, XCircle } from "lucide-react";
 import { useState } from "react";
-import type { Absence } from "shared/schema";
-import { formatBrazilianDate } from "../../../shared/timezone";
+import type { Absence } from "@shared/schema";
+import { formatBrazilianDate } from "@shared/timezone";
 
 const absenceTypeLabels: Record<string, string> = {
   vacation: "Férias",
