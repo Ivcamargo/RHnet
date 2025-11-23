@@ -1,11 +1,16 @@
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -247,20 +252,41 @@ export default function MyAbsences() {
                           control={form.control}
                           name="startDate"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex flex-col">
                               <FormLabel className="text-black dark:text-white">Data Início *</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="date" 
-                                  {...field}
-                                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value);
-                                    calculateDays();
-                                  }}
-                                  data-testid="input-start-date"
-                                />
-                              </FormControl>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                      data-testid="button-start-date"
+                                    >
+                                      {field.value ? (
+                                        format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR })
+                                      ) : (
+                                        <span>Selecione a data</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value ? new Date(field.value) : undefined}
+                                    onSelect={(date) => {
+                                      field.onChange(date ? format(date, "yyyy-MM-dd") : "");
+                                      calculateDays();
+                                    }}
+                                    locale={ptBR}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -270,20 +296,41 @@ export default function MyAbsences() {
                           control={form.control}
                           name="endDate"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex flex-col">
                               <FormLabel className="text-black dark:text-white">Data Fim *</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="date" 
-                                  {...field}
-                                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value);
-                                    calculateDays();
-                                  }}
-                                  data-testid="input-end-date"
-                                />
-                              </FormControl>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                      data-testid="button-end-date"
+                                    >
+                                      {field.value ? (
+                                        format(new Date(field.value), "dd/MM/yyyy", { locale: ptBR })
+                                      ) : (
+                                        <span>Selecione a data</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value ? new Date(field.value) : undefined}
+                                    onSelect={(date) => {
+                                      field.onChange(date ? format(date, "yyyy-MM-dd") : "");
+                                      calculateDays();
+                                    }}
+                                    locale={ptBR}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                               <FormMessage />
                             </FormItem>
                           )}
