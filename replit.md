@@ -27,7 +27,7 @@ Preferred communication style: Simple, everyday language.
 - **Security**: Rate limiting, argon2id password hashing, role-based access control.
 
 ### Database Schema
-- **Core Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments, Job Openings, Applications, DISC Assessments, Inventory Items, Inventory Movements.
+- **Core Entities**: Users, Departments, Time Entries, Break Entries, Face Profiles, Sessions, User Shift Assignments, Job Openings, Applications, DISC Assessments, Inventory Items, Inventory Movements, Absences, Vacation Balances.
 
 ### Core Features
 - **System Initialization**: First-time setup flow for production deployments.
@@ -49,6 +49,15 @@ Preferred communication style: Simple, everyday language.
 - **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding, including weighted scoring.
 - **DISC Personality Assessment**: Integrated 24-28 question DISC assessment within recruitment, with configurable requirements and compatibility scoring.
 - **Overtime & Time Bank System**: Configurable overtime management with percentage rates and dual modes.
+- **Vacation & Absence Management**: Complete vacation and absence request/approval workflow with:
+  - 10 absence types (vacation, medical leave, maternity/paternity, bereavement, wedding, blood donation, military service, jury duty, other)
+  - Automatic vacation balance calculation (30 days/year CLT standard)
+  - Self-service request portal for employees with balance display
+  - Admin approval/rejection interface with reason tracking
+  - Status workflow: pending → approved/rejected/cancelled
+  - Dual notifications (email + internal messaging) on status changes
+  - Filters by type, status, date range
+  - Company-level isolation with superadmin override
 - **System User Manual**: In-app documentation with PDF export.
 - **Lead Capture System**: Commercial prospecting functionality with lead lifecycle management.
 - **Inventory & EPI Management**: Comprehensive system including categories, items, stock, movements, and employee-assigned items with digital signatures and role-based access.
