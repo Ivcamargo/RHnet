@@ -75,12 +75,22 @@ export default function OvertimeConfig() {
   const { data: rules = [] } = useQuery<OvertimeRule[]>({
     queryKey: selectedDepartment ? ["/api/overtime-rules", selectedDepartment] : [],
     enabled: !!selectedDepartment,
+    queryFn: async () => {
+      const response = await fetch(`/api/overtime-rules/${selectedDepartment}`);
+      if (!response.ok) throw new Error('Failed to fetch overtime rules');
+      return response.json();
+    },
   });
 
   // Fetch tiers for selected rule
   const { data: tiers = [] } = useQuery<OvertimeTier[]>({
     queryKey: selectedRule ? ["/api/overtime-tiers", selectedRule.id] : [],
     enabled: !!selectedRule,
+    queryFn: async () => {
+      const response = await fetch(`/api/overtime-tiers/${selectedRule?.id}`);
+      if (!response.ok) throw new Error('Failed to fetch overtime tiers');
+      return response.json();
+    },
   });
 
   // Create/Update rule mutation
