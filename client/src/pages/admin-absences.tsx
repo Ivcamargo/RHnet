@@ -60,6 +60,8 @@ export default function AdminAbsences() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [employeeFilter, setEmployeeFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedAbsence, setSelectedAbsence] = useState<Absence | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -70,6 +72,14 @@ export default function AdminAbsences() {
 
   const { data: pendingAbsences } = useQuery<AbsenceWithEmployee[]>({
     queryKey: ['/api/absences/pending'],
+  });
+
+  const { data: employees } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ['/api/users'],
+  });
+
+  const { data: departments } = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ['/api/departments'],
   });
 
   const approveMutation = useMutation({
@@ -137,6 +147,8 @@ export default function AdminAbsences() {
   const filteredAbsences = absences?.filter(a => {
     if (statusFilter !== 'all' && a.status !== statusFilter) return false;
     if (typeFilter !== 'all' && a.type !== typeFilter) return false;
+    if (employeeFilter !== 'all' && a.userId !== employeeFilter) return false;
+    if (departmentFilter !== 'all' && a.employee?.departmentId?.toString() !== departmentFilter) return false;
     return true;
   }) || [];
 
@@ -320,7 +332,7 @@ export default function AdminAbsences() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 dark:bg-transparent">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                       <div>
                         <Label className="text-black dark:text-white">Status</Label>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -348,6 +360,38 @@ export default function AdminAbsences() {
                             {Object.entries(absenceTypeLabels).map(([value, label]) => (
                               <SelectItem key={value} value={value}>
                                 {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-black dark:text-white">Funcionário</Label>
+                        <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                          <SelectTrigger data-testid="select-filter-employee">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {employees?.map((employee) => (
+                              <SelectItem key={employee.id} value={employee.id}>
+                                {employee.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-black dark:text-white">Departamento</Label>
+                        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                          <SelectTrigger data-testid="select-filter-department">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            {departments?.map((department) => (
+                              <SelectItem key={department.id} value={department.id.toString()}>
+                                {department.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
