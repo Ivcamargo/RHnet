@@ -4,10 +4,11 @@
  */
 
 import { db } from '../../db';
-import { legalFiles, legalNsrSequences, timeEntries, users, companies } from '@shared/schema';
+import { legalFiles, legalNsrSequences, timeEntries, users, companies, absences, timeBankTransactions } from '@shared/schema';
 import { generateAFD, formatDate, formatTime, type AFDRecord } from './afdGenerator';
 import { generateAEJ, type AEJEmployee, type AEJTimeEntry } from './aejGenerator';
 import { parseAFD, convertAFDToTimeEntries } from './afdParser';
+import { getAbsenceMTECode, getTimeBankMTECode, formatDateForTipo07, calculateMinutesForAbsence, clampDateToPeriod, getBusinessDaysArray } from './tipo07Mapper';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
@@ -209,6 +210,7 @@ export async function exportAEJ(request: ExportAEJRequest): Promise<{ id: number
   // Get employees with time entries in period
   const employeeData = await db
     .select({
+      userId: users.id,
       cpf: users.cpf,
       firstName: users.firstName,
       lastName: users.lastName,
@@ -217,15 +219,118 @@ export async function exportAEJ(request: ExportAEJRequest): Promise<{ id: number
     .from(users)
     .where(eq(users.companyId, companyId));
 
+  // Get approved absences for the period
+  const approvedAbsences = await db
+    .select({
+      employeeId: absences.employeeId,
+      type: absences.type,
+      startDate: absences.startDate,
+      endDate: absences.endDate,
+      totalDays: absences.totalDays,
+      userCpf: users.cpf
+    })
+    .from(absences)
+    .innerJoin(users, eq(absences.employeeId, users.id))
+    .where(
+      and(
+        eq(absences.companyId, companyId),
+        eq(absences.status, 'approved'),
+        // Absence overlaps with period
+        lte(absences.startDate, periodEnd),
+        gte(absences.endDate, periodStart)
+      )
+    );
+
+  // Get time bank transactions for the period
+  const timeBankTxs = await db
+    .select({
+      userId: timeBankTransactions.userId,
+      transactionType: timeBankTransactions.transactionType,
+      hours: timeBankTransactions.hours,
+      createdAt: timeBankTransactions.createdAt,
+      userCpf: users.cpf
+    })
+    .from(timeBankTransactions)
+    .innerJoin(users, eq(timeBankTransactions.userId, users.id))
+    .where(
+      and(
+        eq(users.companyId, companyId),
+        gte(timeBankTransactions.createdAt, periodStart),
+        lte(timeBankTransactions.createdAt, periodEnd)
+      )
+    );
+
+  // Build employees with Tipo 07 data
   const employees: AEJEmployee[] = employeeData
     .filter(e => e.cpf)
-    .map(e => ({
-      cpf: e.cpf!,
-      firstName: e.firstName || '',
-      lastName: e.lastName || '',
-      admissionDate: e.admissionDate ? formatDate(e.admissionDate) : formatDate(new Date()),
-      contractedHours: 480 // 8 hours = 480 minutes (default)
-    }));
+    .map(e => {
+      const absencesForEmployee = approvedAbsences.filter(a => a.employeeId === e.userId);
+      const timeBankForEmployee = timeBankTxs.filter(t => t.userId === e.userId);
+
+      const absencesOrCompensations: Array<{
+        date: string;
+        type: string;
+        minutes: number;
+      }> = [];
+
+      // Add absences to Tipo 07 - ONE RECORD PER BUSINESS DAY
+      for (const absence of absencesForEmployee) {
+        const mteCode = getAbsenceMTECode(absence.type);
+        
+        // Clamp absence to the export period (only count days within period)
+        const absenceStart = new Date(absence.startDate!);
+        const absenceEnd = new Date(absence.endDate!);
+        const clampedStart = clampDateToPeriod(absenceStart, periodStart, periodEnd);
+        const clampedEnd = clampDateToPeriod(absenceEnd, periodStart, periodEnd);
+        
+        // Get array of all business days within the clamped period
+        const businessDays = getBusinessDaysArray(clampedStart, clampedEnd);
+        
+        if (businessDays.length === 0) continue; // No business days in period
+        
+        // CRITICAL: Only export minutes for days WITHIN the export period
+        // If absence crosses period boundaries, we only count the intersection
+        // Example: Absence 5 days (Nov 1-7), export period Nov 5-30
+        //          Only export Nov 5-6 (2 days), not the full 5 days
+        
+        // For standard full-day absences: 480 min per business day
+        const minutesPerDay = 480; // 8 hours = 480 minutes
+        
+        // TODO: Handle fractional-day absences (half days, etc.)
+        // For now, we assume all absence days are full workdays
+        // Future enhancement: If totalDays contains fractions, distribute accordingly
+        
+        // Emit one Tipo 07 record per business day
+        for (const day of businessDays) {
+          absencesOrCompensations.push({
+            date: formatDateForTipo07(day),
+            type: mteCode,
+            minutes: minutesPerDay
+          });
+        }
+      }
+
+      // Add time bank transactions to Tipo 07
+      for (const tx of timeBankForEmployee) {
+        const mteCode = getTimeBankMTECode(tx.transactionType as 'credit' | 'debit');
+        const minutes = Math.round(parseFloat(tx.hours as any) * 60); // Convert hours to minutes
+        
+        absencesOrCompensations.push({
+          date: formatDateForTipo07(new Date(tx.createdAt!)),
+          type: mteCode,
+          minutes
+        });
+      }
+
+      return {
+        cpf: e.cpf!,
+        firstName: e.firstName || '',
+        lastName: e.lastName || '',
+        admissionDate: e.admissionDate ? formatDate(e.admissionDate) : formatDate(new Date()),
+        contractedHours: 480, // 8 hours = 480 minutes (default)
+        absencesOrCompensations: absencesOrCompensations.length > 0 ? absencesOrCompensations : undefined
+      };
+    });
 
   // Get time entries
   const entries = await db
