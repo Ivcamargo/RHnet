@@ -8973,6 +8973,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== ABSENCE MANAGEMENT ROUTES ==========
   
+  // Upload absence document (employee)
+  app.post('/api/absences/upload', isAuthenticatedHybrid, absenceUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      // Return the file path that can be used in the absence creation
+      const filePath = `/uploads/absences/${req.file.filename}`;
+      res.status(200).json({ 
+        filePath,
+        filename: req.file.originalname,
+        message: "Arquivo enviado com sucesso" 
+      });
+    } catch (error: any) {
+      console.error("Error uploading absence document:", error);
+      res.status(500).json({ message: "Erro ao fazer upload do documento" });
+    }
+  });
+  
   // Get absences (employee or admin or superadmin)
   app.get('/api/absences', isAuthenticatedHybrid, async (req: any, res) => {
     try {
