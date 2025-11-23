@@ -98,7 +98,15 @@ export default function MyAbsences() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/absences'] });
       queryClient.invalidateQueries({ queryKey: ['/api/vacation-balance', userInfo?.id] });
+      
+      // Reset form and upload state
       form.reset();
+      setSelectedFile(null);
+      setUploadedFileUrl("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
       setShowForm(false);
     },
     onError: (error: any) => {
@@ -204,6 +212,16 @@ export default function MyAbsences() {
   };
 
   const onSubmit = (data: z.infer<typeof insertAbsenceSchema>) => {
+    // Prevent submission if file upload is still in progress
+    if (uploadFileMutation.isPending) {
+      toast({
+        title: "Aguarde",
+        description: "O arquivo ainda está sendo enviado. Aguarde a conclusão do upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createMutation.mutate(data);
   };
 
@@ -512,11 +530,15 @@ export default function MyAbsences() {
                       <div className="flex gap-2">
                         <Button 
                           type="submit" 
-                          disabled={createMutation.isPending}
+                          disabled={createMutation.isPending || uploadFileMutation.isPending}
                           className="bg-gradient-to-r from-[hsl(210,100%,25%)] to-[hsl(180,60%,70%)] hover:from-[hsl(210,100%,35%)] hover:to-[hsl(180,60%,80%)] text-white"
                           data-testid="button-submit-absence"
                         >
-                          {createMutation.isPending ? "Enviando..." : "Enviar Solicitação"}
+                          {uploadFileMutation.isPending 
+                            ? "Enviando arquivo..." 
+                            : createMutation.isPending 
+                            ? "Enviando solicitação..." 
+                            : "Enviar Solicitação"}
                         </Button>
                         <Button 
                           type="button" 
@@ -524,6 +546,11 @@ export default function MyAbsences() {
                           onClick={() => {
                             setShowForm(false);
                             form.reset();
+                            setSelectedFile(null);
+                            setUploadedFileUrl("");
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
                           }}
                           data-testid="button-cancel-form"
                         >

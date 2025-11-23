@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertCircle, Calendar, CheckCircle, Clock, Filter, User, XCircle } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle, Clock, FileText, Filter, User, XCircle } from "lucide-react";
 import { useState } from "react";
 import type { Absence } from "@shared/schema";
 import { formatBrazilianDate } from "@shared/timezone";
