@@ -52,11 +52,13 @@ Preferred communication style: Simple, everyday language.
 - **Vacation & Absence Management**: Complete vacation and absence request/approval workflow with:
   - 10 absence types (vacation, medical leave, maternity/paternity, bereavement, wedding, blood donation, military service, jury duty, other)
   - Automatic vacation balance calculation (30 days/year CLT standard)
-  - Self-service request portal for employees with balance display
-  - Admin approval/rejection interface with reason tracking
+  - Self-service request portal for employees with balance display and visual date pickers
+  - Document upload system for supporting evidence (PDF, JPG, PNG up to 5MB) with race condition prevention
+  - Admin approval/rejection interface with reason tracking and document visualization
   - Status workflow: pending → approved/rejected/cancelled
   - Dual notifications (email + internal messaging) on status changes
-  - Filters by type, status, date range
+  - Advanced filtering system: by type, status, employee, and department
+  - Document attachment column in both employee and admin views
   - Company-level isolation with superadmin override
 - **System User Manual**: In-app documentation with PDF export.
 - **Lead Capture System**: Commercial prospecting functionality with lead lifecycle management.

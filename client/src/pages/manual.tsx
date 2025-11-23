@@ -252,7 +252,8 @@ export default function Manual() {
         { title: "7. Avaliação DISC", page: 21 },
         { title: "8. Gestão de Estoque e EPIs", page: 24 },
         { title: "9. Arquivos Legais AFD/AEJ", page: 28 },
-        { title: "10. Outros Recursos", page: 32 },
+        { title: "10. Gestão de Ausências", page: 32 },
+        { title: "11. Outros Recursos", page: 36 },
       ];
 
       pdf.setFontSize(12);
@@ -950,12 +951,145 @@ export default function Manual() {
         yPosition += 6;
       });
 
-      // Seção 10: Outros Recursos
+      // Seção 10: Gestão de Ausências
       addNewPage();
       pdf.setFontSize(20);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(26, 57, 96);
-      pdf.text("10. Outros Recursos", margin, yPosition);
+      pdf.text("10. Gestão de Ausências", margin, yPosition);
+      yPosition += 12;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+
+      const ausenciasText = [
+        "SOLICITAÇÃO DE AUSÊNCIAS (Funcionário):",
+        "",
+        "• Acesse Minhas Ausências no menu lateral",
+        "• Clique em 'Nova Solicitação'",
+        "• Selecione o tipo de ausência:",
+        "  - Férias",
+        "  - Atestado Médico",
+        "  - Licença Maternidade/Paternidade",
+        "  - Luto/Nojo",
+        "  - Casamento",
+        "  - Doação de Sangue",
+        "  - Serviço Militar",
+        "  - Júri",
+        "  - Outro",
+        "",
+        "• Selecione as datas de início e fim usando o calendário",
+        "• Sistema calcula automaticamente o total de dias",
+        "• Preencha o motivo/observações (mínimo 10 caracteres)",
+        "• Anexe documento comprobatório (opcional mas recomendado)",
+      ];
+
+      ausenciasText.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const ausenciasText2 = [
+        "",
+        "UPLOAD DE DOCUMENTOS COMPROBATÓRIOS:",
+        "",
+        "• Clique em 'Escolher e Anexar' no formulário",
+        "• Selecione arquivo PDF, JPG ou PNG (máximo 5MB)",
+        "• Sistema valida tipo e tamanho automaticamente",
+        "• Aguarde conclusão do upload antes de enviar",
+        "• Documentos aceitos: atestados médicos, certidões, declarações",
+        "• Após upload, visualize o arquivo anexado com opção de remover",
+        "",
+        "ACOMPANHAMENTO DE SOLICITAÇÕES:",
+        "",
+        "• Visualize histórico completo de solicitações",
+        "• Status identificado por cores:",
+        "  - Amarelo: Pendente aprovação",
+        "  - Verde: Aprovado",
+        "  - Vermelho: Rejeitado",
+        "  - Cinza: Cancelado",
+        "• Clique no ícone de documento para visualizar anexo",
+        "• Cancele solicitações pendentes se necessário",
+        "• Motivos de rejeição são exibidos quando aplicável",
+      ];
+
+      ausenciasText2.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const ausenciasText3 = [
+        "",
+        "SALDO DE FÉRIAS:",
+        "",
+        "• Visualize dias disponíveis e já utilizados",
+        "• Saldo considera férias pendentes de aprovação",
+        "• CLT padrão: 30 dias por ano de trabalho",
+        "• Sistema calcula automaticamente o saldo",
+        "",
+        "GESTÃO DE AUSÊNCIAS (Administrador):",
+        "",
+        "• Acesse Admin > Gestão de Ausências",
+        "• Visualize estatísticas: Pendentes, Aprovadas, Rejeitadas",
+        "• Aba 'Pendentes': Solicitações aguardando decisão",
+        "• Aba 'Todas as Solicitações': Histórico completo com filtros",
+        "",
+        "FILTROS DISPONÍVEIS (Administrador):",
+        "",
+        "• Status: Pendente, Aprovado, Rejeitado, Cancelado",
+        "• Tipo: Todos os 10 tipos de ausência",
+        "• Funcionário: Filtrar por colaborador específico",
+        "• Departamento: Filtrar por setor da empresa",
+        "• Combine múltiplos filtros para consultas específicas",
+      ];
+
+      ausenciasText3.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      const ausenciasText4 = [
+        "",
+        "APROVAÇÃO/REJEIÇÃO (Administrador):",
+        "",
+        "• Visualize detalhes completos da solicitação",
+        "• Clique no documento anexado para verificar comprovante",
+        "• Botão 'Aprovar': Confirma a ausência",
+        "• Botão 'Rejeitar': Requer motivo obrigatório",
+        "• Funcionário é notificado automaticamente da decisão",
+        "• Motivo da rejeição é exibido ao funcionário",
+        "",
+        "NOTIFICAÇÕES:",
+        "",
+        "• Funcionário recebe email quando solicitação é processada",
+        "• Mensagem interna também é enviada",
+        "• Notificações incluem status e motivo (se rejeitado)",
+        "",
+        "BOAS PRÁTICAS:",
+        "",
+        "• Sempre anexe documentos para ausências médicas",
+        "• Solicite férias com antecedência",
+        "• Verifique saldo antes de solicitar",
+        "• Administradores: revisar documentos antes de aprovar",
+        "• Mantenha registros organizados por departamento",
+      ];
+
+      ausenciasText4.forEach(line => {
+        checkNewPage(7);
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Seção 11: Outros Recursos
+      addNewPage();
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 57, 96);
+      pdf.text("11. Outros Recursos", margin, yPosition);
       yPosition += 12;
 
       pdf.setFontSize(11);
@@ -1081,7 +1215,7 @@ export default function Manual() {
         </div>
 
       <Tabs defaultValue="introducao" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-10 mb-6">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-11 mb-6">
           <TabsTrigger value="introducao">Introdução</TabsTrigger>
           <TabsTrigger value="ponto">Ponto</TabsTrigger>
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
@@ -1091,6 +1225,7 @@ export default function Manual() {
           <TabsTrigger value="disc">DISC</TabsTrigger>
           <TabsTrigger value="inventory">Estoque & EPIs</TabsTrigger>
           <TabsTrigger value="legais">Arquivos Legais</TabsTrigger>
+          <TabsTrigger value="ausencias">Ausências</TabsTrigger>
           <TabsTrigger value="outros">Outros</TabsTrigger>
         </TabsList>
 
@@ -3284,6 +3419,258 @@ export default function Manual() {
                     o formato estabelecido pela Portaria 671/2021 do Ministério do Trabalho, incluindo validação
                     CRC-16/KERMIT, encoding ISO 8859-1, e sequenciamento NSR monotônico por empresa.
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Gestão de Ausências */}
+        <TabsContent value="ausencias">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5" />
+                  Gestão de Ausências e Férias
+                </CardTitle>
+                <CardDescription>
+                  Sistema completo para solicitação, acompanhamento e aprovação de ausências
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <section>
+                  <h3 className="text-xl font-semibold mb-3">Solicitar Ausência (Funcionário)</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Acesse <strong>Minhas Ausências</strong> no menu lateral para solicitar férias ou qualquer tipo de ausência.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">Passo a Passo:</h4>
+                      <ol className="ml-4 space-y-2 list-decimal text-sm">
+                        <li>Clique no botão <strong>"Nova Solicitação"</strong></li>
+                        <li>Selecione o tipo de ausência no dropdown</li>
+                        <li>Escolha a data de início usando o calendário visual</li>
+                        <li>Escolha a data de término usando o calendário visual</li>
+                        <li>O sistema calcula automaticamente o total de dias</li>
+                        <li>Preencha o motivo/observações (mínimo 10 caracteres)</li>
+                        <li>Anexe documento comprobatório se houver</li>
+                        <li>Clique em "Enviar Solicitação"</li>
+                      </ol>
+                    </div>
+
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          Upload de Documentos Comprobatórios
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm space-y-2">
+                        <p className="text-muted-foreground">
+                          Para ausências médicas, certidões e outros casos que requerem comprovação:
+                        </p>
+                        <ul className="ml-4 space-y-1 text-muted-foreground">
+                          <li>• Clique em <strong>"Escolher e Anexar"</strong></li>
+                          <li>• Selecione arquivo PDF, JPG ou PNG (máximo 5MB)</li>
+                          <li>• Aguarde o upload completar antes de enviar a solicitação</li>
+                          <li>• Arquivo aparecerá com opção de remover antes de enviar</li>
+                          <li>• Administradores poderão visualizar o documento anexado</li>
+                        </ul>
+                        <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded mt-3">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            ⚠️ O botão de envio fica desabilitado durante o upload para evitar problemas
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-xl font-semibold mb-3">Tipos de Ausência</h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardContent className="pt-4 text-xs">
+                        <p className="font-semibold">Férias</p>
+                        <p className="text-muted-foreground">30 dias por ano (CLT padrão)</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-red-500">
+                      <CardContent className="pt-4 text-xs">
+                        <p className="font-semibold">Atestado Médico</p>
+                        <p className="text-muted-foreground">Documento obrigatório</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-pink-500">
+                      <CardContent className="pt-4 text-xs">
+                        <p className="font-semibold">Licença Maternidade</p>
+                        <p className="text-muted-foreground">120-180 dias conforme lei</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardContent className="pt-4 text-xs">
+                        <p className="font-semibold">Licença Paternidade</p>
+                        <p className="text-muted-foreground">5-20 dias conforme lei</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-gray-500">
+                      <CardContent className="pt-4 text-xs">
+                        <p className="font-semibold">Luto/Nojo</p>
+                        <p className="text-muted-foreground">Até 2 dias (CLT)</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-purple-500">
+                      <CardContent className="pt-4 text-xs">
+                        <p className="font-semibold">Outros Tipos</p>
+                        <p className="text-muted-foreground">Casamento, doação de sangue, júri, etc.</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-xl font-semibold mb-3">Acompanhamento de Solicitações</h3>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Na página <strong>Minhas Ausências</strong>, você visualiza o histórico completo com:
+                    </p>
+                    
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <Card className="bg-yellow-50 dark:bg-yellow-950/20">
+                        <CardContent className="pt-4 text-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <span className="font-semibold">Pendente</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Aguardando aprovação do RH</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-green-50 dark:bg-green-950/20">
+                        <CardContent className="pt-4 text-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span className="font-semibold">Aprovado</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Ausência confirmada</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-red-50 dark:bg-red-950/20">
+                        <CardContent className="pt-4 text-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <span className="font-semibold">Rejeitado</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Motivo da rejeição exibido</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-gray-50 dark:bg-gray-950/20">
+                        <CardContent className="pt-4 text-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                            <span className="font-semibold">Cancelado</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Cancelado pelo funcionário</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg mt-4">
+                      <p className="text-sm text-blue-900 dark:text-blue-100">
+                        <FileText className="inline h-4 w-4 mr-1" />
+                        <strong>Ver Documentos:</strong> Clique no ícone de documento na coluna "Anexo" para visualizar comprovantes anexados
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <h3 className="text-xl font-semibold mb-3">Gestão Administrativa</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Para administradores, acesse <strong>Admin &gt; Gestão de Ausências</strong>
+                  </p>
+
+                  <div className="space-y-4">
+                    <Card className="border-l-4 border-l-primary">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Estatísticas e Visão Geral
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm space-y-2">
+                        <p className="text-muted-foreground">Dashboard com métricas importantes:</p>
+                        <ul className="ml-4 space-y-1 text-muted-foreground">
+                          <li>• Total de solicitações pendentes</li>
+                          <li>• Total de solicitações aprovadas</li>
+                          <li>• Total de solicitações rejeitadas</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-amber-500">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Filter className="h-4 w-4" />
+                          Sistema de Filtros Avançado
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm space-y-2">
+                        <p className="text-muted-foreground">Na aba "Todas as Solicitações", filtre por:</p>
+                        <ul className="ml-4 space-y-1 text-muted-foreground">
+                          <li>• <strong>Status:</strong> Pendente, Aprovado, Rejeitado, Cancelado</li>
+                          <li>• <strong>Tipo:</strong> Todos os 10 tipos de ausência disponíveis</li>
+                          <li>• <strong>Funcionário:</strong> Busque solicitações de um colaborador específico</li>
+                          <li>• <strong>Departamento:</strong> Visualize ausências por setor da empresa</li>
+                        </ul>
+                        <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded mt-2">
+                          <p className="text-xs text-green-800 dark:text-green-200">
+                            ✨ Combine múltiplos filtros para consultas específicas, como "férias pendentes do departamento de TI"
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          Aprovação e Rejeição
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm space-y-2">
+                        <p className="text-muted-foreground">Para cada solicitação pendente:</p>
+                        <ol className="ml-4 space-y-1 list-decimal text-muted-foreground">
+                          <li>Visualize todos os detalhes (tipo, período, dias, motivo)</li>
+                          <li>Clique no link "📎 Ver Documento" para verificar comprovantes</li>
+                          <li>Clique em <strong>"Aprovar"</strong> para confirmar a ausência</li>
+                          <li>Ou clique em <strong>"Rejeitar"</strong> e informe o motivo obrigatório</li>
+                          <li>Funcionário recebe notificação automática por email e mensagem interna</li>
+                        </ol>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </section>
+
+                <div className="bg-primary/5 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">Boas Práticas</h4>
+                  <ul className="ml-4 space-y-1 text-sm text-muted-foreground">
+                    <li>✓ Sempre anexe documentos para ausências médicas</li>
+                    <li>✓ Solicite férias com antecedência para melhor planejamento</li>
+                    <li>✓ Verifique seu saldo de férias antes de solicitar</li>
+                    <li>✓ Administradores: revisar documentos anexados antes de aprovar</li>
+                    <li>✓ Use os filtros para organizar e acompanhar ausências por departamento</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
