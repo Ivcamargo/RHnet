@@ -788,6 +788,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for absence document uploads (comprovantes de ausência)
+  const absenceUploadsDir = path.join(process.cwd(), 'uploads', 'absences');
+  if (!fs.existsSync(absenceUploadsDir)) {
+    fs.mkdirSync(absenceUploadsDir, { recursive: true });
+  }
+
+  const absenceUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, absenceUploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'absence-doc-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit for absence documents
+    },
+    fileFilter: (req, file, cb) => {
+      // Accept images and PDFs only
+      const allowedTypes = /jpeg|jpg|png|pdf/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Apenas imagens (JPEG, PNG) e PDFs são permitidos'));
+      }
+    }
+  });
+
   // Configure multer for CSV uploads
   const csvUpload = multer({
     storage: multer.memoryStorage(), // Store in memory for parsing
