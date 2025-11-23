@@ -70,7 +70,7 @@ export default function Sidebar() {
     { name: "Mensagens", href: "/messages", icon: MessageSquare },
     { name: "Documentos", href: "/documents", icon: FileText },
     { name: "Capacitação", href: "/training", icon: GraduationCap },
-    { name: "Minhas Férias", href: "/my-absences", icon: CalendarDays },
+    { name: "Minhas Ausências", href: "/my-absences", icon: CalendarDays },
     { 
       name: "Estoque e EPIs", 
       icon: Package,
