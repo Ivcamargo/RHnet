@@ -179,10 +179,13 @@ export default function OvertimeConfig() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    const shiftValue = formData.get("shiftId") as string;
+    const shiftId = shiftValue && shiftValue !== "all" ? Number(shiftValue) : null;
+    
     const rule = {
       id: editingRule?.id,
       departmentId: selectedDepartment!,
-      shiftId: formData.get("shiftId") ? Number(formData.get("shiftId")) : null,
+      shiftId: shiftId,
       name: formData.get("name") as string,
       overtimeType: formData.get("overtimeType") as "paid" | "time_bank",
       applyToWeekdays: formData.get("applyToWeekdays") === "on",
@@ -192,6 +195,7 @@ export default function OvertimeConfig() {
       priority: Number(formData.get("priority")),
     };
 
+    console.log("[OVERTIME] Saving rule:", rule);
     saveRuleMutation.mutate(rule);
   };
 
