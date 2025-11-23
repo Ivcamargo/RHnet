@@ -147,8 +147,11 @@ export default function AdminAbsences() {
   const filteredAbsences = absences?.filter(a => {
     if (statusFilter !== 'all' && a.status !== statusFilter) return false;
     if (typeFilter !== 'all' && a.type !== typeFilter) return false;
-    if (employeeFilter !== 'all' && a.userId !== employeeFilter) return false;
-    if (departmentFilter !== 'all' && a.employee?.departmentId?.toString() !== departmentFilter) return false;
+    if (employeeFilter !== 'all' && a.employee?.id !== employeeFilter) return false;
+    if (departmentFilter !== 'all') {
+      const deptId = a.department?.id || a.employee?.departmentId;
+      if (deptId?.toString() !== departmentFilter) return false;
+    }
     return true;
   }) || [];
 
@@ -332,7 +335,7 @@ export default function AdminAbsences() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 dark:bg-transparent">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                       <div>
                         <Label className="text-black dark:text-white">Status</Label>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
