@@ -41,7 +41,14 @@ Preferred communication style: Simple, everyday language.
 - **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files fully compliant with Portaria 671/2021 MTE, including:
   - AFD/AEJ headers with separate CNPJ/CPF indicator field (1 = CNPJ, 2 = CPF)
   - REP type field using numeric code "3" for REP-P
-  - Optional Tipo 06 (eSocial multiple employment bonds) and Tipo 07 (absences/time bank)
+  - Optional Tipo 06 (eSocial multiple employment bonds)
+  - **Tipo 07 (Absences & Time Bank)**: Fully implemented with:
+    - MTE-compliant codes for 10 absence types (vacation, medical, maternity/paternity, bereavement, wedding, blood donation, military service, jury duty, other)
+    - Time bank credit/debit transaction codes (BANCOCRED, BANCODEB)
+    - One record per business day within export period (480 minutes/day = 8h CLT standard)
+    - Automatic date clamping for absences crossing period boundaries
+    - Weekend exclusion (only business days exported)
+    - Known limitation: Fractional-day absences (half days) currently treated as full days - planned enhancement
   - Correct AEJ totalizador (Tipo 99) including itself in the count
   - CRC-16/KERMIT checksum validation for all records
 - **CSV Import/Export**: Bulk employee management with automatic account creation.
