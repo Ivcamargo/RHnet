@@ -12,6 +12,12 @@ export interface AEJEmployee {
   lastName: string;
   admissionDate: string;
   contractedHours: number; // Daily hours in minutes
+  esocialMatriculas?: string[]; // OPTIONAL: eSocial registration numbers for multiple employment bonds
+  absencesOrCompensations?: Array<{ // OPTIONAL: Absences or time bank compensations
+    date: string; // DDMMYYYY
+    type: string; // Code for absence/compensation type
+    minutes: number; // Duration in minutes
+  }>;
 }
 
 export interface AEJTimeEntry {
@@ -125,11 +131,37 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
       }
     }
 
-    // TODO: Implementar Tipo 06 - Matrícula eSocial (quando houver múltiplos vínculos)
-    // Formato: '06' + idVinculoAej + matriculaEsocial
+    // Tipo 06 - Matrícula eSocial (OPCIONAL - somente para múltiplos vínculos)
+    // Gerado apenas quando o funcionário tem múltiplas matrículas eSocial
+    if (employee.esocialMatriculas && employee.esocialMatriculas.length > 0) {
+      for (const matricula of employee.esocialMatriculas) {
+        const tipo06 = [
+          '06', // Tipo
+          employee.cpf.replace(/\D/g, '').padStart(11, '0'), // CPF (zero-padded numeric)
+          matricula.substring(0, 30).padEnd(30, ' ') // Matrícula eSocial (max 30 chars)
+        ].join('\t');
+        
+        const tipo06WithCrc = tipo06 + '\t' + calculateCRC16(tipo06);
+        lines.push(tipo06WithCrc);
+      }
+    }
     
-    // TODO: Implementar Tipo 07 - Ausências e Banco de Horas (quando houver dados)
-    // Formato: '07' + idVinculoAej + dataAusenOuComp + tipoAusenOuComp + qtdeMinutos
+    // Tipo 07 - Ausências e Banco de Horas (OPCIONAL - somente quando houver dados)
+    // Gerado apenas quando há ausências ou compensações registradas
+    if (employee.absencesOrCompensations && employee.absencesOrCompensations.length > 0) {
+      for (const record of employee.absencesOrCompensations) {
+        const tipo07 = [
+          '07', // Tipo
+          employee.cpf.replace(/\D/g, '').padStart(11, '0'), // CPF (zero-padded numeric)
+          record.date, // Data DDMMYYYY
+          record.type.padEnd(10, ' '), // Código do tipo (max 10 chars)
+          record.minutes.toString().padStart(5, '0') // Quantidade em minutos (5 digits)
+        ].join('\t');
+        
+        const tipo07WithCrc = tipo07 + '\t' + calculateCRC16(tipo07);
+        lines.push(tipo07WithCrc);
+      }
+    }
   }
 
   // Tipo 08 - Identificação do PTRP
@@ -144,7 +176,7 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
   lines.push(ptrpWithCrc);
 
   // Tipo 99 - Totalizador de registros
-  const totalRecords = lines.length; // Conta todos os registros anteriores
+  const totalRecords = lines.length + 1; // Conta todos os registros anteriores + este próprio registro
   const totalizador = [
     '99', // Tipo
     totalRecords.toString().padStart(6, '0') // Total de registros (incluindo este)
