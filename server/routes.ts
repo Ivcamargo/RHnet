@@ -8938,6 +8938,275 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== ABSENCE MANAGEMENT ROUTES ==========
+  
+  // Get absences (employee or admin or superadmin)
+  app.get('/api/absences', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const user = req.user;
+      const { status, type, startDate, endDate, companyId } = req.query;
+      
+      let absences;
+      if (user.role === 'superadmin') {
+        // Superadmin: can view all absences, optionally filtered by companyId
+        const filters: any = {};
+        if (status) filters.status = status;
+        if (type) filters.type = type;
+        if (startDate) filters.startDate = new Date(startDate);
+        if (endDate) filters.endDate = new Date(endDate);
+        
+        if (companyId) {
+          absences = await storage.getAbsencesByCompany(parseInt(companyId), filters);
+        } else {
+          // TODO: Implement getAll absences for superadmin, for now return empty
+          absences = [];
+        }
+      } else if (user.role === 'admin') {
+        // Admin: get all absences for their company with filters
+        const filters: any = {};
+        if (status) filters.status = status;
+        if (type) filters.type = type;
+        if (startDate) filters.startDate = new Date(startDate);
+        if (endDate) filters.endDate = new Date(endDate);
+        
+        absences = await storage.getAbsencesByCompany(user.companyId, filters);
+      } else {
+        // Employee: get only their own absences
+        absences = await storage.getAbsencesByEmployee(user.id);
+      }
+      
+      res.json(absences);
+    } catch (error: any) {
+      console.error("Error fetching absences:", error);
+      res.status(500).json({ message: "Erro ao buscar ausências" });
+    }
+  });
+  
+  // Get pending absences (admin only)
+  app.get('/api/absences/pending', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { companyId } = req.user;
+      const absences = await storage.getPendingAbsences(companyId);
+      res.json(absences);
+    } catch (error: any) {
+      console.error("Error fetching pending absences:", error);
+      res.status(500).json({ message: "Erro ao buscar ausências pendentes" });
+    }
+  });
+  
+  // Get specific absence
+  app.get('/api/absences/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const absence = await storage.getAbsence(id);
+      
+      if (!absence) {
+        return res.status(404).json({ message: "Ausência não encontrada" });
+      }
+      
+      // Check access: only owner or admin
+      if (req.user.role !== 'admin' && absence.employeeId !== req.user.id) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      res.json(absence);
+    } catch (error: any) {
+      console.error("Error fetching absence:", error);
+      res.status(500).json({ message: "Erro ao buscar ausência" });
+    }
+  });
+  
+  // Create absence request
+  app.post('/api/absences', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const { insertAbsenceSchema } = await import('shared/schema');
+      const validatedData = insertAbsenceSchema.parse(req.body);
+      
+      // Ensure employee creates for themselves
+      const absenceData = {
+        ...validatedData,
+        employeeId: req.user.id,
+        companyId: req.user.companyId,
+        status: 'pending' as const,
+      };
+      
+      const newAbsence = await storage.createAbsence(absenceData);
+      
+      // TODO: Send notifications (email + internal message) to HR/Admin
+      
+      res.status(201).json(newAbsence);
+    } catch (error: any) {
+      console.error("Error creating absence:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao criar solicitação de ausência" });
+    }
+  });
+  
+  // Update absence (only if pending)
+  app.put('/api/absences/:id', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const { updateAbsenceSchema } = await import('shared/schema');
+      const id = parseInt(req.params.id);
+      const absence = await storage.getAbsence(id);
+      
+      if (!absence) {
+        return res.status(404).json({ message: "Ausência não encontrada" });
+      }
+      
+      // Only owner can update and only if pending
+      if (absence.employeeId !== req.user.id) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      if (absence.status !== 'pending') {
+        return res.status(400).json({ message: "Apenas solicitações pendentes podem ser editadas" });
+      }
+      
+      // Validate update data
+      const validatedData = updateAbsenceSchema.parse(req.body);
+      const updatedAbsence = await storage.updateAbsence(id, validatedData);
+      res.json(updatedAbsence);
+    } catch (error: any) {
+      console.error("Error updating absence:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      res.status(500).json({ message: "Erro ao atualizar ausência" });
+    }
+  });
+  
+  // Approve absence (admin only)
+  app.post('/api/absences/:id/approve', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const approvedBy = req.user.id;
+      
+      const absence = await storage.getAbsence(id);
+      if (!absence) {
+        return res.status(404).json({ message: "Ausência não encontrada" });
+      }
+      
+      // Verify company ownership (except superadmin)
+      if (req.user.role !== 'superadmin' && absence.companyId !== req.user.companyId) {
+        return res.status(403).json({ message: "Acesso negado: ausência de outra empresa" });
+      }
+      
+      if (absence.status !== 'pending') {
+        return res.status(400).json({ message: "Apenas solicitações pendentes podem ser aprovadas" });
+      }
+      
+      const updatedAbsence = await storage.approveAbsence(id, approvedBy);
+      
+      // TODO: Send notification (email + internal message) to employee
+      
+      res.json(updatedAbsence);
+    } catch (error: any) {
+      console.error("Error approving absence:", error);
+      res.status(500).json({ message: error.message || "Erro ao aprovar ausência" });
+    }
+  });
+  
+  // Reject absence (admin only)
+  app.post('/api/absences/:id/reject', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const approvedBy = req.user.id;
+      const { rejectionReason } = req.body;
+      
+      if (!rejectionReason) {
+        return res.status(400).json({ message: "Motivo da rejeição é obrigatório" });
+      }
+      
+      const absence = await storage.getAbsence(id);
+      if (!absence) {
+        return res.status(404).json({ message: "Ausência não encontrada" });
+      }
+      
+      // Verify company ownership (except superadmin)
+      if (req.user.role !== 'superadmin' && absence.companyId !== req.user.companyId) {
+        return res.status(403).json({ message: "Acesso negado: ausência de outra empresa" });
+      }
+      
+      if (absence.status !== 'pending') {
+        return res.status(400).json({ message: "Apenas solicitações pendentes podem ser rejeitadas" });
+      }
+      
+      const updatedAbsence = await storage.rejectAbsence(id, approvedBy, rejectionReason);
+      
+      // TODO: Send notification (email + internal message) to employee
+      
+      res.json(updatedAbsence);
+    } catch (error: any) {
+      console.error("Error rejecting absence:", error);
+      res.status(500).json({ message: "Erro ao rejeitar ausência" });
+    }
+  });
+  
+  // Cancel absence
+  app.post('/api/absences/:id/cancel', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const absence = await storage.getAbsence(id);
+      
+      if (!absence) {
+        return res.status(404).json({ message: "Ausência não encontrada" });
+      }
+      
+      // Only owner, admin of same company, or superadmin can cancel
+      const isOwner = absence.employeeId === req.user.id;
+      const isAdminSameCompany = req.user.role === 'admin' && absence.companyId === req.user.companyId;
+      const isSuperadmin = req.user.role === 'superadmin';
+      
+      if (!isOwner && !isAdminSameCompany && !isSuperadmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      const updatedAbsence = await storage.cancelAbsence(id);
+      res.json(updatedAbsence);
+    } catch (error: any) {
+      console.error("Error cancelling absence:", error);
+      res.status(500).json({ message: error.message || "Erro ao cancelar ausência" });
+    }
+  });
+  
+  // Get vacation balance for employee
+  app.get('/api/vacation-balance/:employeeId', isAuthenticatedHybrid, async (req: any, res) => {
+    try {
+      const { employeeId } = req.params;
+      
+      // Check access: only own data or admin
+      if (req.user.role !== 'admin' && employeeId !== req.user.id) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      let balance = await storage.getVacationBalance(employeeId);
+      
+      // If balance doesn't exist, calculate and create it
+      if (!balance) {
+        balance = await storage.createOrUpdateVacationBalance(employeeId, req.user.companyId);
+      }
+      
+      res.json(balance);
+    } catch (error: any) {
+      console.error("Error fetching vacation balance:", error);
+      res.status(500).json({ message: error.message || "Erro ao buscar saldo de férias" });
+    }
+  });
+  
+  // Recalculate vacation balance (admin only)
+  app.post('/api/vacation-balance/:employeeId/calculate', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
+    try {
+      const { employeeId } = req.params;
+      const balance = await storage.createOrUpdateVacationBalance(employeeId, req.user.companyId);
+      res.json(balance);
+    } catch (error: any) {
+      console.error("Error recalculating vacation balance:", error);
+      res.status(500).json({ message: error.message || "Erro ao recalcular saldo de férias" });
+    }
+  });
+
   // Temporary endpoint to download database dump
   app.get('/download-dump', (req, res) => {
     const dumpPath = path.join(process.cwd(), 'rhnet-database-dump.sql.gz');

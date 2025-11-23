@@ -558,6 +558,22 @@ export interface IStorage {
   createEmployeeItem(employeeItem: InsertEmployeeItem): Promise<EmployeeItem>;
   updateEmployeeItem(id: number, employeeItem: Partial<InsertEmployeeItem>): Promise<EmployeeItem>;
   getExpiringItems(companyId: number, daysAhead: number): Promise<Array<EmployeeItem & { employeeName: string; itemName: string }>>;
+  
+  // Absence Management operations
+  createAbsence(absence: InsertAbsence): Promise<Absence>;
+  getAbsence(id: number): Promise<Absence | undefined>;
+  getAbsencesByEmployee(employeeId: string): Promise<Absence[]>;
+  getAbsencesByCompany(companyId: number, filters?: { status?: string; type?: string; startDate?: Date; endDate?: Date }): Promise<Absence[]>;
+  getPendingAbsences(companyId: number): Promise<Absence[]>;
+  approveAbsence(id: number, approvedBy: string): Promise<Absence>;
+  rejectAbsence(id: number, approvedBy: string, rejectionReason: string): Promise<Absence>;
+  cancelAbsence(id: number): Promise<Absence>;
+  updateAbsence(id: number, absence: Partial<InsertAbsence>): Promise<Absence>;
+  
+  // Vacation Balance operations
+  getVacationBalance(employeeId: string): Promise<VacationBalance | undefined>;
+  createOrUpdateVacationBalance(employeeId: string, companyId: number): Promise<VacationBalance>;
+  calculateVacationBalance(employeeId: string, admissionDate: Date): Promise<{ totalDaysEarned: number; totalDaysUsed: number; currentBalance: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4260,6 +4276,239 @@ export class DatabaseStorage implements IStorage {
       .orderBy(employeeItems.expiryDate);
 
     return result;
+  }
+
+  // =========== ABSENCE MANAGEMENT OPERATIONS ===========
+  
+  async createAbsence(absence: InsertAbsence): Promise<Absence> {
+    // Convert date strings to Date objects if needed
+    const absenceData = {
+      ...absence,
+      startDate: typeof absence.startDate === 'string' ? new Date(absence.startDate) : absence.startDate,
+      endDate: typeof absence.endDate === 'string' ? new Date(absence.endDate) : absence.endDate,
+    };
+    const [newAbsence] = await db.insert(absences).values(absenceData as any).returning();
+    return newAbsence;
+  }
+
+  async getAbsence(id: number): Promise<Absence | undefined> {
+    const [absence] = await db.select().from(absences).where(eq(absences.id, id));
+    return absence;
+  }
+
+  async getAbsencesByEmployee(employeeId: string): Promise<Absence[]> {
+    return await db
+      .select()
+      .from(absences)
+      .where(eq(absences.employeeId, employeeId))
+      .orderBy(desc(absences.startDate));
+  }
+
+  async getAbsencesByCompany(
+    companyId: number,
+    filters?: { status?: string; type?: string; startDate?: Date; endDate?: Date }
+  ): Promise<Absence[]> {
+    const conditions = [eq(absences.companyId, companyId)];
+
+    if (filters?.status) {
+      conditions.push(eq(absences.status, filters.status));
+    }
+    if (filters?.type) {
+      conditions.push(eq(absences.type, filters.type));
+    }
+    if (filters?.startDate) {
+      conditions.push(gte(absences.startDate, filters.startDate));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(absences.endDate, filters.endDate));
+    }
+
+    return await db
+      .select()
+      .from(absences)
+      .where(and(...conditions))
+      .orderBy(desc(absences.startDate));
+  }
+
+  async getPendingAbsences(companyId: number): Promise<Absence[]> {
+    return await db
+      .select()
+      .from(absences)
+      .where(and(eq(absences.companyId, companyId), eq(absences.status, "pending")))
+      .orderBy(absences.createdAt);
+  }
+
+  async approveAbsence(id: number, approvedBy: string): Promise<Absence> {
+    const [updatedAbsence] = await db
+      .update(absences)
+      .set({
+        status: "approved",
+        approvedBy,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(absences.id, id))
+      .returning();
+
+    // Update vacation balance if type is vacation
+    if (updatedAbsence.type === "vacation") {
+      const balance = await this.getVacationBalance(updatedAbsence.employeeId);
+      if (balance) {
+        await db
+          .update(vacationBalances)
+          .set({
+            totalDaysUsed: balance.totalDaysUsed + updatedAbsence.totalDays,
+            currentBalance: balance.currentBalance - updatedAbsence.totalDays,
+            updatedAt: new Date(),
+          })
+          .where(eq(vacationBalances.employeeId, updatedAbsence.employeeId));
+      }
+    }
+
+    return updatedAbsence;
+  }
+
+  async rejectAbsence(id: number, approvedBy: string, rejectionReason: string): Promise<Absence> {
+    const [updatedAbsence] = await db
+      .update(absences)
+      .set({
+        status: "rejected",
+        approvedBy,
+        approvedAt: new Date(),
+        rejectionReason,
+        updatedAt: new Date(),
+      })
+      .where(eq(absences.id, id))
+      .returning();
+    return updatedAbsence;
+  }
+
+  async cancelAbsence(id: number): Promise<Absence> {
+    const absence = await this.getAbsence(id);
+    if (!absence) {
+      throw new Error("Ausência não encontrada");
+    }
+
+    // If previously approved vacation, restore balance
+    if (absence.status === "approved" && absence.type === "vacation") {
+      const balance = await this.getVacationBalance(absence.employeeId);
+      if (balance) {
+        await db
+          .update(vacationBalances)
+          .set({
+            totalDaysUsed: balance.totalDaysUsed - absence.totalDays,
+            currentBalance: balance.currentBalance + absence.totalDays,
+            updatedAt: new Date(),
+          })
+          .where(eq(vacationBalances.employeeId, absence.employeeId));
+      }
+    }
+
+    const [updatedAbsence] = await db
+      .update(absences)
+      .set({
+        status: "cancelled",
+        updatedAt: new Date(),
+      })
+      .where(eq(absences.id, id))
+      .returning();
+    return updatedAbsence;
+  }
+
+  async updateAbsence(id: number, absence: Partial<InsertAbsence>): Promise<Absence> {
+    // Convert date strings to Date objects if needed
+    const updateData: any = { ...absence, updatedAt: new Date() };
+    if (updateData.startDate && typeof updateData.startDate === 'string') {
+      updateData.startDate = new Date(updateData.startDate);
+    }
+    if (updateData.endDate && typeof updateData.endDate === 'string') {
+      updateData.endDate = new Date(updateData.endDate);
+    }
+    const [updatedAbsence] = await db
+      .update(absences)
+      .set(updateData)
+      .where(eq(absences.id, id))
+      .returning();
+    return updatedAbsence;
+  }
+
+  // Vacation Balance operations
+  async getVacationBalance(employeeId: string): Promise<VacationBalance | undefined> {
+    const [balance] = await db
+      .select()
+      .from(vacationBalances)
+      .where(eq(vacationBalances.employeeId, employeeId));
+    return balance;
+  }
+
+  async createOrUpdateVacationBalance(employeeId: string, companyId: number): Promise<VacationBalance> {
+    // Get employee admission date
+    const user = await this.getUser(employeeId);
+    if (!user || !user.admissionDate) {
+      throw new Error("Funcionário não encontrado ou sem data de admissão");
+    }
+
+    // Calculate balance
+    const calculated = await this.calculateVacationBalance(employeeId, new Date(user.admissionDate));
+
+    // Upsert balance
+    const [balance] = await db
+      .insert(vacationBalances)
+      .values({
+        employeeId,
+        companyId,
+        totalDaysEarned: calculated.totalDaysEarned,
+        totalDaysUsed: calculated.totalDaysUsed,
+        currentBalance: calculated.currentBalance,
+        lastCalculatedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: vacationBalances.employeeId,
+        set: {
+          totalDaysEarned: calculated.totalDaysEarned,
+          totalDaysUsed: calculated.totalDaysUsed,
+          currentBalance: calculated.currentBalance,
+          lastCalculatedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    return balance;
+  }
+
+  async calculateVacationBalance(
+    employeeId: string,
+    admissionDate: Date
+  ): Promise<{ totalDaysEarned: number; totalDaysUsed: number; currentBalance: number }> {
+    // Calculate years worked
+    const now = new Date();
+    const yearsWorked = (now.getTime() - admissionDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+    
+    // 30 days per year worked (Brazilian law: CLT Art. 130)
+    const totalDaysEarned = Math.floor(yearsWorked * 30);
+
+    // Get approved vacations
+    const approvedVacations = await db
+      .select()
+      .from(absences)
+      .where(
+        and(
+          eq(absences.employeeId, employeeId),
+          eq(absences.type, "vacation"),
+          eq(absences.status, "approved")
+        )
+      );
+
+    const totalDaysUsed = approvedVacations.reduce((sum, vacation) => sum + vacation.totalDays, 0);
+    const currentBalance = totalDaysEarned - totalDaysUsed;
+
+    return {
+      totalDaysEarned,
+      totalDaysUsed,
+      currentBalance,
+    };
   }
 }
 

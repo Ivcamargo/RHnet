@@ -2392,6 +2392,30 @@ export type InsertEmployeeItem = z.infer<typeof insertEmployeeItemSchema>;
 
 // ============= ABSENCE MANAGEMENT SYSTEM (Férias e Afastamentos) =============
 
+// Enums para validação de ausências
+export const absenceTypeEnum = z.enum([
+  "vacation",           // Férias
+  "medical_leave",      // Licença médica
+  "maternity_leave",    // Licença maternidade
+  "paternity_leave",    // Licença paternidade
+  "bereavement",        // Luto/Nojo
+  "wedding",            // Casamento (gala)
+  "blood_donation",     // Doação de sangue
+  "military_service",   // Serviço militar
+  "jury_duty",          // Serviço como jurado
+  "other"               // Outros
+]);
+
+export const absenceStatusEnum = z.enum([
+  "pending",    // Pendente de aprovação
+  "approved",   // Aprovado
+  "rejected",   // Rejeitado
+  "cancelled"   // Cancelado
+]);
+
+export type AbsenceType = z.infer<typeof absenceTypeEnum>;
+export type AbsenceStatus = z.infer<typeof absenceStatusEnum>;
+
 // Absences - Férias, licenças médicas, afastamentos
 export const absences = pgTable("absences", {
   id: serial("id").primaryKey(),
@@ -2463,8 +2487,46 @@ export const insertAbsenceSchema = createInsertSchema(absences).omit({
   approvedAt: true,
   rejectionReason: true,
   status: true,
-});
+  employeeId: true,  // Excluded: set by backend based on logged user
+  companyId: true,    // Excluded: set by backend based on logged user
+}).extend({
+  type: absenceTypeEnum,
+  startDate: z.string().or(z.date()),
+  endDate: z.string().or(z.date()),
+  totalDays: z.number().int().positive("Total de dias deve ser positivo"),
+  reason: z.string().min(10, "Motivo deve ter pelo menos 10 caracteres").optional(),
+  documentUrl: z.string().url("URL de documento inválida").optional(),
+}).refine(
+  (data) => {
+    const start = new Date(data.startDate);
+    const end = new Date(data.endDate);
+    return end >= start;
+  },
+  { message: "Data final deve ser maior ou igual à data inicial", path: ["endDate"] }
+);
 export type InsertAbsence = z.infer<typeof insertAbsenceSchema>;
+
+// Update schema for Absence (employee can only update these fields)
+export const updateAbsenceSchema = z.object({
+  type: absenceTypeEnum.optional(),
+  startDate: z.string().or(z.date()).optional(),
+  endDate: z.string().or(z.date()).optional(),
+  totalDays: z.number().int().positive("Total de dias deve ser positivo").optional(),
+  reason: z.string().min(10, "Motivo deve ter pelo menos 10 caracteres").optional(),
+  documentUrl: z.string().url("URL de documento inválida").optional(),
+  departmentId: z.number().optional(),
+}).refine(
+  (data) => {
+    if (data.startDate && data.endDate) {
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      return end >= start;
+    }
+    return true;
+  },
+  { message: "Data final deve ser maior ou igual à data inicial", path: ["endDate"] }
+);
+export type UpdateAbsence = z.infer<typeof updateAbsenceSchema>;
 
 export const insertVacationBalanceSchema = createInsertSchema(vacationBalances).omit({
   id: true,
