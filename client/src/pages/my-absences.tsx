@@ -564,6 +564,7 @@ export default function MyAbsences() {
                           <th className="pb-3 font-medium text-gray-700 dark:text-gray-300">Tipo</th>
                           <th className="pb-3 font-medium text-gray-700 dark:text-gray-300">Período</th>
                           <th className="pb-3 font-medium text-gray-700 dark:text-gray-300">Dias</th>
+                          <th className="pb-3 font-medium text-gray-700 dark:text-gray-300">Anexo</th>
                           <th className="pb-3 font-medium text-gray-700 dark:text-gray-300">Status</th>
                           <th className="pb-3 font-medium text-gray-700 dark:text-gray-300">Ações</th>
                         </tr>
@@ -579,6 +580,23 @@ export default function MyAbsences() {
                             </td>
                             <td className="py-3" data-testid={`text-days-${absence.id}`}>
                               {absence.totalDays}
+                            </td>
+                            <td className="py-3">
+                              {absence.documentUrl ? (
+                                <a
+                                  href={absence.documentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                  data-testid={`link-document-${absence.id}`}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </a>
+                              ) : (
+                                <span className="text-gray-400 dark:text-gray-600" data-testid={`text-no-document-${absence.id}`}>
+                                  -
+                                </span>
+                              )}
                             </td>
                             <td className="py-3">
                               <span 
