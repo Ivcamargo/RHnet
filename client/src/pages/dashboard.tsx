@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   MessageSquare, 
   FileText, 
@@ -57,6 +59,10 @@ interface HRDashboardData {
 export default function Dashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [showMessagesPopup, setShowMessagesPopup] = useState(false);
+  const [popupShownInSession, setPopupShownInSession] = useState(() => {
+    return sessionStorage.getItem('messagesPopupShown') === 'true';
+  });
 
   // Mutation to claim superadmin access
   const claimSuperadminMutation = useMutation({
@@ -133,6 +139,19 @@ export default function Dashboard() {
 
   const isLoading = summaryLoading || messagesLoading || tasksLoading;
 
+  // Auto-show popup when there are unread messages (once per session)
+  useEffect(() => {
+    if (hrData.unreadMessages > 0 && !popupShownInSession && !isLoading) {
+      setShowMessagesPopup(true);
+    }
+  }, [hrData.unreadMessages, popupShownInSession, isLoading]);
+
+  const handleClosePopup = () => {
+    setShowMessagesPopup(false);
+    setPopupShownInSession(true);
+    sessionStorage.setItem('messagesPopupShown', 'true');
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -153,6 +172,81 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[hsl(220,20%,98%)] via-[hsl(175,20%,98%)] to-[hsl(220,15%,96%)] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
+      
+      {/* Popup de Mensagens Não Lidas */}
+      <Dialog open={showMessagesPopup} onOpenChange={(open) => !open && handleClosePopup()}>
+        <DialogContent className="sm:max-w-[500px]" data-testid="dialog-unread-messages">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]">
+              <BellRing className="h-5 w-5" />
+              Você tem {hrData.unreadMessages} {hrData.unreadMessages === 1 ? 'mensagem não lida' : 'mensagens não lidas'}
+            </DialogTitle>
+            <DialogDescription>
+              Confira suas mensagens recentes abaixo ou clique em "Ver Todas" para acessar a caixa de entrada completa.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-[300px] overflow-y-auto">
+            {hrData.recentMessages.filter(m => !m.isRead).slice(0, 5).map((message) => (
+              <div 
+                key={message.id} 
+                className="p-3 rounded-lg bg-[hsl(175,40%,98%)] dark:bg-[hsl(175,20%,15%)] border border-[hsl(175,40%,90%)] dark:border-[hsl(175,20%,25%)] hover:bg-[hsl(175,40%,95%)] dark:hover:bg-[hsl(175,20%,18%)] cursor-pointer transition"
+                onClick={() => {
+                  handleClosePopup();
+                  setLocation('/messages');
+                }}
+                data-testid={`message-preview-${message.id}`}
+              >
+                <div className="flex items-start justify-between mb-1">
+                  <p className="font-medium text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)] text-sm">
+                    {message.senderName}
+                  </p>
+                  <Badge 
+                    variant="outline" 
+                    className={getPriorityColor(message.priority)}
+                  >
+                    {message.priority === 'high' ? 'Alta' : 'Normal'}
+                  </Badge>
+                </div>
+                <p className="text-sm font-medium text-[hsl(220,40%,25%)] dark:text-[hsl(175,40%,70%)] mb-1">
+                  {message.subject}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDate(message.createdAt)}
+                </p>
+              </div>
+            ))}
+            
+            {hrData.recentMessages.filter(m => !m.isRead).length === 0 && (
+              <p className="text-center text-muted-foreground py-4">
+                Nenhuma mensagem não lida recente
+              </p>
+            )}
+          </div>
+          
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={handleClosePopup}
+              className="flex-1"
+              data-testid="button-close-popup"
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                handleClosePopup();
+                setLocation('/messages');
+              }}
+              className="flex-1 bg-[hsl(220,65%,18%)] hover:bg-[hsl(220,65%,25%)] dark:bg-[hsl(175,65%,45%)] dark:hover:bg-[hsl(175,65%,50%)]"
+              data-testid="button-view-all-messages"
+            >
+              <MailOpen className="h-4 w-4 mr-2" />
+              Ver Todas as Mensagens
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar title="Dashboard" />

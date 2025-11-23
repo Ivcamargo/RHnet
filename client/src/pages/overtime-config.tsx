@@ -104,8 +104,13 @@ export default function OvertimeConfig() {
       setEditingRule(null);
       toast({ title: "Regra salva com sucesso!" });
     },
-    onError: () => {
-      toast({ title: "Erro ao salvar regra", variant: "destructive" });
+    onError: (error: any) => {
+      console.error("Error saving rule:", error);
+      toast({ 
+        title: "Erro ao salvar regra", 
+        description: error.message || "Verifique os dados e tente novamente",
+        variant: "destructive" 
+      });
     },
   });
 

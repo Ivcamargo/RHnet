@@ -7894,11 +7894,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create overtime rule
   app.post('/api/overtime-rules', isAuthenticatedHybrid, requireAdminRole, async (req: any, res) => {
     try {
+      console.log("[OVERTIME] Creating overtime rule with data:", JSON.stringify(req.body, null, 2));
       const rule = await storage.createOvertimeRule(req.body);
+      console.log("[OVERTIME] Rule created successfully:", rule);
       res.json(rule);
-    } catch (error) {
-      console.error("Error creating overtime rule:", error);
-      res.status(500).json({ message: "Failed to create overtime rule" });
+    } catch (error: any) {
+      console.error("[OVERTIME] Error creating overtime rule:", error);
+      console.error("[OVERTIME] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        body: req.body
+      });
+      res.status(500).json({ message: error.message || "Failed to create overtime rule" });
     }
   });
 
