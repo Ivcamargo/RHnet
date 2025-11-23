@@ -16,8 +16,8 @@ import { queryClient } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarIcon, Clock, FileText, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { CalendarIcon, Clock, FileText, Plus, Trash2, Upload, X } from "lucide-react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { insertAbsenceSchema, type Absence, type VacationBalance } from "@shared/schema";
 import { z } from "zod";
@@ -53,6 +53,9 @@ const statusColors: Record<string, string> = {
 export default function MyAbsences() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: absences, isLoading: absencesLoading } = useQuery<Absence[]>({
     queryKey: ['/api/absences'],
@@ -127,6 +130,78 @@ export default function MyAbsences() {
       });
     },
   });
+
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/absences/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao fazer upload do arquivo');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setUploadedFileUrl(data.filePath);
+      form.setValue('documentUrl', data.filePath);
+      toast({
+        title: "Arquivo enviado!",
+        description: "Documento anexado com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar arquivo",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Tipo de arquivo inválido",
+          description: "Apenas PDF, JPG e PNG são permitidos.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedFile(file);
+      uploadFileMutation.mutate(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setUploadedFileUrl("");
+    form.setValue('documentUrl', undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const onSubmit = (data: z.infer<typeof insertAbsenceSchema>) => {
     createMutation.mutate(data);
@@ -383,26 +458,56 @@ export default function MyAbsences() {
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="documentUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black dark:text-white">Documento Comprobatório (URL)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="https://exemplo.com/atestado.pdf (opcional)"
-                                data-testid="input-document-url"
-                              />
-                            </FormControl>
-                            <FormDescription className="text-gray-600 dark:text-gray-400">
-                              Cole o link do documento se houver (atestado médico, certidão, etc)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {/* Document Upload Field */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-black dark:text-white">
+                          Documento Comprobatório (Opcional)
+                        </label>
+                        <div className="flex flex-col gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            id="file-upload"
+                          />
+                          
+                          {!selectedFile && !uploadedFileUrl ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-full justify-start"
+                              disabled={uploadFileMutation.isPending}
+                              data-testid="button-choose-file"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              {uploadFileMutation.isPending ? "Enviando..." : "Escolher e Anexar"}
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                              <FileText className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              <span className="flex-1 text-sm text-green-800 dark:text-green-300 truncate">
+                                {selectedFile?.name || "Documento anexado"}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRemoveFile}
+                                className="h-6 w-6 p-0 text-green-600 dark:text-green-400 hover:text-red-600 dark:hover:text-red-400"
+                                data-testid="button-remove-file"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Anexe atestado médico, certidão ou outro comprovante (PDF, JPG, PNG - máx. 5MB)
+                        </p>
+                      </div>
 
                       <div className="flex gap-2">
                         <Button 
