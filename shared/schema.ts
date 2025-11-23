@@ -2389,3 +2389,86 @@ export const insertEmployeeItemSchema = createInsertSchema(employeeItems).omit({
   status: true,
 });
 export type InsertEmployeeItem = z.infer<typeof insertEmployeeItemSchema>;
+
+// ============= ABSENCE MANAGEMENT SYSTEM (Férias e Afastamentos) =============
+
+// Absences - Férias, licenças médicas, afastamentos
+export const absences = pgTable("absences", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id").notNull(),
+  companyId: integer("company_id").notNull(),
+  departmentId: integer("department_id"),
+  type: varchar("type").notNull(), // "vacation" (férias), "medical_leave", "maternity_leave", "paternity_leave", "bereavement", "wedding", "other"
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  totalDays: integer("total_days").notNull(), // Calculated: business days
+  status: varchar("status").notNull().default("pending"), // "pending", "approved", "rejected", "cancelled"
+  reason: text("reason"), // Motivo/observações do funcionário
+  rejectionReason: text("rejection_reason"), // Motivo da rejeição (se rejeitado)
+  documentUrl: varchar("document_url"), // URL do atestado/documento
+  approvedBy: varchar("approved_by"), // ID do aprovador (RH/Admin)
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  employeeReference: foreignKey({
+    columns: [table.employeeId],
+    foreignColumns: [users.id],
+  }),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+  departmentReference: foreignKey({
+    columns: [table.departmentId],
+    foreignColumns: [departments.id],
+  }),
+  approvedByReference: foreignKey({
+    columns: [table.approvedBy],
+    foreignColumns: [users.id],
+  }),
+}));
+
+// Vacation Balance - Saldo de férias por funcionário
+export const vacationBalances = pgTable("vacation_balances", {
+  id: serial("id").primaryKey(),
+  employeeId: varchar("employee_id").notNull().unique(),
+  companyId: integer("company_id").notNull(),
+  totalDaysEarned: integer("total_days_earned").default(0).notNull(), // Total acumulado
+  totalDaysUsed: integer("total_days_used").default(0).notNull(), // Total usado
+  currentBalance: integer("current_balance").default(0).notNull(), // Saldo atual
+  lastCalculatedAt: timestamp("last_calculated_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  employeeReference: foreignKey({
+    columns: [table.employeeId],
+    foreignColumns: [users.id],
+  }),
+  companyReference: foreignKey({
+    columns: [table.companyId],
+    foreignColumns: [companies.id],
+  }),
+}));
+
+// Types for Absence System
+export type Absence = typeof absences.$inferSelect;
+export type VacationBalance = typeof vacationBalances.$inferSelect;
+
+// Insert schemas for Absence System
+export const insertAbsenceSchema = createInsertSchema(absences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvedBy: true,
+  approvedAt: true,
+  rejectionReason: true,
+  status: true,
+});
+export type InsertAbsence = z.infer<typeof insertAbsenceSchema>;
+
+export const insertVacationBalanceSchema = createInsertSchema(vacationBalances).omit({
+  id: true,
+  lastCalculatedAt: true,
+  updatedAt: true,
+});
+export type InsertVacationBalance = z.infer<typeof insertVacationBalanceSchema>;

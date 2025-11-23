@@ -54,6 +54,8 @@ import {
   inventoryStock,
   inventoryMovements,
   employeeItems,
+  absences,
+  vacationBalances,
   type User,
   type UpsertUser,
   type Department,
@@ -130,6 +132,10 @@ import {
   type InsertInventoryMovement,
   type EmployeeItem,
   type InsertEmployeeItem,
+  type Absence,
+  type InsertAbsence,
+  type VacationBalance,
+  type InsertVacationBalance,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, isNull, desc, gte, lte, sql, ne, inArray } from "drizzle-orm";
