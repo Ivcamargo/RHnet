@@ -11,11 +11,11 @@ export function calculateCRC16(data: string): string {
   // Convert string to ISO 8859-1 bytes
   const bytes = Buffer.from(data, 'latin1');
 
-  for (const byte of bytes) {
-    crc ^= byte;
+  for (let i = 0; i < bytes.length; i++) {
+    crc ^= bytes[i];
     
     // Process LSB-first with right shifts
-    for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
       if (crc & 0x0001) {
         crc = (crc >> 1) ^ polynomial;
       } else {

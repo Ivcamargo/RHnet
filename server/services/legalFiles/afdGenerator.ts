@@ -39,6 +39,7 @@ export function generateAFD(options: AFDOptions): { content: string; hash: strin
   const generationDateTime = formatDateTime(new Date());
   const header = [
     '1', // Tipo
+    '1', // Indicador (1 = CNPJ, 2 = CPF)
     options.companyCnpj.padEnd(14, ' '), // CNPJ
     '', // CEI (vazio se não houver)
     options.companyName.substring(0, 150).padEnd(150, ' '), // Razão social (max 150)
@@ -58,7 +59,7 @@ export function generateAFD(options: AFDOptions): { content: string; hash: strin
     '2', // Tipo
     currentNsr.toString().padStart(9, '0'), // NSR
     options.repIdentifier.substring(0, 20).padEnd(20, ' '), // Identificador REP
-    'REP-P', // Tipo REP
+    '3', // Tipo REP (3 = REP-P)
     '1.0.0', // Versão do software
     '003' // Layout
   ].join('\t');

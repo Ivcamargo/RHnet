@@ -45,6 +45,7 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
   const generationDateTime = formatDateTime(new Date());
   const header = [
     '01', // Tipo
+    '1', // Indicador (1 = CNPJ, 2 = CPF)
     options.companyCnpj.padEnd(14, ' '), // CNPJ
     options.companyName.substring(0, 115).padEnd(115, ' '), // Razão social
     options.periodStart, // Início período DDMMYYYY
@@ -59,7 +60,7 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
   const repRecord = [
     '02', // Tipo
     options.repIdentifier.substring(0, 20).padEnd(20, ' '), // Identificador REP
-    'REP-P', // Tipo REP
+    '3', // Tipo REP (3 = REP-P)
     options.periodStart, // Início utilização
     options.periodEnd // Fim utilização
   ].join('\t');
@@ -68,6 +69,8 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
   lines.push(repRecordWithCrc);
 
   // Tipo 03 - Vínculos + Tipo 04 - Horário contratual + Tipo 05 - Marcações
+  // Tipo 06 - Matrícula eSocial (OPCIONAL - somente para múltiplos vínculos)
+  // Tipo 07 - Ausências e Banco de Horas (OPCIONAL - somente quando houver dados)
   for (const employee of options.employees) {
     // Tipo 03 - Vínculo
     const vinculo = [
@@ -121,11 +124,17 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
         lines.push(marcacaoOutWithCrc);
       }
     }
+
+    // TODO: Implementar Tipo 06 - Matrícula eSocial (quando houver múltiplos vínculos)
+    // Formato: '06' + idVinculoAej + matriculaEsocial
+    
+    // TODO: Implementar Tipo 07 - Ausências e Banco de Horas (quando houver dados)
+    // Formato: '07' + idVinculoAej + dataAusenOuComp + tipoAusenOuComp + qtdeMinutos
   }
 
-  // Tipo 09 - Identificação do PTRP
+  // Tipo 08 - Identificação do PTRP
   const ptrp = [
-    '09', // Tipo
+    '08', // Tipo (corrigido de 09 para 08)
     options.ptpIdentifier.substring(0, 60).padEnd(60, ' '), // Nome do PTRP
     options.ptpVersion.substring(0, 10).padEnd(10, ' '), // Versão
     generationDateTime // Data/hora geração
@@ -133,6 +142,16 @@ export function generateAEJ(options: AEJOptions): { content: string; hash: strin
   
   const ptrpWithCrc = ptrp + '\t' + calculateCRC16(ptrp);
   lines.push(ptrpWithCrc);
+
+  // Tipo 99 - Totalizador de registros
+  const totalRecords = lines.length; // Conta todos os registros anteriores
+  const totalizador = [
+    '99', // Tipo
+    totalRecords.toString().padStart(6, '0') // Total de registros (incluindo este)
+  ].join('\t');
+  
+  const totalizadorWithCrc = totalizador + '\t' + calculateCRC16(totalizador);
+  lines.push(totalizadorWithCrc);
 
   // Join with CRLF
   const content = lines.join('\r\n') + '\r\n';
