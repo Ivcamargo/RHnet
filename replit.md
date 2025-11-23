@@ -38,7 +38,12 @@ Preferred communication style: Simple, everyday language.
 - **Password Management**: Self-service and admin-initiated password reset.
 - **Course Management**: Admin interface for quizzes.
 - **Messaging System**: Multi-target messaging with contextual messaging from documents.
-- **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files (Portaria 671/2021).
+- **Legal Files (AFD/AEJ)**: Generation and import of mandatory legal files fully compliant with Portaria 671/2021 MTE, including:
+  - AFD/AEJ headers with separate CNPJ/CPF indicator field (1 = CNPJ, 2 = CPF)
+  - REP type field using numeric code "3" for REP-P
+  - Optional Tipo 06 (eSocial multiple employment bonds) and Tipo 07 (absences/time bank)
+  - Correct AEJ totalizador (Tipo 99) including itself in the count
+  - CRC-16/KERMIT checksum validation for all records
 - **CSV Import/Export**: Bulk employee management with automatic account creation.
 - **Reporting & Analytics**: Monthly time summaries, dashboard statistics, data export, and "Inconsistency Reporting".
 - **Recruitment & Selection Module**: Manages hiring workflow from job openings to digital onboarding, including weighted scoring.
