@@ -72,7 +72,64 @@ Preferred communication style: Simple, everyday language.
 - **Inventory & EPI Management**: Comprehensive system including categories, items, stock, movements, and employee-assigned items with digital signatures and role-based access.
 
 ### Planned Features
-- **Offline Mode for Login and Time Tracking**: Allows offline operation with automatic synchronization upon regaining connectivity. This includes local authentication, IndexedDB storage for time entries, background sync via Service Worker, and a review system for HR to manage invalid offline entries.
+
+#### 1. Offline Mode for Login and Time Tracking
+Allows offline operation with automatic synchronization upon regaining connectivity. This includes local authentication, IndexedDB storage for time entries, background sync via Service Worker, and a review system for HR to manage invalid offline entries.
+
+**Technical Considerations:**
+- PWA service worker already implements cache update strategy with `skipWaiting()` and versioned cache names
+- Service worker updates automatically on deployment via cache version change (`rhnet-v3-no-api-cache`)
+- Network-first strategy for API requests ensures fresh data when online
+- Cache-first for static assets with automatic cleanup of old caches
+
+#### 2. Advanced Inventory Distribution with Signature Workflow
+Complete acceptance/rejection flow for EPIs/Uniforms/Tools distribution with temporary custody and stock reservation system.
+
+**Key Features:**
+- **Rename Module**: Change all "EPIs" references to "EPIs/Uniformes/Ferramentas" throughout UI
+- **Asynchronous Distribution**: Remove mandatory signature at distribution time
+- **Temporary Custody**: Items assigned to department supervisor until employee accepts
+- **Stock Reservation System**: Items marked as RESERVED (not removed from stock) until employee acceptance
+- **Employee Acceptance Portal**: Dedicated page showing pending items with Accept/Reject options per item
+- **Digital Signature on Acceptance**: Employee signs only when accepting items
+- **Item Rejection**: Employee can reject individual items with mandatory justification (defective, wrong size, etc.)
+- **Supervisor Custody Management**: View all items under temporary custody with cancellation option
+- **Distribution Cancellation**: Supervisor can cancel pending distributions (lost, damaged) with reason tracking
+- **Stock Flow States**:
+  - `pending_signature`: Item reserved, in supervisor custody, stock shows as "Reserved"
+  - `accepted`: Stock deducted, custody transferred to employee, signature recorded
+  - `rejected`: Reservation released, stock available again, supervisor retains custody
+  - `cancelled`: Stock deducted as loss, supervisor marked as responsible party
+- **Status Tracking**: Visual badges (Pending, Accepted, Rejected, Cancelled) in history view
+- **Notifications**: Alert supervisor on rejections, alert employee on new pending items
+- **Accountability**: Full audit trail of who accepted/rejected/cancelled what and when
+
+**Database Schema Changes:**
+- `inventoryMovements.status`: enum ('pending_signature', 'accepted', 'rejected', 'cancelled')
+- `inventoryMovements.rejectionReason`: text (employee justification for rejection)
+- `inventoryMovements.cancellationReason`: text (supervisor reason for cancellation)
+- `inventoryMovements.signedAt`: timestamp (when employee signed acceptance)
+- `inventoryMovements.temporaryCustodianId`: references users table (supervisor holding items)
+
+**User Flows:**
+1. Supervisor distributes items → status: pending_signature, custody: supervisor, stock: reserved
+2. Employee views "Meus Itens Pendentes" → sees all items awaiting signature
+3. Employee accepts item → signs digitally → status: accepted, custody: employee, stock: deducted
+4. Employee rejects item → enters reason → status: rejected, custody: supervisor, stock: released
+5. Supervisor views "Itens sob Minha Custódia" → sees pending items
+6. Supervisor cancels distribution → selects reason → status: cancelled, stock: deducted as loss
+
+#### 3. Visual Calendar for Absences and Vacations
+Calendar view showing team availability, vacation periods, and absence patterns.
+
+#### 4. Advanced Dashboard Analytics
+Enhanced statistics, charts, and KPIs for management decision-making.
+
+#### 5. Advanced Reports Module
+Customizable reports with filters, exports, and scheduled delivery.
+
+#### 6. Expanded Notification System
+Real-time notifications for critical events with email/SMS integration.
 
 ## External Dependencies
 
