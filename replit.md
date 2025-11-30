@@ -131,6 +131,42 @@ Customizable reports with filters, exports, and scheduled delivery.
 #### 6. Expanded Notification System
 Real-time notifications for critical events with email/SMS integration.
 
+#### 7. Biometric Authentication (WebAuthn)
+Passwordless and biometric authentication using the W3C WebAuthn standard for secure, fast login and action confirmation.
+
+**Supported Biometrics:**
+- **iOS/iPadOS**: Face ID, Touch ID
+- **Android**: Fingerprint, Face Unlock
+- **macOS**: Touch ID
+- **Windows**: Windows Hello (fingerprint, face recognition, PIN)
+
+**Key Features:**
+- **Quick Login**: Employees can log in with biometrics instead of password
+- **Time Clock Verification**: Additional biometric confirmation when clocking in/out
+- **EPI/Document Signing**: Use biometrics as alternative to canvas signature
+- **Sensitive Actions**: Step-up authentication for critical operations
+- **Fallback Support**: Automatic fallback to password for unsupported devices
+- **Privacy First**: Biometric data NEVER leaves the device (only cryptographic keys are stored)
+
+**Security Benefits:**
+- Phishing-resistant (credentials bound to origin)
+- No shared secrets (public keys on server are useless alone)
+- Device-bound authentication (private keys in secure hardware TPM/Secure Enclave)
+- Multi-factor built-in ("something you have" + "something you are")
+
+**Implementation:**
+- Uses `@simplewebauthn/browser` and `@simplewebauthn/server` libraries
+- Registration flow: User opts-in via profile settings
+- Authentication flow: Browser prompts for biometric, device signs challenge
+- Database: Store credential IDs and public keys per user
+
+**User Flows:**
+1. Employee logs in normally (first time)
+2. System offers: "Enable biometric login?"
+3. Employee confirms with fingerprint/face
+4. System stores cryptographic credential (NOT biometric data)
+5. Next login: Employee uses biometric → instant access
+
 ## External Dependencies
 
 - **Database**: Neon PostgreSQL, `@neondatabase/serverless`.
