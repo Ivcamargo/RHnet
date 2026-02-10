@@ -1,0 +1,13 @@
+services:
+  rhnet:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - rhnet_uploads:/app/uploads
+
+volumes:
+  rhnet_uploads:
