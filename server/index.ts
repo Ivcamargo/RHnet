@@ -7,6 +7,8 @@ import { ensureSessionSchema, getSession } from "./session";
 const app = express();
 const isDev = process.env.NODE_ENV === "development";
 app.set("env", isDev ? "development" : "production");
+// Trust reverse proxy (Nginx) so secure cookies work over HTTPS
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
