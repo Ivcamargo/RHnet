@@ -5,6 +5,8 @@ import { initializeProductionDatabase } from "./db";
 import { ensureSessionSchema, getSession } from "./session";
 
 const app = express();
+const isDev = process.env.NODE_ENV === "development";
+app.set("env", isDev ? "development" : "production");
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -64,7 +66,7 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (isDev) {
     const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
