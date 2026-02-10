@@ -44,14 +44,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize session table first (required by both dev and prod)
-  await ensureSessionSchema();
-
-  // Session middleware required for local auth
-  app.use(getSession());
-  
   // Initialize database schema in production before starting server
   await initializeProductionDatabase();
+
+  // Ensure session table exists after migrations
+  await ensureSessionSchema();
   
   const server = await registerRoutes(app);
 
