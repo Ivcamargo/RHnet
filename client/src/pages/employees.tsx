@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, CreditCard, GraduationCap, Heart, Edit, Trash2, Key, Lock, Download, Upload, FileDown } from "lucide-react";
+import { Users, Mail, Building, Shield, Settings, UserCheck, Plus, Search, FileText, MapPin, Phone, Briefcase, GraduationCap, Heart, Edit, Trash2, Key, Lock, Download, Upload, FileDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -60,16 +60,10 @@ const FIELD_TO_TAB_MAP: Record<string, string> = {
   lastName: 'pessoais',
   email: 'pessoais',
   birthDate: 'pessoais',
-  maritalStatus: 'pessoais',
   gender: 'pessoais',
-  nationality: 'pessoais',
-  naturalness: 'pessoais',
   cpf: 'documentos',
-  rg: 'documentos',
-  rgIssuingOrgan: 'documentos',
   ctps: 'documentos',
   pisPasep: 'documentos',
-  tituloEleitor: 'documentos',
   cep: 'endereco',
   address: 'endereco',
   addressNumber: 'endereco',
@@ -92,16 +86,10 @@ const FIELD_TO_TAB_MAP: Record<string, string> = {
   workSchedule: 'profissionais',
   salary: 'profissionais',
   benefits: 'profissionais',
-  bankCode: 'bancarios',
-  bankName: 'bancarios',
-  agencyNumber: 'bancarios',
-  accountNumber: 'bancarios',
-  accountType: 'bancarios',
-  pixKey: 'bancarios',
-  educationLevel: 'bancarios',
-  institution: 'bancarios',
-  course: 'bancarios',
-  graduationYear: 'bancarios',
+  educationLevel: 'profissionais',
+  institution: 'profissionais',
+  course: 'profissionais',
+  graduationYear: 'profissionais',
 };
 
 export default function Employees() {
@@ -160,9 +148,9 @@ export default function Employees() {
       pisPasep: "",
       tituloEleitor: "",
       birthDate: "",
-      maritalStatus: "solteiro",
+      maritalStatus: "",
       gender: "prefiro_nao_informar",
-      nationality: "Brasileira",
+      nationality: "",
       naturalness: "",
       
       // Endereço
@@ -230,9 +218,9 @@ export default function Employees() {
       pisPasep: "",
       tituloEleitor: "",
       birthDate: "",
-      maritalStatus: "solteiro",
+      maritalStatus: "",
       gender: "prefiro_nao_informar",
-      nationality: "Brasileira",
+      nationality: "",
       naturalness: "",
       
       // Endereço
@@ -1021,10 +1009,6 @@ export default function Employees() {
                           <Briefcase className="h-4 w-4" />
                           Profissional
                         </TabsTrigger>
-                        <TabsTrigger value="bancarios" className="flex items-center gap-1">
-                          <CreditCard className="h-4 w-4" />
-                          Bancários
-                        </TabsTrigger>
                       </TabsList>
 
                       {/* Dados Pessoais */}
@@ -1088,30 +1072,6 @@ export default function Employees() {
                           />
                           <FormField
                             control={addForm.control}
-                            name="maritalStatus"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Estado Civil *</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger data-testid="select-marital-status">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="solteiro">Solteiro(a)</SelectItem>
-                                    <SelectItem value="casado">Casado(a)</SelectItem>
-                                    <SelectItem value="divorciado">Divorciado(a)</SelectItem>
-                                    <SelectItem value="viuvo">Viúvo(a)</SelectItem>
-                                    <SelectItem value="uniao_estavel">União Estável</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addForm.control}
                             name="gender"
                             render={({ field }) => (
                               <FormItem>
@@ -1135,34 +1095,6 @@ export default function Employees() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={addForm.control}
-                            name="nationality"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nacionalidade</FormLabel>
-                                <FormControl>
-                                  <Input {...field} data-testid="input-nationality" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addForm.control}
-                            name="naturalness"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Naturalidade</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Cidade de nascimento" {...field} data-testid="input-naturalness" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
                       </TabsContent>
 
                       {/* Documentos */}
@@ -1180,35 +1112,6 @@ export default function Employees() {
                             </FormItem>
                           )}
                         />
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={addForm.control}
-                            name="rg"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>RG</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="00.000.000-0" {...field} data-testid="input-rg" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addForm.control}
-                            name="rgIssuingOrgan"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Órgão Emissor RG</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="SSP-SP" {...field} data-testid="input-rg-organ" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
@@ -1238,20 +1141,6 @@ export default function Employees() {
                             )}
                           />
                         </div>
-
-                        <FormField
-                          control={addForm.control}
-                          name="tituloEleitor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Título de Eleitor</FormLabel>
-                              <FormControl>
-                                <Input placeholder="0000 0000 0000" {...field} data-testid="input-titulo" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </TabsContent>
 
                       {/* Endereço */}
@@ -1654,37 +1543,6 @@ export default function Employees() {
                           />
                         </div>
 
-                        {/* Company selector - only for superadmins */}
-                        {user?.role === 'superadmin' && (
-                          <FormField
-                            control={addForm.control}
-                            name="companyId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Empresa *</FormLabel>
-                                <Select 
-                                  onValueChange={(value) => field.onChange(parseInt(value))}
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger data-testid="select-company-create">
-                                      <SelectValue placeholder="Selecione uma empresa" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {companies?.map((company: any) => (
-                                      <SelectItem key={company.id} value={company.id.toString()}>
-                                        {company.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
                         <FormField
                           control={addForm.control}
                           name="benefits"
@@ -1758,101 +1616,6 @@ export default function Employees() {
                         </div>
                       </TabsContent>
 
-                      {/* Dados Bancários */}
-                      <TabsContent value="bancarios" className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={addForm.control}
-                            name="bankCode"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Código do Banco *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="341" maxLength={3} {...field} data-testid="input-bank-code" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addForm.control}
-                            name="bankName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nome do Banco *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Banco Itaú" {...field} data-testid="input-bank-name" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                          <FormField
-                            control={addForm.control}
-                            name="agencyNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Agência *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="1234" {...field} data-testid="input-agency" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addForm.control}
-                            name="accountNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Número da Conta *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="12345-6" {...field} data-testid="input-account-number" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addForm.control}
-                            name="accountType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Tipo de Conta *</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger data-testid="select-account-type">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="corrente">Conta Corrente</SelectItem>
-                                    <SelectItem value="poupanca">Conta Poupança</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={addForm.control}
-                          name="pixKey"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Chave PIX</FormLabel>
-                              <FormControl>
-                                <Input placeholder="joao.silva@email.com ou CPF ou telefone" {...field} data-testid="input-pix-key" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TabsContent>
                     </Tabs>
 
                     <div className="flex gap-2 pt-4">
@@ -1908,10 +1671,6 @@ export default function Employees() {
                         <TabsTrigger value="profissionais" className="flex items-center gap-1">
                           <Briefcase className="h-4 w-4" />
                           Profissional
-                        </TabsTrigger>
-                        <TabsTrigger value="bancarios" className="flex items-center gap-1">
-                          <CreditCard className="h-4 w-4" />
-                          Bancários
                         </TabsTrigger>
                       </TabsList>
 
@@ -1987,32 +1746,9 @@ export default function Employees() {
                               </FormItem>
                             )}
                           />
-                          <FormField
-                            control={editForm.control}
-                            name="maritalStatus"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Estado Civil</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger data-testid="select-marital-status-edit">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="solteiro">Solteiro(a)</SelectItem>
-                                    <SelectItem value="casado">Casado(a)</SelectItem>
-                                    <SelectItem value="divorciado">Divorciado(a)</SelectItem>
-                                    <SelectItem value="viuvo">Viúvo(a)</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={editForm.control}
                             name="gender"
@@ -2036,32 +1772,6 @@ export default function Employees() {
                               </FormItem>
                             )}
                           />
-                          <FormField
-                            control={editForm.control}
-                            name="nationality"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nacionalidade</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Brasileira" {...field} data-testid="input-nationality-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={editForm.control}
-                            name="naturalness"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Naturalidade</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="São Paulo - SP" {...field} data-testid="input-naturalness-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
                         </div>
                       </TabsContent>
 
@@ -2081,35 +1791,9 @@ export default function Employees() {
                               </FormItem>
                             )}
                           />
-                          <FormField
-                            control={editForm.control}
-                            name="rg"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>RG</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="00.000.000-0" {...field} data-testid="input-rg-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
-                          <FormField
-                            control={editForm.control}
-                            name="rgIssuingOrgan"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Órgão Emissor RG</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="SSP-SP" {...field} data-testid="input-rg-organ-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                        <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={editForm.control}
                             name="ctps"
@@ -2137,20 +1821,6 @@ export default function Employees() {
                             )}
                           />
                         </div>
-
-                        <FormField
-                          control={editForm.control}
-                          name="tituloEleitor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Título de Eleitor</FormLabel>
-                              <FormControl>
-                                <Input placeholder="0000.0000.0000" {...field} data-testid="input-titulo-edit" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </TabsContent>
 
                       {/* Endereço */}
@@ -2573,101 +2243,6 @@ export default function Employees() {
                         </div>
                       </TabsContent>
 
-                      {/* Dados Bancários */}
-                      <TabsContent value="bancarios" className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={editForm.control}
-                            name="bankCode"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Código do Banco</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="001" {...field} data-testid="input-bank-code-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={editForm.control}
-                            name="bankName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nome do Banco</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Banco do Brasil" {...field} data-testid="input-bank-name-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                          <FormField
-                            control={editForm.control}
-                            name="agencyNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Número da Agência</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="1234-5" {...field} data-testid="input-agency-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={editForm.control}
-                            name="accountNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Número da Conta</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="12345-6" {...field} data-testid="input-account-edit" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={editForm.control}
-                            name="accountType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Tipo de Conta</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger data-testid="select-account-type-edit">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="corrente">Corrente</SelectItem>
-                                    <SelectItem value="poupanca">Poupança</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={editForm.control}
-                          name="pixKey"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Chave PIX</FormLabel>
-                              <FormControl>
-                                <Input placeholder="joao.silva@email.com ou CPF ou telefone" {...field} data-testid="input-pix-key-edit" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TabsContent>
                     </Tabs>
 
                     <div className="flex gap-2 pt-4">

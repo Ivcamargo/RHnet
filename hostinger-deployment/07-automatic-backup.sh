@@ -20,16 +20,32 @@ BACKUP_DIR="/var/backups/rhnet"
 RETENTION_DAYS=7  # Manter backups dos últimos 7 dias
 LOG_FILE="/var/log/rhnet/backup.log"
 
-# Carregar credenciais
-if [ -f "/root/db_credentials.txt" ]; then
-    source /root/db_credentials.txt
+# Carregar credenciais (preferir .env do projeto)
+if [ -f "/root/RHnet/.env" ]; then
+    set -a
+    source /root/RHnet/.env
+    set +a
 fi
 
-# Verificar DATABASE_URL
-if [ -z "$DATABASE_URL" ]; then
-    echo "[$(date)] ERRO: DATABASE_URL não configurado!" >> "$LOG_FILE"
+# Verificar pg_dump
+if ! command -v pg_dump >/dev/null 2>&1; then
+    echo "[$(date)] ERRO: pg_dump não encontrado. Instale postgresql-client." >> "$LOG_FILE"
     exit 1
 fi
+
+# Usar URL de backup dedicada se existir
+BACKUP_URL="${DATABASE_URL_BACKUP:-$DATABASE_URL}"
+
+# Verificar BACKUP_URL
+if [ -z "$BACKUP_URL" ]; then
+    echo "[$(date)] ERRO: DATABASE_URL_BACKUP/DATABASE_URL não configurado!" >> "$LOG_FILE"
+    exit 1
+fi
+
+# Remover parâmetro pgbouncer=true se existir (pg_dump não precisa dele)
+BACKUP_URL="${BACKUP_URL/pgbouncer=true/}"
+BACKUP_URL="${BACKUP_URL/&&/}"
+BACKUP_URL="${BACKUP_URL/?&/?}"
 
 # ============= CRIAR DIRETÓRIOS =============
 mkdir -p "$BACKUP_DIR"
@@ -51,7 +67,7 @@ BACKUP_FILE_GZ="$BACKUP_FILE.gz"
 log "📦 Criando backup: $BACKUP_FILE"
 
 # Fazer backup
-if pg_dump "$DATABASE_URL" \
+if pg_dump "$BACKUP_URL" \
     --clean \
     --if-exists \
     --no-owner \
