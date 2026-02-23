@@ -1149,19 +1149,6 @@ export default function Recruitment() {
                   )}
                 </div>
 
-                {(selectedJob.salaryMin || selectedJob.salaryMax) && (
-                  <div>
-                    <h4 className="font-semibold mb-1">Faixa Salarial</h4>
-                    <p className="text-muted-foreground">
-                      {selectedJob.salaryMin && selectedJob.salaryMax
-                        ? `R$ ${selectedJob.salaryMin} - R$ ${selectedJob.salaryMax}`
-                        : selectedJob.salaryMin
-                        ? `A partir de R$ ${selectedJob.salaryMin}`
-                        : `Até R$ ${selectedJob.salaryMax}`}
-                    </p>
-                  </div>
-                )}
-
                 {selectedJob.publishedAt && (
                   <div>
                     <h4 className="font-semibold mb-1">Data de Publicação</h4>

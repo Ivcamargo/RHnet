@@ -331,7 +331,7 @@ export default function PublicJobs() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {(job.companyName || job.location || job.salaryRange || job.publishedAt) && (
+              {(job.companyName || job.location || job.publishedAt) && (
                 <div className="flex gap-4 flex-wrap text-sm text-muted-foreground">
                   {job.companyName && (
                     <div className="flex items-center gap-2">
@@ -343,12 +343,6 @@ export default function PublicJobs() {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       <span>{job.location}</span>
-                    </div>
-                  )}
-                  {job.salaryRange && (
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      <span>{job.salaryRange}</span>
                     </div>
                   )}
                   {job.publishedAt && (

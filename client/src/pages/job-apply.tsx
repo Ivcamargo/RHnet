@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, MapPin, DollarSign, Clock, Building, FileText, CheckCircle, Upload, Check } from "lucide-react";
+import { Briefcase, MapPin, Clock, Building, FileText, CheckCircle, Upload, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 // Job opening interface
@@ -253,12 +253,6 @@ export default function JobApply() {
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span>{job.location}</span>
-                </div>
-              )}
-              {job.salaryRange && (
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <span>{job.salaryRange}</span>
                 </div>
               )}
             </div>
