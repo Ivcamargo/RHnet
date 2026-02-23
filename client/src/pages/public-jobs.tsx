@@ -549,7 +549,7 @@ export default function PublicJobs() {
                                   value={level.level}
                                   data-testid={`requirement-${requirement.id}-level-${level.level}`}
                                 >
-                                  {level.level} ({level.points} pontos)
+                                  {level.level}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -904,7 +904,7 @@ export default function PublicJobs() {
                                 value={level.level}
                                 data-testid={`requirement-${requirement.id}-level-${level.level}`}
                               >
-                                {level.level} ({level.points} pontos)
+                                {level.level}
                               </SelectItem>
                             ))}
                           </SelectContent>
