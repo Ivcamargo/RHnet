@@ -56,6 +56,8 @@ export default function PublicJobs() {
   const [filterLocation, setFilterLocation] = useState<string>('');
   const [filterEmploymentType, setFilterEmploymentType] = useState<string>('');
   const [filterTitle, setFilterTitle] = useState<string>('');
+  const routeJobId = match && params?.id ? parseInt(params.id) : null;
+  const requirementsJobId = routeJobId || selectedJob?.id || null;
 
   // Buscar vagas publicadas (rota pública)
   const { data: jobs = [], isLoading } = useQuery<any[]>({
@@ -70,14 +72,14 @@ export default function PublicJobs() {
 
   // Buscar requisitos da vaga selecionada
   const { data: jobRequirements = [], isLoading: requirementsLoading } = useQuery<any[]>({
-    queryKey: ['/api/job-openings', selectedJob?.id, 'requirements'],
+    queryKey: ['/api/job-openings', requirementsJobId, 'requirements'],
     queryFn: async () => {
-      if (!selectedJob?.id) return [];
-      const res = await fetch(`/api/job-openings/${selectedJob.id}/requirements`);
+      if (!requirementsJobId) return [];
+      const res = await fetch(`/api/job-openings/${requirementsJobId}/requirements`);
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!selectedJob?.id && isApplyDialogOpen,
+    enabled: !!requirementsJobId,
     staleTime: 0,
     refetchOnMount: true,
   });
@@ -365,6 +367,46 @@ export default function PublicJobs() {
                 <h3 className="font-semibold text-lg mb-2">Requisitos</h3>
                 <p className="whitespace-pre-wrap text-muted-foreground">{job.requirements}</p>
               </div>
+
+              {requirementsLoading ? (
+                <div className="py-2 text-sm text-muted-foreground">Carregando requisitos técnicos...</div>
+              ) : jobRequirements.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Requisitos da Vaga</h3>
+                  <div className="space-y-3">
+                    {jobRequirements.map((requirement: any) => {
+                      const levels = Array.isArray(requirement.proficiencyLevels) ? requirement.proficiencyLevels : [];
+                      const isMandatory = requirement.requirementType === 'mandatory';
+
+                      return (
+                        <div key={requirement.id} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold">{requirement.title}</span>
+                            <Badge variant={isMandatory ? 'destructive' : 'secondary'}>
+                              {isMandatory ? 'Obrigatório' : 'Desejável'}
+                            </Badge>
+                            {requirement.category && (
+                              <Badge variant="outline">{requirement.category}</Badge>
+                            )}
+                          </div>
+                          {requirement.description && (
+                            <p className="text-sm text-muted-foreground">{requirement.description}</p>
+                          )}
+                          {levels.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {levels.map((level: any, idx: number) => (
+                                <Badge key={idx} variant="outline">
+                                  {level.level}: {level.points} pts
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {job.benefits && (
                 <div>
