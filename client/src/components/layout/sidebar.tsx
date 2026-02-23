@@ -6,17 +6,13 @@ import {
   Building2, 
   TrendingUp, 
   UsersRound, 
-  Settings, 
-  LogOut, 
   Menu, 
   ShieldCheck, 
   MessageSquare,
   FileText,
   GraduationCap,
   CalendarDays,
-  Upload,
   Timer,
-  KeyRound,
   BriefcaseBusiness,
   ChevronDown,
   ChevronRight,
@@ -31,7 +27,7 @@ import {
   ArrowLeftRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
@@ -47,7 +43,6 @@ export default function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
-  const queryClient = useQueryClient();
   
   const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
@@ -127,26 +122,6 @@ export default function Sidebar() {
   } else {
     navigation = [...baseNavigation, manualItem];
   }
-
-  const handleLogout = async () => {
-    try {
-      // First, clear all React Query cache
-      queryClient.clear();
-      
-      // Then call logout API with credentials to include session cookie
-      await fetch("/api/logout", { 
-        method: "POST",
-        credentials: "include"
-      });
-      
-      // Finally redirect to landing page
-      window.location.href = "/landing";
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Even if there's an error, redirect to landing
-      window.location.href = "/landing";
-    }
-  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-gradient-to-b from-[hsl(220,20%,98%)] to-[hsl(175,20%,98%)] dark:from-[hsl(220,20%,12%)] dark:to-[hsl(220,20%,10%)] border-r border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)]">
@@ -246,36 +221,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      
-      {/* User Info & Logout */}
-      <div className="p-4 border-t border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)] space-y-2">
-        {user && (
-          <div className="text-xs text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] px-2">
-            <p className="font-medium">{(user as any).firstName} {(user as any).lastName}</p>
-            <p className="uppercase text-[10px]">{(user as any).role}</p>
-          </div>
-        )}
-        <Link href="/change-password">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-[hsl(220,15%,40%)] hover:text-[hsl(220,65%,18%)] hover:bg-[hsl(175,40%,92%)] dark:text-[hsl(220,15%,75%)] dark:hover:bg-[hsl(220,15%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
-            onClick={() => setIsMobileMenuOpen(false)}
-            data-testid="button-change-password"
-          >
-            <KeyRound className="mr-3 h-5 w-5" />
-            Alterar Senha
-          </Button>
-        </Link>
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="w-full justify-start text-[hsl(0,72%,51%)] hover:text-white hover:bg-[hsl(0,72%,51%)] font-medium"
-          data-testid="button-logout"
-        >
-          <LogOut className="mr-3 h-5 w-5" />
-          Sair
-        </Button>
-      </div>
     </div>
   );
 

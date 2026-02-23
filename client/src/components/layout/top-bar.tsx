@@ -1,9 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Menu, Bell, MapPin } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Menu, Bell, MapPin, LogOut, KeyRound } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -13,6 +21,7 @@ interface TopBarProps {
 
 export default function TopBar({ title }: TopBarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
   const { location, error: locationError } = useGeolocation();
 
   const { data: user } = useQuery({
@@ -35,6 +44,20 @@ export default function TopBar({ title }: TopBarProps) {
 
   const locationStatus = getLocationStatus();
 
+  const handleLogout = async () => {
+    try {
+      queryClient.clear();
+      await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/landing";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.href = "/landing";
+    }
+  };
+
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm">
       <div className="flex items-center">
@@ -55,6 +78,17 @@ export default function TopBar({ title }: TopBarProps) {
             </p>
           )}
         </div>
+
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          size="sm"
+          className="ml-4 text-white/90 hover:text-white hover:bg-white/10"
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
       </div>
       
       <div className="flex items-center space-x-4">
@@ -77,24 +111,48 @@ export default function TopBar({ title }: TopBarProps) {
         
         {/* User Profile */}
         {user && (
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={(user as any).profileImageUrl} alt={`${(user as any).firstName} ${(user as any).lastName}`} />
-              <AvatarFallback>
-                {(user as any).firstName?.[0]}{(user as any).lastName?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-white">
-                {(user as any).firstName} {(user as any).lastName}
-              </p>
-              <div className="flex items-center space-x-2">
-                <Badge variant={(user as any).role === 'admin' ? 'default' : 'secondary'} className="text-xs">
-                  {(user as any).role === 'admin' || (user as any).role === 'superadmin' ? 'Admin' : 'Funcionário'}
-                </Badge>
-              </div>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center space-x-3 rounded-md px-2 py-1 hover:bg-white/10 transition-colors"
+                data-testid="button-user-menu"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={(user as any).profileImageUrl} alt={`${(user as any).firstName} ${(user as any).lastName}`} />
+                  <AvatarFallback>
+                    {(user as any).firstName?.[0]}{(user as any).lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium text-white">
+                    {(user as any).firstName} {(user as any).lastName}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={(user as any).role === 'admin' ? 'default' : 'secondary'} className="text-xs">
+                      {(user as any).role === 'admin' || (user as any).role === 'superadmin' ? 'Admin' : 'Funcionário'}
+                    </Badge>
+                  </div>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild data-testid="button-change-password">
+                <Link href="/change-password">
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  Alterar Senha
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-red-600 focus:text-red-600"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </header>
