@@ -8,6 +8,20 @@
       "when": 1763309316699,
       "tag": "0000_solid_ogun",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1763310316699,
+      "tag": "0001_inventory_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763311316699,
+      "tag": "0002_absence_system",
+      "breakpoints": true
     }
   ]
 }
