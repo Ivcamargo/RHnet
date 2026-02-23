@@ -60,7 +60,7 @@ export default function TopBar({ title }: TopBarProps) {
 
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center">
         <Button
           variant="ghost"
           size="sm"
@@ -68,17 +68,6 @@ export default function TopBar({ title }: TopBarProps) {
           onClick={toggleMobileMenu}
         >
           <Menu className="h-5 w-5" />
-        </Button>
-
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          size="sm"
-          className="text-white/90 hover:text-white hover:bg-white/10"
-          data-testid="button-logout"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sair
         </Button>
 
         <div className="flex flex-col">
@@ -154,6 +143,16 @@ export default function TopBar({ title }: TopBarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          size="sm"
+          className="text-white/90 hover:text-white hover:bg-white/10"
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
+        </Button>
       </div>
     </header>
   );
