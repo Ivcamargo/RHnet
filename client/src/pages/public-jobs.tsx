@@ -396,7 +396,7 @@ export default function PublicJobs() {
                             <div className="flex flex-wrap gap-2 pt-1">
                               {levels.map((level: any, idx: number) => (
                                 <Badge key={idx} variant="outline">
-                                  {level.level}: {level.points} pts
+                                  {level.level}
                                 </Badge>
                               ))}
                             </div>
