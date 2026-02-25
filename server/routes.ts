@@ -3406,6 +3406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enrichedEntries = await Promise.all(
         entries.map(async (entry) => {
           const irregularityData = await computeIrregularities(entry, storage);
+          const breakEntries = await storage.getBreakEntriesByTimeEntry(entry.id);
           return {
             ...entry,
             expectedHours: irregularityData.expectedHours.toString(),
@@ -3413,6 +3414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             shortfallMinutes: irregularityData.shortfallMinutes,
             irregularityReasons: irregularityData.irregularityReasons,
             status: irregularityData.status,
+            breakEntries,
           };
         })
       );

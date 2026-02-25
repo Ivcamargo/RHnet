@@ -2,9 +2,8 @@ import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle, Camera } from "lucide-react";
+import { Clock, Calendar, AlertTriangle, MapPin, Shield, CheckCircle, XCircle, Camera, Utensils, Coffee } from "lucide-react";
 
 interface TimeEntry {
   id: number;
@@ -37,6 +36,15 @@ interface TimeEntry {
   lateMinutes?: number | null;
   shortfallMinutes?: number | null;
   irregularityReasons?: string[] | null;
+  breakEntries?: BreakEntry[];
+}
+
+interface BreakEntry {
+  id: number;
+  breakStart: string | null;
+  breakEnd: string | null;
+  duration: string | null;
+  type: string | null;
 }
 
 interface MonthlyTimeTableProps {
@@ -84,6 +92,22 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
     return `${h}h ${m}m`;
+  };
+
+  const formatBreakType = (type: string | null) => {
+    if (!type) return "Intervalo";
+    return type.toLowerCase() === "lunch" ? "Almoço" : "Intervalo";
+  };
+
+  const isLunchBreak = (type: string | null) => type?.toLowerCase() === "lunch";
+
+  const getBreakEntries = (entry: TimeEntry) => {
+    if (!entry.breakEntries) return [];
+    return [...entry.breakEntries].sort((a, b) => {
+      if (!a.breakStart) return 1;
+      if (!b.breakStart) return -1;
+      return new Date(a.breakStart).getTime() - new Date(b.breakStart).getTime();
+    });
   };
 
   const getStatusBadge = (entry: TimeEntry) => {
@@ -389,6 +413,60 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 </div>
               )}
 
+              {/* Intervalos / Almoço */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
+                  <Clock className="h-5 w-5" />
+                  Apontamentos de Intervalo
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="text-xs text-gray-500">Legenda:</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      <Utensils className="h-3 w-3" />
+                      Almoço
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+                      <Coffee className="h-3 w-3" />
+                      Intervalo
+                    </span>
+                  </div>
+                  {getBreakEntries(selectedEntry).length > 0 ? (
+                    <div className="space-y-2">
+                      {getBreakEntries(selectedEntry).map((breakEntry) => (
+                        <div
+                          key={breakEntry.id}
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm bg-white p-3 rounded border"
+                        >
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
+                              isLunchBreak(breakEntry.type)
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-sky-100 text-sky-800"
+                            }`}
+                          >
+                            {isLunchBreak(breakEntry.type) ? (
+                              <Utensils className="h-3 w-3" />
+                            ) : (
+                              <Coffee className="h-3 w-3" />
+                            )}
+                            {formatBreakType(breakEntry.type)}
+                          </span>
+                          <span className="text-gray-700">
+                            {formatTime(breakEntry.breakStart)} - {formatTime(breakEntry.breakEnd)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {breakEntry.duration ? `(${Math.round(parseFloat(breakEntry.duration) * 60)} min)` : "(em andamento)"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Nenhum apontamento de almoço/intervalo neste dia.</p>
+                  )}
+                </div>
+              </div>
+
               {/* Resumo de Horas */}
               <div className="bg-blue-50 p-4 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
@@ -422,6 +500,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Data</TableHead>
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Entrada</TableHead>
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Saída</TableHead>
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Intervalos</TableHead>
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Horas Trabalhadas</TableHead>
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Status</TableHead>
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Verificação</TableHead>
@@ -459,6 +538,17 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               </TableCell>
               <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 {formatTime(entry.clockOutTime)}
+              </TableCell>
+              <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
+                {getBreakEntries(entry).length > 0 ? (
+                  <div className="inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-600">
+                    <Clock className="h-3 w-3 text-gray-500 dark:text-gray-300" />
+                    <span className="font-medium">{getBreakEntries(entry).length}</span>
+                    <span className="text-gray-500 dark:text-gray-300">apont.</span>
+                  </div>
+                ) : (
+                  <span className="text-gray-400 dark:text-gray-300">-</span>
+                )}
               </TableCell>
               <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 <div className="flex items-center space-x-1">

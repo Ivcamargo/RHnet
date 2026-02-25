@@ -29,6 +29,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 type MenuItem = {
@@ -138,36 +144,52 @@ export default function Sidebar() {
       </Link>
       
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+      <TooltipProvider delayDuration={150}>
+        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
         {navigation.map((item) => {
           const Icon = item.icon;
           const isExpanded = expandedMenus.includes(item.name);
           
           // Menu with submenu
           if (item.submenu) {
-            const hasActiveSubmenu = item.submenu.some(sub => location === sub.href);
+            const visibleSubmenu = item.submenu.filter((subItem) => !subItem.adminOnly || isAdmin);
+            const hasActiveSubmenu = visibleSubmenu.some((subItem) => location === subItem.href);
             
             return (
               <div key={item.name} className="space-y-1">
                 {/* Parent Menu Item */}
-                <div 
-                  className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
-                    hasActiveSubmenu
-                      ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
-                      : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
-                  }`}
-                  onClick={() => toggleMenu(item.name)}
-                >
-                  <div className="flex items-center">
-                    <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                    <span className="truncate">{item.name}</span>
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                  )}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
+                        hasActiveSubmenu
+                          ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
+                          : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
+                      }`}
+                      onClick={() => toggleMenu(item.name)}
+                    >
+                      <div className="flex items-center">
+                        <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                        <span className="truncate">{item.name}</span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="hidden lg:block p-2">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold">{item.name}</p>
+                      {visibleSubmenu.map((subItem) => (
+                        <p key={subItem.name} className="text-xs opacity-90">
+                          {subItem.name}
+                        </p>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
                 
                 {/* Submenu Items */}
                 {isExpanded && (
@@ -220,7 +242,8 @@ export default function Sidebar() {
             </Link>
           );
         })}
-      </nav>
+        </nav>
+      </TooltipProvider>
     </div>
   );
 
