@@ -415,8 +415,8 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="overflow-x-auto">
-        <Table>
+      <div className="overflow-x-auto text-gray-900 dark:text-gray-100">
+        <Table className="[&_th]:text-gray-600 dark:[&_th]:text-gray-200 [&_td]:text-gray-900 dark:[&_td]:text-gray-100">
         <TableHeader>
           <TableRow className="border-b border-gray-200 dark:border-slate-600">
             <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Data</TableHead>
