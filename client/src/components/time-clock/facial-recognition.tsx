@@ -148,16 +148,22 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
       context.drawImage(videoRef.current, 0, 0);
       console.log(`✅ Frame capturado: ${canvas.width}x${canvas.height}`);
       
-      // Convert to blob for processing
-      canvas.toBlob((blob) => {
-        if (blob) {
-          console.log(`✅ Blob criado: ${blob.size} bytes`);
-          processCapture(blob);
-        } else {
-          console.error("❌ Falha ao criar blob da imagem");
-          setIsCapturing(false);
-        }
-      }, 'image/jpeg', 0.8);
+      // Build data URL synchronously so we can close modal immediately.
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const base64Image = dataUrl.split(',')[1];
+
+      setIsCapturing(false);
+      setIsVerifying(false);
+      onComplete({
+        verified: true,
+        confidence: 0.95,
+        timestamp: new Date().toISOString(),
+        photoUrl: dataUrl,
+        photoProcessed: true,
+      });
+
+      // Update face profile in background without blocking point registration UI.
+      void uploadCapture(base64Image);
       
     } catch (error) {
       console.error("❌ Erro durante captura:", error);
@@ -165,19 +171,9 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
     }
   };
 
-  const processCapture = async (imageBlob: Blob) => {
-    setIsVerifying(true);
-    
+  const uploadCapture = async (base64Image: string) => {
     try {
-      console.log("📸 Processando captura de imagem...");
-      
-      // Convert blob to base64
-      const base64Image = await blobToBase64(imageBlob);
-      const photoUrl = `data:image/jpeg;base64,${base64Image}`;
-      console.log("✅ Imagem convertida para base64");
-
-      // Fire-and-forget upload to keep face profile updated without blocking the UI.
-      void fetch('/api/face-recognition/capture', {
+      const response = await fetch('/api/face-recognition/capture', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,62 +183,15 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
           image: base64Image,
           timestamp: new Date().toISOString(),
         }),
-      }).catch((error) => {
-        console.warn("⚠ Falha ao enviar captura para o servidor:", error);
       });
 
-      setIsVerifying(false);
-      setIsCapturing(false); // Reset capture state
-      onComplete({
-        verified: true,
-        confidence: 0.95,
-        timestamp: new Date().toISOString(),
-        photoUrl,
-        photoProcessed: true,
-      });
-      
-    } catch (error) {
-      console.error('❌ Erro no processamento da foto:', error);
-      
-      // Provide more detailed feedback
-      setIsVerifying(false);
-      let errorMessage = "Erro desconhecido";
-      
-      if (error instanceof Error) {
-        if (error.message.includes("fetch")) {
-          errorMessage = "Erro de conexão com o servidor";
-        } else if (error.message.includes("500")) {
-          errorMessage = "Erro interno do servidor";
-        } else {
-          errorMessage = error.message;
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn("⚠ Falha ao salvar perfil facial:", errorText);
       }
-      
-      // Reset states and complete the process with fallback data
-      setIsCapturing(false); // Reset capture state
-      onComplete({
-        verified: false,
-        confidence: 0,
-        timestamp: new Date().toISOString(),
-        fallback: true,
-        error: errorMessage,
-        photoProcessed: false,
-      });
+    } catch (error) {
+      console.warn("⚠ Falha ao enviar captura para o servidor:", error);
     }
-  };
-
-  // Helper function to convert blob to base64
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        // Remove data:image/jpeg;base64, prefix
-        resolve(base64.split(',')[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
   };
 
   const handleWithoutPhoto = () => {
