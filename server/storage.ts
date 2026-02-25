@@ -1489,7 +1489,7 @@ export class DatabaseStorage implements IStorage {
       return sum + (parseFloat(entry.totalHours || '0'));
     }, 0);
     
-    const totalDays = completedEntries.length;
+    const totalDays = new Set(completedEntries.map((entry) => entry.date)).size;
     const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
     
     return {
