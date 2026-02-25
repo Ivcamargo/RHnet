@@ -331,7 +331,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   return (
     <>
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl text-gray-900 dark:text-gray-100">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-600" />
@@ -353,7 +353,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     <Clock className="h-5 w-5" />
                     Períodos do Dia
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg space-y-2">
                     {selectedEntry.periodEntries.map((period, index) => {
                       const isSelectedPeriod = selectedPeriodEntry?.id === period.id;
                       const hasAnyPhoto = !!period.clockInPhotoUrl || !!period.clockOutPhotoUrl;
@@ -362,10 +362,10 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                         key={period.id}
                         type="button"
                         onClick={() => setSelectedPeriodEntry(period)}
-                        className={`w-full flex items-center justify-between text-sm bg-white border rounded p-3 text-left transition-colors ${
+                        className={`w-full flex items-center justify-between text-sm bg-white dark:bg-slate-900 border rounded p-3 text-left transition-colors text-gray-900 dark:text-gray-100 ${
                           isSelectedPeriod
-                            ? "border-blue-600 bg-blue-50 ring-2 ring-blue-200"
-                            : "hover:bg-gray-50 border-gray-200"
+                            ? "border-blue-600 bg-blue-50 dark:bg-slate-700 ring-2 ring-blue-200 dark:ring-blue-900"
+                            : "hover:bg-gray-50 dark:hover:bg-slate-800 border-gray-200 dark:border-slate-700"
                         }`}
                       >
                         <div className="flex flex-col">
@@ -378,7 +378,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                               </span>
                             )}
                           </span>
-                          <span className="text-xs text-gray-500">Período #{index + 1}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-300">Período #{index + 1}</span>
                         </div>
                         <div className="text-right">
                           <span className="font-semibold">{formatHours(period.totalHours)}</span>
@@ -391,14 +391,14 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               )}
 
               {/* Status */}
-              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center justify-between bg-gray-50 dark:bg-slate-800 p-3 rounded-lg">
                 <span className="text-sm font-medium">Status do Registro:</span>
                 {getStatusBadge(detailEntry)}
               </div>
 
               {/* Irregularidades */}
               {detailEntry.irregularityReasons && detailEntry.irregularityReasons.length > 0 && (
-                <div className="bg-red-50 border border-red-200 p-4 rounded-lg space-y-2">
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-4 rounded-lg space-y-2">
                   <h3 className="font-semibold text-red-800 flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     Irregularidades Detectadas
@@ -424,10 +424,10 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                   <Clock className="h-5 w-5" />
                   Registro de Entrada - {formatTime(detailEntry.clockInTime)}
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg space-y-3">
                   {/* Validação */}
                   {detailEntry.clockInValidationMessage ? (
-                    <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
+                    <div className="text-sm whitespace-pre-line bg-white dark:bg-slate-900 p-3 rounded border-l-4 border-blue-500">
                       {detailEntry.clockInValidationMessage}
                     </div>
                   ) : (
@@ -507,10 +507,10 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     <Clock className="h-5 w-5" />
                     Registro de Saída - {formatTime(detailEntry.clockOutTime)}
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg space-y-3">
                     {/* Validação */}
                     {detailEntry.clockOutValidationMessage ? (
-                      <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
+                      <div className="text-sm whitespace-pre-line bg-white dark:bg-slate-900 p-3 rounded border-l-4 border-blue-500">
                         {detailEntry.clockOutValidationMessage}
                       </div>
                     ) : (
@@ -590,7 +590,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                   <Clock className="h-5 w-5" />
                   Apontamentos de Intervalo
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <span className="text-xs text-gray-500">Legenda:</span>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
@@ -607,7 +607,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       {getBreakEntries(detailEntry).map((breakEntry) => (
                         <div
                           key={breakEntry.id}
-                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm bg-white p-3 rounded border"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm bg-white dark:bg-slate-900 p-3 rounded border border-gray-200 dark:border-slate-700"
                         >
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium w-fit ${
@@ -623,7 +623,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                             )}
                             {formatBreakType(breakEntry.type)}
                           </span>
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 dark:text-gray-200">
                             {formatTime(breakEntry.breakStart)} - {formatTime(breakEntry.breakEnd)}
                           </span>
                           <span className="text-xs text-gray-500">
@@ -639,7 +639,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               </div>
 
               {/* Resumo de Horas */}
-              <div className="bg-blue-50 p-4 rounded-lg space-y-2">
+              <div className="bg-blue-50 dark:bg-slate-800 p-4 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-blue-800">Total de Horas Trabalhadas</span>
                   <span className="text-lg font-bold text-blue-900">
