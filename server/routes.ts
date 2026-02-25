@@ -3095,6 +3095,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const now = getBrazilianTime();
       const grossHours = calculateHours(new Date(activeEntry.clockInTime!), now);
+      const faceRecognitionVerified = !!faceRecognitionData;
+      const clockOutPhotoUrl = faceRecognitionData?.photoUrl || null;
 
       // First, update the time entry with clock-out info and gross hours
       const timeEntryWithClockOut = await storage.updateTimeEntry(activeEntry.id, {
@@ -3105,6 +3107,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clockOutWithinGeofence: withinGeofence,
         clockOutShiftCompliant: shiftCompliant,
         clockOutValidationMessage: validationMessages.join('\n') || null,
+        faceRecognitionVerified: activeEntry.faceRecognitionVerified || faceRecognitionVerified,
+        clockOutPhotoUrl,
         totalHours: grossHours.toString(),
         status: 'completed',
       });
