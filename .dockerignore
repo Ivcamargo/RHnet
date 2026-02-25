@@ -5,5 +5,4 @@ dist
 uploads
 *.log
 npm-debug.log
-attached_assets
 legal_files
