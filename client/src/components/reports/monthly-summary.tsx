@@ -357,34 +357,87 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     {selectedEntry.periodEntries.map((period, index) => {
                       const isSelectedPeriod = selectedPeriodEntry?.id === period.id;
                       const hasAnyPhoto = !!period.clockInPhotoUrl || !!period.clockOutPhotoUrl;
+                      const hasAnyIp = !!period.clockInIpAddress || !!period.clockOutIpAddress;
+                      const hasAnyGeo =
+                        (!!period.clockInLatitude && !!period.clockInLongitude) ||
+                        (!!period.clockOutLatitude && !!period.clockOutLongitude);
                       return (
-                      <button
-                        key={period.id}
-                        type="button"
-                        onClick={() => setSelectedPeriodEntry(period)}
-                        className={`w-full flex items-center justify-between text-sm bg-white dark:bg-slate-900 border rounded p-3 text-left transition-colors text-gray-900 dark:text-gray-100 ${
-                          isSelectedPeriod
-                            ? "border-blue-600 bg-blue-50 dark:bg-slate-700 ring-2 ring-blue-200 dark:ring-blue-900"
-                            : "hover:bg-gray-50 dark:hover:bg-slate-800 border-gray-200 dark:border-slate-700"
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium flex items-center gap-2">
-                            {formatTime(period.clockInTime)} - {formatTime(period.clockOutTime)}
-                            {hasAnyPhoto && (
-                              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                                <Camera className="h-3 w-3" />
-                                Foto
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-300">Período #{index + 1}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-semibold">{formatHours(period.totalHours)}</span>
-                          <div className="mt-1">{getStatusBadge(period)}</div>
-                        </div>
-                      </button>
+                      <div key={period.id} className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPeriodEntry(period)}
+                          className={`w-full flex items-center justify-between text-sm bg-white dark:bg-slate-900 border rounded p-3 text-left transition-colors text-gray-900 dark:text-gray-100 ${
+                            isSelectedPeriod
+                              ? "border-blue-600 bg-blue-50 dark:bg-slate-700 ring-2 ring-blue-200 dark:ring-blue-900"
+                              : "hover:bg-gray-50 dark:hover:bg-slate-800 border-gray-200 dark:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium flex items-center gap-2 flex-wrap">
+                              {formatTime(period.clockInTime)} - {formatTime(period.clockOutTime)}
+                              {hasAnyPhoto && (
+                                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                  <Camera className="h-3 w-3" />
+                                  Foto
+                                </span>
+                              )}
+                              {hasAnyIp && (
+                                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                  IP
+                                </span>
+                              )}
+                              {hasAnyGeo && (
+                                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                                  GPS
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-300">Período #{index + 1}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-semibold">{formatHours(period.totalHours)}</span>
+                            <div className="mt-1">{getStatusBadge(period)}</div>
+                          </div>
+                        </button>
+
+                        {isSelectedPeriod && (
+                          <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-700 rounded p-3 text-xs text-gray-700 dark:text-gray-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <p className="font-semibold mb-1">Foto</p>
+                                {period.clockInPhotoUrl || period.clockOutPhotoUrl ? (
+                                  <div className="flex gap-2">
+                                    {period.clockInPhotoUrl && (
+                                      <img src={period.clockInPhotoUrl} alt="Foto entrada" className="w-16 h-16 object-cover rounded border" />
+                                    )}
+                                    {period.clockOutPhotoUrl && (
+                                      <img src={period.clockOutPhotoUrl} alt="Foto saída" className="w-16 h-16 object-cover rounded border" />
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p>Sem foto neste período.</p>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-semibold mb-1">IP</p>
+                                <p>Entrada: {period.clockInIpAddress || "-"}</p>
+                                <p>Saída: {period.clockOutIpAddress || "-"}</p>
+                                <p className="font-semibold mt-2 mb-1">Geolocalização</p>
+                                <p>
+                                  Entrada: {period.clockInLatitude && period.clockInLongitude
+                                    ? `${period.clockInLatitude.toFixed(6)}, ${period.clockInLongitude.toFixed(6)}`
+                                    : "-"}
+                                </p>
+                                <p>
+                                  Saída: {period.clockOutLatitude && period.clockOutLongitude
+                                    ? `${period.clockOutLatitude.toFixed(6)}, ${period.clockOutLongitude.toFixed(6)}`
+                                    : "-"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )})}
                   </div>
                 </div>
