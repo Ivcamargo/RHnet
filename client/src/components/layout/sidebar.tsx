@@ -29,12 +29,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 type MenuItem = {
@@ -144,7 +138,6 @@ export default function Sidebar() {
       </Link>
       
       {/* Navigation */}
-      <TooltipProvider delayDuration={150}>
         <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
         {navigation.map((item) => {
           const Icon = item.icon;
@@ -156,40 +149,39 @@ export default function Sidebar() {
             const hasActiveSubmenu = visibleSubmenu.some((subItem) => location === subItem.href);
             
             return (
-              <div key={item.name} className="space-y-1">
+              <div key={item.name} className="space-y-1 group/menu">
                 {/* Parent Menu Item */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div 
-                      className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
-                        hasActiveSubmenu
-                          ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
-                          : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
-                      }`}
-                      onClick={() => toggleMenu(item.name)}
-                    >
-                      <div className="flex items-center">
-                        <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                        <span className="truncate">{item.name}</span>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="hidden lg:block p-2">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold">{item.name}</p>
+                <div 
+                  className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
+                    hasActiveSubmenu
+                      ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
+                      : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
+                  }`}
+                  onClick={() => toggleMenu(item.name)}
+                >
+                  <div className="flex items-center">
+                    <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                  )}
+                </div>
+
+                {/* Desktop hover preview (tooltip-like) */}
+                {!isExpanded && visibleSubmenu.length > 0 && (
+                  <div className="hidden lg:group-hover/menu:block px-4 pb-2">
+                    <div className="rounded-md border border-[hsl(220,15%,82%)] dark:border-[hsl(220,15%,30%)] bg-[hsl(220,20%,98%)] dark:bg-[hsl(220,18%,14%)] p-2 space-y-1 shadow-sm">
                       {visibleSubmenu.map((subItem) => (
-                        <p key={subItem.name} className="text-xs opacity-90">
+                        <div key={subItem.name} className="text-xs text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)]">
                           {subItem.name}
-                        </p>
+                        </div>
                       ))}
                     </div>
-                  </TooltipContent>
-                </Tooltip>
+                  </div>
+                )}
                 
                 {/* Submenu Items */}
                 {isExpanded && (
@@ -243,7 +235,6 @@ export default function Sidebar() {
           );
         })}
         </nav>
-      </TooltipProvider>
     </div>
   );
 
