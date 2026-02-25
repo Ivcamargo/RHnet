@@ -51,6 +51,12 @@ interface MonthlyTimeTableProps {
   entries: TimeEntry[];
 }
 
+interface GroupedDayEntry {
+  summary: TimeEntry;
+  primaryEntry: TimeEntry;
+  periodCount: number;
+}
+
 export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -92,6 +98,12 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
     return `${h}h ${m}m`;
+  };
+
+  const parseHours = (hoursString: string | null) => {
+    if (!hoursString) return 0;
+    const parsed = parseFloat(hoursString);
+    return Number.isNaN(parsed) ? 0 : parsed;
   };
 
   const formatBreakType = (type: string | null) => {
@@ -205,6 +217,101 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
     if (entry.status === "irregular") return true;
     return false;
   };
+
+  const groupedEntries = useMemo<GroupedDayEntry[]>(() => {
+    const groupedByDate = new Map<string, TimeEntry[]>();
+
+    for (const entry of sortedEntries) {
+      const current = groupedByDate.get(entry.date) || [];
+      current.push(entry);
+      groupedByDate.set(entry.date, current);
+    }
+
+    return Array.from(groupedByDate.entries())
+      .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
+      .map(([date, dayEntries]) => {
+        const sortedByLongest = [...dayEntries].sort(
+          (a, b) => parseHours(b.totalHours) - parseHours(a.totalHours)
+        );
+        const primaryEntry = sortedByLongest[0];
+
+        const earliestClockIn = dayEntries
+          .map((entry) => entry.clockInTime)
+          .filter((v): v is string => !!v)
+          .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0] || null;
+
+        const latestClockOut = dayEntries
+          .map((entry) => entry.clockOutTime)
+          .filter((v): v is string => !!v)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+
+        const totalHours = dayEntries.reduce((sum, entry) => sum + parseHours(entry.totalHours), 0);
+        const regularHours = dayEntries.reduce((sum, entry) => sum + parseHours(entry.regularHours || null), 0);
+        const overtimeHours = dayEntries.reduce((sum, entry) => sum + parseHours(entry.overtimeHours || null), 0);
+
+        const mergedBreakEntries = dayEntries.flatMap((entry) => entry.breakEntries || []);
+        const mergedIrregularityReasons = Array.from(
+          new Set(dayEntries.flatMap((entry) => entry.irregularityReasons || []))
+        );
+
+        const hasAnyIrregular = dayEntries.some((entry) => isIrregular(entry));
+        const hasAnyActive = dayEntries.some((entry) => entry.status === "active");
+        const hasAnyIncomplete = dayEntries.some((entry) => entry.status === "incomplete");
+        const allCompleted = dayEntries.every((entry) => entry.status === "completed");
+
+        const mergedClockInValidation = dayEntries
+          .map((entry) => entry.clockInValidationMessage)
+          .filter((msg): msg is string => !!msg)
+          .join("\n");
+        const mergedClockOutValidation = dayEntries
+          .map((entry) => entry.clockOutValidationMessage)
+          .filter((msg): msg is string => !!msg)
+          .join("\n");
+
+        const summary: TimeEntry = {
+          ...primaryEntry,
+          id: primaryEntry.id,
+          date,
+          clockInTime: earliestClockIn,
+          clockOutTime: latestClockOut,
+          totalHours: totalHours.toFixed(2),
+          regularHours: regularHours.toFixed(2),
+          overtimeHours: overtimeHours.toFixed(2),
+          breakEntries: mergedBreakEntries,
+          faceRecognitionVerified: dayEntries.some((entry) => entry.faceRecognitionVerified),
+          status: hasAnyIrregular
+            ? "irregular"
+            : hasAnyActive
+              ? "active"
+              : hasAnyIncomplete
+                ? "incomplete"
+                : allCompleted
+                  ? "completed"
+                  : primaryEntry.status,
+          irregularityReasons: mergedIrregularityReasons.length > 0 ? mergedIrregularityReasons : null,
+          clockInValidationMessage: mergedClockInValidation || undefined,
+          clockOutValidationMessage: mergedClockOutValidation || undefined,
+          clockInWithinGeofence: dayEntries.some((entry) => entry.clockInWithinGeofence === false)
+            ? false
+            : primaryEntry.clockInWithinGeofence,
+          clockOutWithinGeofence: dayEntries.some((entry) => entry.clockOutWithinGeofence === false)
+            ? false
+            : primaryEntry.clockOutWithinGeofence,
+          clockInShiftCompliant: dayEntries.some((entry) => entry.clockInShiftCompliant === false)
+            ? false
+            : primaryEntry.clockInShiftCompliant,
+          clockOutShiftCompliant: dayEntries.some((entry) => entry.clockOutShiftCompliant === false)
+            ? false
+            : primaryEntry.clockOutShiftCompliant,
+        };
+
+        return {
+          summary,
+          primaryEntry,
+          periodCount: dayEntries.length,
+        };
+      });
+  }, [sortedEntries]);
 
   return (
     <>
@@ -507,17 +614,24 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedEntries.map((entry) => (
-            <TableRow key={entry.id} className={`border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800/60 ${hasValidationIssues(entry) ? 'bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
+          {groupedEntries.map((grouped) => {
+            const entry = grouped.summary;
+            return (
+            <TableRow key={`${entry.date}-${grouped.primaryEntry.id}`} className={`border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800/60 ${hasValidationIssues(entry) ? 'bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
               <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 <div className="flex items-center gap-1">
                   {formatDate(entry.date)}
+                  {grouped.periodCount > 1 && (
+                    <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-200">
+                      {grouped.periodCount} períodos
+                    </span>
+                  )}
                   {hasValidationIssues(entry) && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            onClick={() => openDetails(entry)}
+                            onClick={() => openDetails(grouped.primaryEntry)}
                             className="cursor-pointer hover:scale-110 transition-transform"
                             data-testid={`button-warning-${entry.id}`}
                           >
@@ -579,7 +693,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     <span className="text-gray-400 dark:text-gray-300 text-xs">-</span>
                   )}
                   <button
-                    onClick={() => openDetails(entry)}
+                    onClick={() => openDetails(grouped.primaryEntry)}
                     className={`text-xs underline cursor-pointer text-left ${
                       (entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
                         ? 'text-amber-600 hover:text-amber-700'
@@ -588,13 +702,13 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     data-testid={`button-details-${entry.id}`}
                   >
                     {(entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
-                      ? '⚠ Ver detalhes'
-                      : 'Ver detalhes'}
+                      ? `⚠ Ver detalhes${grouped.periodCount > 1 ? ` (${grouped.periodCount})` : ''}`
+                      : `Ver detalhes${grouped.periodCount > 1 ? ` (${grouped.periodCount})` : ''}`}
                   </button>
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          )})}
         </TableBody>
       </Table>
       </div>
