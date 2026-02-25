@@ -148,22 +148,24 @@ export default function FacialRecognition({ isActive, onComplete, onCancel }: Fa
       context.drawImage(videoRef.current, 0, 0);
       console.log(`✅ Frame capturado: ${canvas.width}x${canvas.height}`);
       
-      // Build data URL synchronously so we can close modal immediately.
+      // Build data URL synchronously to show a short "Capturando..." feedback before closing.
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       const base64Image = dataUrl.split(',')[1];
 
-      setIsCapturing(false);
-      setIsVerifying(false);
-      onComplete({
-        verified: true,
-        confidence: 0.95,
-        timestamp: new Date().toISOString(),
-        photoUrl: dataUrl,
-        photoProcessed: true,
-      });
+      setTimeout(() => {
+        setIsCapturing(false);
+        setIsVerifying(false);
+        onComplete({
+          verified: true,
+          confidence: 0.95,
+          timestamp: new Date().toISOString(),
+          photoUrl: dataUrl,
+          photoProcessed: true,
+        });
 
-      // Update face profile in background without blocking point registration UI.
-      void uploadCapture(base64Image);
+        // Update face profile in background without blocking point registration UI.
+        void uploadCapture(base64Image);
+      }, 300);
       
     } catch (error) {
       console.error("❌ Erro durante captura:", error);
