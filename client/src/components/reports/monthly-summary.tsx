@@ -37,6 +37,7 @@ interface TimeEntry {
   shortfallMinutes?: number | null;
   irregularityReasons?: string[] | null;
   breakEntries?: BreakEntry[];
+  periodEntries?: TimeEntry[];
 }
 
 interface BreakEntry {
@@ -268,6 +269,9 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
           .filter((msg): msg is string => !!msg)
           .join("\n");
 
+        const firstClockInPhotoUrl = dayEntries.find((entry) => !!entry.clockInPhotoUrl)?.clockInPhotoUrl || null;
+        const lastClockOutPhotoUrl = [...dayEntries].reverse().find((entry) => !!entry.clockOutPhotoUrl)?.clockOutPhotoUrl || null;
+
         const summary: TimeEntry = {
           ...primaryEntry,
           id: primaryEntry.id,
@@ -278,7 +282,14 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
           regularHours: regularHours.toFixed(2),
           overtimeHours: overtimeHours.toFixed(2),
           breakEntries: mergedBreakEntries,
+          periodEntries: [...dayEntries].sort((a, b) => {
+            const aTime = a.clockInTime ? new Date(a.clockInTime).getTime() : 0;
+            const bTime = b.clockInTime ? new Date(b.clockInTime).getTime() : 0;
+            return aTime - bTime;
+          }),
           faceRecognitionVerified: dayEntries.some((entry) => entry.faceRecognitionVerified),
+          clockInPhotoUrl: firstClockInPhotoUrl,
+          clockOutPhotoUrl: lastClockOutPhotoUrl,
           status: hasAnyIrregular
             ? "irregular"
             : hasAnyActive
@@ -321,11 +332,42 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-600" />
               Detalhes de Validação - {selectedEntry && formatDate(selectedEntry.date)}
+              {selectedEntry?.periodEntries && selectedEntry.periodEntries.length > 1 && (
+                <span className="text-sm font-normal text-gray-500">
+                  ({selectedEntry.periodEntries.length} períodos)
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
           
           {selectedEntry && (
             <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto">
+              {/* Períodos do Dia */}
+              {selectedEntry.periodEntries && selectedEntry.periodEntries.length > 1 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
+                    <Clock className="h-5 w-5" />
+                    Períodos do Dia
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    {selectedEntry.periodEntries.map((period) => (
+                      <div key={period.id} className="flex items-center justify-between text-sm bg-white border rounded p-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {formatTime(period.clockInTime)} - {formatTime(period.clockOutTime)}
+                          </span>
+                          <span className="text-xs text-gray-500">Período #{period.id}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-semibold">{formatHours(period.totalHours)}</span>
+                          <div className="mt-1">{getStatusBadge(period)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Status */}
               <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                 <span className="text-sm font-medium">Status do Registro:</span>
@@ -631,7 +673,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            onClick={() => openDetails(grouped.primaryEntry)}
+                            onClick={() => openDetails(grouped.summary)}
                             className="cursor-pointer hover:scale-110 transition-transform"
                             data-testid={`button-warning-${entry.id}`}
                           >
@@ -693,7 +735,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     <span className="text-gray-400 dark:text-gray-300 text-xs">-</span>
                   )}
                   <button
-                    onClick={() => openDetails(grouped.primaryEntry)}
+                    onClick={() => openDetails(grouped.summary)}
                     className={`text-xs underline cursor-pointer text-left ${
                       (entry.clockInValidationMessage || entry.clockOutValidationMessage || isIrregular(entry))
                         ? 'text-amber-600 hover:text-amber-700'

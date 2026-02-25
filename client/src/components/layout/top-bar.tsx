@@ -14,7 +14,6 @@ import {
 import { Menu, Bell, MapPin, LogOut, KeyRound } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 interface TopBarProps {
   title: string;
@@ -60,15 +59,7 @@ export default function TopBar({ title }: TopBarProps) {
   };
 
   return (
-    <header className="relative h-20 flex items-center justify-between px-6 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm">
-      {/* Brand area aligned with desktop sidebar width */}
-      <Link href="/" className="hidden lg:flex absolute -left-64 top-0 h-20 w-64 items-center justify-center bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] border-r border-white/10">
-        <div className="flex items-center">
-          <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
-          <h1 className="text-3xl font-bold text-white">RHNet</h1>
-        </div>
-      </Link>
-
+    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm">
       <div className="flex items-center">
         <Button
           variant="ghost"
