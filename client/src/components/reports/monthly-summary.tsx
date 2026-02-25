@@ -472,12 +472,13 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               )}
 
               {/* Entrada */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
-                  <Clock className="h-5 w-5" />
-                  Registro de Entrada - {formatTime(detailEntry.clockInTime)}
-                </h3>
-                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg space-y-3">
+              {!selectedPeriodEntry && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
+                    <Clock className="h-5 w-5" />
+                    Registro de Entrada - {formatTime(detailEntry.clockInTime)}
+                  </h3>
+                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg space-y-3">
                   {/* Validação */}
                   {detailEntry.clockInValidationMessage ? (
                     <div className="text-sm whitespace-pre-line bg-white dark:bg-slate-900 p-3 rounded border-l-4 border-blue-500">
@@ -550,11 +551,12 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       </div>
                     )}
                   </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Saída */}
-              {detailEntry.clockOutTime && (
+              {!selectedPeriodEntry && detailEntry.clockOutTime && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
                     <Clock className="h-5 w-5" />
