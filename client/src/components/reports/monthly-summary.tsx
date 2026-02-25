@@ -418,19 +418,19 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
       <div className="overflow-x-auto">
         <Table>
         <TableHeader>
-          <TableRow className="border-b border-gray-200">
-            <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Data</TableHead>
-            <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Entrada</TableHead>
-            <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Saída</TableHead>
-            <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Horas Trabalhadas</TableHead>
-            <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Status</TableHead>
-            <TableHead className="text-left py-3 px-4 font-medium text-gray-600">Verificação</TableHead>
+          <TableRow className="border-b border-gray-200 dark:border-slate-600">
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Data</TableHead>
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Entrada</TableHead>
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Saída</TableHead>
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Horas Trabalhadas</TableHead>
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Status</TableHead>
+            <TableHead className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-200">Verificação</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedEntries.map((entry) => (
-            <TableRow key={entry.id} className={`border-b border-gray-100 hover:bg-gray-50 ${hasValidationIssues(entry) ? 'bg-amber-50/50' : ''}`}>
-              <TableCell className="py-3 px-4 text-sm text-gray-900">
+            <TableRow key={entry.id} className={`border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800/60 ${hasValidationIssues(entry) ? 'bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
+              <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 <div className="flex items-center gap-1">
                   {formatDate(entry.date)}
                   {hasValidationIssues(entry) && (
@@ -447,22 +447,22 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="text-xs">⚠️ Problemas de validação detectados</p>
-                          <p className="text-xs text-gray-400">Clique para ver detalhes</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-200">Clique para ver detalhes</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   )}
                 </div>
               </TableCell>
-              <TableCell className="py-3 px-4 text-sm text-gray-900">
+              <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 {formatTime(entry.clockInTime)}
               </TableCell>
-              <TableCell className="py-3 px-4 text-sm text-gray-900">
+              <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 {formatTime(entry.clockOutTime)}
               </TableCell>
-              <TableCell className="py-3 px-4 text-sm text-gray-900">
+              <TableCell className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
                 <div className="flex items-center space-x-1">
-                  <Clock className="h-3 w-3 text-gray-400" />
+                  <Clock className="h-3 w-3 text-gray-400 dark:text-gray-300" />
                   <span>{getWorkingHours(entry)}</span>
                 </div>
               </TableCell>
@@ -475,10 +475,10 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1 text-green-600">
-                            <Camera className="h-4 w-4" />
-                            <span className="text-xs">Verificado</span>
-                          </div>
+                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <Camera className="h-4 w-4" />
+                              <span className="text-xs">Verificado</span>
+                            </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="text-xs">✓ Reconhecimento facial verificado</p>
@@ -486,7 +486,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-gray-400 dark:text-gray-300 text-xs">-</span>
                   )}
                   <button
                     onClick={() => openDetails(entry)}

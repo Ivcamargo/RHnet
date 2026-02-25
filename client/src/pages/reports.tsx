@@ -85,7 +85,7 @@ export default function Reports() {
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h1 className="text-2xl font-bold text-blue-800">Relatórios de Ponto</h1>
+              <h1 className="text-2xl font-bold text-blue-800 dark:text-blue-300">Relatórios de Ponto</h1>
               
               <div className="flex items-center gap-4">
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -123,12 +123,12 @@ export default function Reports() {
 
             {/* Employee filter for admins */}
             {isAdmin && employees.length > 0 && (
-              <Card className="border-blue-200">
+              <Card className="border-blue-200 dark:border-slate-600">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
-                    <Users className="h-5 w-5 text-blue-600" />
+                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-300" />
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
                         Funcionário
                       </label>
                       <Select value={selectedUserId} onValueChange={setSelectedUserId}>
@@ -191,8 +191,8 @@ export default function Reports() {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Total de Horas</p>
-                        <p className="text-2xl font-bold text-orange-800">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total de Horas</p>
+                        <p className="text-2xl font-bold text-orange-800 dark:text-orange-300">
                           {monthlyReport?.stats ? formatHours(monthlyReport.stats.totalHours) : "0h 0m"}
                         </p>
                       </div>
@@ -209,8 +209,8 @@ export default function Reports() {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Dias Trabalhados</p>
-                        <p className="text-2xl font-bold text-orange-800">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Dias Trabalhados</p>
+                        <p className="text-2xl font-bold text-orange-800 dark:text-orange-300">
                           {monthlyReport?.stats?.totalDays || 0}
                         </p>
                       </div>
@@ -227,8 +227,8 @@ export default function Reports() {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Média Diária</p>
-                        <p className="text-2xl font-bold text-orange-800">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Média Diária</p>
+                        <p className="text-2xl font-bold text-orange-800 dark:text-orange-300">
                           {monthlyReport?.stats ? formatHours(monthlyReport.stats.averageHours) : "0h 0m"}
                         </p>
                       </div>
@@ -251,9 +251,9 @@ export default function Reports() {
                     <MonthlyTimeTable entries={monthlyReport.entries} />
                   ) : (
                     <div className="text-center py-12">
-                      <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-orange-800 mb-2">Nenhum registro encontrado</h3>
-                      <p className="text-gray-500">
+                      <Calendar className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-orange-800 dark:text-orange-300 mb-2">Nenhum registro encontrado</h3>
+                      <p className="text-gray-500 dark:text-gray-300">
                         Não há registros de ponto para o período selecionado.
                       </p>
                     </div>
