@@ -29,7 +29,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import rhnetLogo from "@assets/rhnetp_1757765662344.jpg";
 
 type MenuItem = {
   name: string;
@@ -123,19 +122,9 @@ export default function Sidebar() {
     navigation = [...baseNavigation, manualItem];
   }
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ showBrand = false }: { showBrand?: boolean }) => (
     <div className="flex flex-col h-full bg-gradient-to-b from-[hsl(220,20%,98%)] to-[hsl(175,20%,98%)] dark:from-[hsl(220,20%,12%)] dark:to-[hsl(220,20%,10%)] border-r border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)]">
-      {/* Logo - Clicável para voltar ao início */}
-      <Link href="/">
-        <div className="flex items-center justify-center h-20 px-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] cursor-pointer hover:from-[hsl(220,70%,22%)] hover:to-[hsl(175,70%,50%)] transition-all duration-200">
-          <div className="flex items-center">
-            <img src={rhnetLogo} alt="RHNet" className="h-12 w-12 mr-3 rounded-lg" />
-            <h1 className="text-xl font-bold text-white">
-              RHNet
-            </h1>
-          </div>
-        </div>
-      </Link>
+      {showBrand && <div className="h-2" />}
       
       {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
@@ -229,7 +218,7 @@ export default function Sidebar() {
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex flex-col w-64 material-shadow-lg">
+        <div className="flex flex-col w-64 h-[calc(100vh-5rem)] mt-20 material-shadow-lg">
           <SidebarContent />
         </div>
       </aside>
@@ -243,7 +232,7 @@ export default function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
-            <SidebarContent />
+            <SidebarContent showBrand />
           </SheetContent>
         </Sheet>
       </div>
