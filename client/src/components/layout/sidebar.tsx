@@ -15,7 +15,6 @@ import {
   Timer,
   BriefcaseBusiness,
   ChevronDown,
-  ChevronRight,
   Tablet,
   Briefcase,
   TrendingUp as TrendingUpIcon,
@@ -42,7 +41,6 @@ type MenuItem = {
 export default function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   
   const { data: user } = useQuery<any>({
     queryKey: ["/api/auth/user"],
@@ -50,10 +48,6 @@ export default function Sidebar() {
 
   const isAdmin = user && typeof user === 'object' && 'role' in user && (user.role === 'admin' || user.role === 'superadmin');
   const isSuperAdmin = user && typeof user === 'object' && 'role' in user && user.role === 'superadmin';
-
-  const toggleMenu = (menuName: string) => {
-    setExpandedMenu((prev) => (prev === menuName ? null : menuName));
-  };
 
   // Navigation structure with submenus
   const baseNavigation: MenuItem[] = [
@@ -119,13 +113,6 @@ export default function Sidebar() {
     navigation = [...baseNavigation, manualItem];
   }
 
-  const expandedMenuItem = navigation.find(
-    (item) => item.submenu && item.name === expandedMenu
-  );
-  const expandedVisibleSubmenu = expandedMenuItem?.submenu?.filter(
-    (subItem) => !subItem.adminOnly || isAdmin
-  ) || [];
-
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-gradient-to-b from-[hsl(220,20%,98%)] to-[hsl(175,20%,98%)] dark:from-[hsl(220,20%,12%)] dark:to-[hsl(220,20%,10%)] border-r border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)]">
       {/* Logo - Clicável para voltar ao início */}
@@ -144,7 +131,6 @@ export default function Sidebar() {
         <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
         {navigation.map((item) => {
           const Icon = item.icon;
-          const isExpanded = expandedMenu === item.name;
           
           // Menu with submenu
           if (item.submenu) {
@@ -160,47 +146,40 @@ export default function Sidebar() {
                       ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
                       : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
                   }`}
-                  onClick={() => toggleMenu(item.name)}
                 >
                   <div className="flex items-center">
                     <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
                     <span className="truncate">{item.name}</span>
                   </div>
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                  )}
+                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
                 </div>
-
+                
                 {/* Submenu Items */}
-                {isExpanded && (
-                  <div className="ml-4 space-y-1 lg:hidden">
-                    {item.submenu.map((subItem) => {
-                      // Skip admin-only items for non-admin users
-                      if (subItem.adminOnly && !isAdmin) return null;
-                      
-                      const isActive = location === subItem.href;
-                      const SubIcon = subItem.icon;
-                      
-                      return (
-                        <Link key={subItem.name} href={subItem.href!}>
-                          <div 
-                            className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
-                              isActive
-                                ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
-                                : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
-                            }`}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            <SubIcon className="mr-3 h-4 w-4 flex-shrink-0" />
-                            <span className="truncate">{subItem.name}</span>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="ml-4 space-y-1">
+                  {item.submenu.map((subItem) => {
+                    // Skip admin-only items for non-admin users
+                    if (subItem.adminOnly && !isAdmin) return null;
+                    
+                    const isActive = location === subItem.href;
+                    const SubIcon = subItem.icon;
+                    
+                    return (
+                      <Link key={subItem.name} href={subItem.href!}>
+                        <div 
+                          className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
+                            isActive
+                              ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
+                              : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
+                          }`}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <SubIcon className="mr-3 h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{subItem.name}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             );
           }
@@ -232,42 +211,8 @@ export default function Sidebar() {
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex material-shadow-lg">
-          <div className="flex flex-col w-64">
-            <SidebarContent />
-          </div>
-
-          {expandedMenuItem && expandedVisibleSubmenu.length > 0 && (
-            <div className="w-60 bg-gradient-to-b from-[hsl(220,20%,98%)] to-[hsl(175,20%,98%)] dark:from-[hsl(220,20%,12%)] dark:to-[hsl(220,20%,10%)] border-r border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)]">
-              <div className="px-4 py-4 border-b border-[hsl(220,15%,88%)] dark:border-[hsl(220,15%,25%)]">
-                <p className="text-sm font-semibold text-[hsl(220,65%,18%)] dark:text-[hsl(175,65%,45%)]">
-                  {expandedMenuItem.name}
-                </p>
-              </div>
-
-              <nav className="px-2 py-3 space-y-1">
-                {expandedVisibleSubmenu.map((subItem) => {
-                  const SubIcon = subItem.icon;
-                  const isActive = location === subItem.href;
-
-                  return (
-                    <Link key={subItem.name} href={subItem.href!}>
-                      <div
-                        className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
-                          isActive
-                            ? "bg-[hsl(220,65%,18%)] dark:bg-[hsl(175,65%,45%)] text-white shadow-md"
-                            : "text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)] hover:bg-[hsl(175,40%,92%)] dark:hover:bg-[hsl(220,15%,18%)] hover:text-[hsl(220,65%,18%)] dark:hover:text-[hsl(175,65%,45%)]"
-                        }`}
-                      >
-                        <SubIcon className="mr-3 h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{subItem.name}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          )}
+        <div className="flex flex-col w-72 material-shadow-lg">
+          <SidebarContent />
         </div>
       </aside>
 
