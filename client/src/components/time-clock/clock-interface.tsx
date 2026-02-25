@@ -148,6 +148,9 @@ export default function ClockInterface() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "/api/reports/monthly",
+      });
       setIsFaceRecognitionActive(false);
       
       // Show validation messages if available
@@ -213,6 +216,9 @@ export default function ClockInterface() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "/api/reports/monthly",
+      });
       setIsFaceRecognitionActive(false);
       
       // Show validation messages if available
@@ -333,6 +339,9 @@ export default function ClockInterface() {
   };
 
   const handleFaceRecognitionComplete = (faceData?: any) => {
+    // Close capture modal immediately after capture callback.
+    setIsFaceRecognitionActive(false);
+
     // Usar localização obtida ou coordenadas padrão se localização não estiver disponível
     const defaultCoords = { latitude: -23.5505, longitude: -46.6333 }; // São Paulo como padrão
     const coords = location || defaultCoords;

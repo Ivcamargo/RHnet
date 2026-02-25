@@ -149,7 +149,7 @@ export default function Sidebar() {
             const hasActiveSubmenu = visibleSubmenu.some((subItem) => location === subItem.href);
             
             return (
-              <div key={item.name} className="space-y-1 group/menu">
+              <div key={item.name} className="space-y-1">
                 {/* Parent Menu Item */}
                 <div 
                   className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg group transition-all duration-200 cursor-pointer ${
@@ -170,19 +170,6 @@ export default function Sidebar() {
                   )}
                 </div>
 
-                {/* Desktop hover preview (tooltip-like) */}
-                {!isExpanded && visibleSubmenu.length > 0 && (
-                  <div className="hidden lg:group-hover/menu:block px-4 pb-2">
-                    <div className="rounded-md border border-[hsl(220,15%,82%)] dark:border-[hsl(220,15%,30%)] bg-[hsl(220,20%,98%)] dark:bg-[hsl(220,18%,14%)] p-2 space-y-1 shadow-sm">
-                      {visibleSubmenu.map((subItem) => (
-                        <div key={subItem.name} className="text-xs text-[hsl(220,15%,40%)] dark:text-[hsl(220,15%,75%)]">
-                          {subItem.name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
                 {/* Submenu Items */}
                 {isExpanded && (
                   <div className="ml-4 space-y-1">
