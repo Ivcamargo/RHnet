@@ -60,6 +60,7 @@ interface GroupedDayEntry {
 
 export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [selectedPeriodEntry, setSelectedPeriodEntry] = useState<TimeEntry | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const sortedEntries = useMemo(() => {
@@ -68,6 +69,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
 
   const openDetails = (entry: TimeEntry) => {
     setSelectedEntry(entry);
+    setSelectedPeriodEntry(null);
     setDetailsOpen(true);
   };
 
@@ -324,6 +326,8 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
       });
   }, [sortedEntries]);
 
+  const detailEntry = selectedPeriodEntry ?? selectedEntry;
+
   return (
     <>
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -340,7 +344,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
             </DialogTitle>
           </DialogHeader>
           
-          {selectedEntry && (
+          {selectedEntry && detailEntry && (
             <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto">
               {/* Períodos do Dia */}
               {selectedEntry.periodEntries && selectedEntry.periodEntries.length > 1 && (
@@ -350,20 +354,31 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     Períodos do Dia
                   </h3>
                   <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                    {selectedEntry.periodEntries.map((period) => (
-                      <div key={period.id} className="flex items-center justify-between text-sm bg-white border rounded p-3">
+                    {selectedEntry.periodEntries.map((period, index) => {
+                      const isSelectedPeriod = selectedPeriodEntry?.id === period.id;
+                      return (
+                      <button
+                        key={period.id}
+                        type="button"
+                        onClick={() => setSelectedPeriodEntry(period)}
+                        className={`w-full flex items-center justify-between text-sm bg-white border rounded p-3 text-left transition-colors ${
+                          isSelectedPeriod
+                            ? "border-blue-500 bg-blue-50"
+                            : "hover:bg-gray-50"
+                        }`}
+                      >
                         <div className="flex flex-col">
                           <span className="font-medium">
                             {formatTime(period.clockInTime)} - {formatTime(period.clockOutTime)}
                           </span>
-                          <span className="text-xs text-gray-500">Período #{period.id}</span>
+                          <span className="text-xs text-gray-500">Período #{index + 1}</span>
                         </div>
                         <div className="text-right">
                           <span className="font-semibold">{formatHours(period.totalHours)}</span>
                           <div className="mt-1">{getStatusBadge(period)}</div>
                         </div>
-                      </div>
-                    ))}
+                      </button>
+                    )})}
                   </div>
                 </div>
               )}
@@ -371,26 +386,26 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               {/* Status */}
               <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                 <span className="text-sm font-medium">Status do Registro:</span>
-                {getStatusBadge(selectedEntry)}
+                {getStatusBadge(detailEntry)}
               </div>
 
               {/* Irregularidades */}
-              {selectedEntry.irregularityReasons && selectedEntry.irregularityReasons.length > 0 && (
+              {detailEntry.irregularityReasons && detailEntry.irregularityReasons.length > 0 && (
                 <div className="bg-red-50 border border-red-200 p-4 rounded-lg space-y-2">
                   <h3 className="font-semibold text-red-800 flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     Irregularidades Detectadas
                   </h3>
                   <ul className="space-y-1 ml-7">
-                    {selectedEntry.irregularityReasons.map((reason, idx) => (
+                    {detailEntry.irregularityReasons.map((reason, idx) => (
                       <li key={idx} className="text-sm text-red-700">
                         • {reason}
                       </li>
                     ))}
                   </ul>
-                  {selectedEntry.expectedHours && (
+                  {detailEntry.expectedHours && (
                     <div className="mt-3 pt-3 border-t border-red-200 text-xs text-red-600">
-                      <span className="font-medium">Horas esperadas:</span> {selectedEntry.expectedHours}h
+                      <span className="font-medium">Horas esperadas:</span> {detailEntry.expectedHours}h
                     </div>
                   )}
                 </div>
@@ -400,13 +415,13 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               <div className="space-y-3">
                 <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
                   <Clock className="h-5 w-5" />
-                  Registro de Entrada - {formatTime(selectedEntry.clockInTime)}
+                  Registro de Entrada - {formatTime(detailEntry.clockInTime)}
                 </h3>
                 <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                   {/* Validação */}
-                  {selectedEntry.clockInValidationMessage ? (
+                  {detailEntry.clockInValidationMessage ? (
                     <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
-                      {selectedEntry.clockInValidationMessage}
+                      {detailEntry.clockInValidationMessage}
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
@@ -415,42 +430,42 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                   {/* Status de Conformidade */}
                   <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
                     <div className="flex items-center gap-2">
-                      {selectedEntry.clockInWithinGeofence ? (
+                      {detailEntry.clockInWithinGeofence ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-600" />
                       )}
                       <span className="text-xs">
-                        {selectedEntry.clockInWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
+                        {detailEntry.clockInWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {selectedEntry.clockInShiftCompliant ? (
+                      {detailEntry.clockInShiftCompliant ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-600" />
                       )}
                       <span className="text-xs">
-                        {selectedEntry.clockInShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
+                        {detailEntry.clockInShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
                       </span>
                     </div>
                   </div>
 
                   {/* IP e Localização */}
                   <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t">
-                    {selectedEntry.clockInIpAddress && (
+                    {detailEntry.clockInIpAddress && (
                       <div className="flex items-center gap-2 text-xs">
                         <MapPin className="h-4 w-4 text-gray-500" />
                         <span className="font-medium">IP:</span>
-                        <span className="font-mono">{selectedEntry.clockInIpAddress}</span>
+                        <span className="font-mono">{detailEntry.clockInIpAddress}</span>
                       </div>
                     )}
-                    {selectedEntry.clockInLatitude && selectedEntry.clockInLongitude && (
+                    {detailEntry.clockInLatitude && detailEntry.clockInLongitude && (
                       <div className="flex items-center gap-2 text-xs">
                         <MapPin className="h-4 w-4 text-gray-500" />
                         <span className="font-medium">Localização:</span>
                         <span className="font-mono">
-                          {selectedEntry.clockInLatitude.toFixed(6)}, {selectedEntry.clockInLongitude.toFixed(6)}
+                          {detailEntry.clockInLatitude.toFixed(6)}, {detailEntry.clockInLongitude.toFixed(6)}
                         </span>
                       </div>
                     )}
@@ -462,9 +477,9 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       <Camera className="h-4 w-4 text-blue-600" />
                       <p className="text-xs font-medium text-blue-800">Reconhecimento Facial:</p>
                     </div>
-                    {selectedEntry.clockInPhotoUrl ? (
+                    {detailEntry.clockInPhotoUrl ? (
                       <img 
-                        src={selectedEntry.clockInPhotoUrl} 
+                        src={detailEntry.clockInPhotoUrl} 
                         alt="Foto de entrada" 
                         className="w-32 h-32 object-cover rounded border border-blue-300"
                       />
@@ -479,17 +494,17 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
               </div>
 
               {/* Saída */}
-              {selectedEntry.clockOutTime && (
+              {detailEntry.clockOutTime && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-blue-800 flex items-center gap-2 border-b pb-2">
                     <Clock className="h-5 w-5" />
-                    Registro de Saída - {formatTime(selectedEntry.clockOutTime)}
+                    Registro de Saída - {formatTime(detailEntry.clockOutTime)}
                   </h3>
                   <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                     {/* Validação */}
-                    {selectedEntry.clockOutValidationMessage ? (
+                    {detailEntry.clockOutValidationMessage ? (
                       <div className="text-sm whitespace-pre-line bg-white p-3 rounded border-l-4 border-blue-500">
-                        {selectedEntry.clockOutValidationMessage}
+                        {detailEntry.clockOutValidationMessage}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500">Nenhuma informação de validação disponível</p>
@@ -498,42 +513,42 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                     {/* Status de Conformidade */}
                     <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
                       <div className="flex items-center gap-2">
-                        {selectedEntry.clockOutWithinGeofence ? (
+                        {detailEntry.clockOutWithinGeofence ? (
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-red-600" />
                         )}
                         <span className="text-xs">
-                          {selectedEntry.clockOutWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
+                          {detailEntry.clockOutWithinGeofence ? 'Dentro da geofence' : 'Fora da geofence'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {selectedEntry.clockOutShiftCompliant ? (
+                        {detailEntry.clockOutShiftCompliant ? (
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="h-4 w-4 text-red-600" />
                         )}
                         <span className="text-xs">
-                          {selectedEntry.clockOutShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
+                          {detailEntry.clockOutShiftCompliant ? 'Turno compatível' : 'Turno incompatível'}
                         </span>
                       </div>
                     </div>
 
                     {/* IP e Localização */}
                     <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t">
-                      {selectedEntry.clockOutIpAddress && (
+                      {detailEntry.clockOutIpAddress && (
                         <div className="flex items-center gap-2 text-xs">
                           <MapPin className="h-4 w-4 text-gray-500" />
                           <span className="font-medium">IP:</span>
-                          <span className="font-mono">{selectedEntry.clockOutIpAddress}</span>
+                          <span className="font-mono">{detailEntry.clockOutIpAddress}</span>
                         </div>
                       )}
-                      {selectedEntry.clockOutLatitude && selectedEntry.clockOutLongitude && (
+                      {detailEntry.clockOutLatitude && detailEntry.clockOutLongitude && (
                         <div className="flex items-center gap-2 text-xs">
                           <MapPin className="h-4 w-4 text-gray-500" />
                           <span className="font-medium">Localização:</span>
                           <span className="font-mono">
-                            {selectedEntry.clockOutLatitude.toFixed(6)}, {selectedEntry.clockOutLongitude.toFixed(6)}
+                            {detailEntry.clockOutLatitude.toFixed(6)}, {detailEntry.clockOutLongitude.toFixed(6)}
                           </span>
                         </div>
                       )}
@@ -545,9 +560,9 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                         <Camera className="h-4 w-4 text-blue-600" />
                         <p className="text-xs font-medium text-blue-800">Reconhecimento Facial:</p>
                       </div>
-                      {selectedEntry.clockOutPhotoUrl ? (
+                      {detailEntry.clockOutPhotoUrl ? (
                         <img 
-                          src={selectedEntry.clockOutPhotoUrl} 
+                          src={detailEntry.clockOutPhotoUrl} 
                           alt="Foto de saída" 
                           className="w-32 h-32 object-cover rounded border border-blue-300"
                         />
@@ -580,9 +595,9 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                       Intervalo
                     </span>
                   </div>
-                  {getBreakEntries(selectedEntry).length > 0 ? (
+                  {getBreakEntries(detailEntry).length > 0 ? (
                     <div className="space-y-2">
-                      {getBreakEntries(selectedEntry).map((breakEntry) => (
+                      {getBreakEntries(detailEntry).map((breakEntry) => (
                         <div
                           key={breakEntry.id}
                           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm bg-white p-3 rounded border"
@@ -621,18 +636,18 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-blue-800">Total de Horas Trabalhadas</span>
                   <span className="text-lg font-bold text-blue-900">
-                    {formatHours(selectedEntry.totalHours)}
+                    {formatHours(detailEntry.totalHours)}
                   </span>
                 </div>
-                {(selectedEntry.regularHours || selectedEntry.overtimeHours) && (
+                {(detailEntry.regularHours || detailEntry.overtimeHours) && (
                   <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-200">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-blue-700">Horas Regulares:</span>
-                      <span className="font-semibold">{formatHours(selectedEntry.regularHours || '0')}</span>
+                      <span className="font-semibold">{formatHours(detailEntry.regularHours || '0')}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-blue-700">Horas Extras:</span>
-                      <span className="font-semibold">{formatHours(selectedEntry.overtimeHours || '0')}</span>
+                      <span className="font-semibold">{formatHours(detailEntry.overtimeHours || '0')}</span>
                     </div>
                   </div>
                 )}
