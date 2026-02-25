@@ -356,6 +356,7 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                   <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                     {selectedEntry.periodEntries.map((period, index) => {
                       const isSelectedPeriod = selectedPeriodEntry?.id === period.id;
+                      const hasAnyPhoto = !!period.clockInPhotoUrl || !!period.clockOutPhotoUrl;
                       return (
                       <button
                         key={period.id}
@@ -363,13 +364,19 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
                         onClick={() => setSelectedPeriodEntry(period)}
                         className={`w-full flex items-center justify-between text-sm bg-white border rounded p-3 text-left transition-colors ${
                           isSelectedPeriod
-                            ? "border-blue-500 bg-blue-50"
-                            : "hover:bg-gray-50"
+                            ? "border-blue-600 bg-blue-50 ring-2 ring-blue-200"
+                            : "hover:bg-gray-50 border-gray-200"
                         }`}
                       >
                         <div className="flex flex-col">
-                          <span className="font-medium">
+                          <span className="font-medium flex items-center gap-2">
                             {formatTime(period.clockInTime)} - {formatTime(period.clockOutTime)}
+                            {hasAnyPhoto && (
+                              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                <Camera className="h-3 w-3" />
+                                Foto
+                              </span>
+                            )}
                           </span>
                           <span className="text-xs text-gray-500">Período #{index + 1}</span>
                         </div>
