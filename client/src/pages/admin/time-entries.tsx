@@ -540,7 +540,7 @@ export default function AdminTimeEntries() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <TopBar title="Administrar Registros de Ponto" hideTitle />
+      <TopBar title="Administrar Registros de Ponto" />
       <div className="flex">
         <Sidebar />
         <div className="flex-1 p-6">
