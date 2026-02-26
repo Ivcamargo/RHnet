@@ -165,7 +165,19 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
       });
       return response.json();
     },
-    onSuccess: async () => {
+    onSuccess: async (updatedEntry: TimeEntry) => {
+      queryClient.setQueriesData<TimeEntry[]>(
+        { queryKey: ["/api/admin/time-entries"] },
+        (oldEntries) => {
+          if (!oldEntries) return oldEntries;
+          return oldEntries.map((item) =>
+            item.id === updatedEntry.id
+              ? { ...item, ...updatedEntry }
+              : item
+          );
+        }
+      );
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/admin/time-entries"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/admin/time-entries", entry.id, "history"] }),
