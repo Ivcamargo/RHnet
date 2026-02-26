@@ -504,12 +504,26 @@ export default function AdminTimeEntries() {
   };
 
   const uniqueEntries = useMemo(() => {
-    const seen = new Set<number>();
-    return entries.filter((entry) => {
-      if (seen.has(entry.id)) return false;
-      seen.add(entry.id);
-      return true;
-    });
+    const grouped = new Map<string, TimeEntry>();
+
+    for (const entry of entries) {
+      const key = `${entry.userId}|${entry.date}|${entry.clockInTime || 'no_clockin'}`;
+      const current = grouped.get(key);
+
+      if (!current) {
+        grouped.set(key, entry);
+        continue;
+      }
+
+      const currentUpdated = (current as any).updatedAt ? new Date((current as any).updatedAt as string).getTime() : 0;
+      const entryUpdated = (entry as any).updatedAt ? new Date((entry as any).updatedAt as string).getTime() : 0;
+
+      if (entryUpdated > currentUpdated || entry.id > current.id) {
+        grouped.set(key, entry);
+      }
+    }
+
+    return Array.from(grouped.values());
   }, [entries]);
 
   const filteredEntries = useMemo(() => {
