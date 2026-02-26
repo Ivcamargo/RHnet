@@ -170,22 +170,24 @@ async function computeNetWorkedHours(
     return 0;
   }
   
-  const grossHours = calculateHours(
-    new Date(timeEntry.clockInTime),
-    new Date(timeEntry.clockOutTime)
-  );
+  const clockIn = new Date(timeEntry.clockInTime);
+  const clockOut = new Date(timeEntry.clockOutTime);
+  const grossHours = calculateHours(clockIn, clockOut);
   
   let totalBreakMinutes = 0;
+  const overlapMinutes = (aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) => {
+    const start = Math.max(aStart.getTime(), bStart.getTime());
+    const end = Math.min(aEnd.getTime(), bEnd.getTime());
+    return Math.max(0, (end - start) / 60000);
+  };
   
   // 1. Subtract unpaid manual breaks (from breakEntries table)
   const manualBreaks = await storage.getBreakEntriesByTimeEntry(timeEntry.id);
   for (const breakEntry of manualBreaks) {
-    if (breakEntry.breakStart && breakEntry.breakEnd) {
-      const breakDuration = calculateHours(
-        new Date(breakEntry.breakStart),
-        new Date(breakEntry.breakEnd)
-      );
-      totalBreakMinutes += breakDuration * 60; // Convert to minutes
+    if (breakEntry.breakStart) {
+      const breakStart = new Date(breakEntry.breakStart);
+      const breakEnd = breakEntry.breakEnd ? new Date(breakEntry.breakEnd) : clockOut;
+      totalBreakMinutes += overlapMinutes(clockIn, clockOut, breakStart, breakEnd);
     }
   }
   
@@ -224,7 +226,49 @@ async function computeNetWorkedHours(
             
             // Only deduct if no overlapping manual break exists
             if (!hasOverlappingManualBreak) {
-              totalBreakMinutes += shiftBreak.durationMinutes;
+              const scheduledStart = shiftBreak.scheduledStart;
+              const scheduledEnd = shiftBreak.scheduledEnd;
+
+              // If there is no schedule for this break, keep previous behavior.
+              if (!scheduledStart || !scheduledEnd) {
+                totalBreakMinutes += shiftBreak.durationMinutes;
+                continue;
+              }
+
+              const [startHour, startMinute] = scheduledStart.split(':').map(Number);
+              const [endHour, endMinute] = scheduledEnd.split(':').map(Number);
+              if (
+                Number.isNaN(startHour) || Number.isNaN(startMinute) ||
+                Number.isNaN(endHour) || Number.isNaN(endMinute)
+              ) {
+                totalBreakMinutes += shiftBreak.durationMinutes;
+                continue;
+              }
+
+              // Deduct only elapsed overlap of the scheduled break with worked period.
+              // Check nearby day offsets to correctly handle overnight windows.
+              const baseDate = new Date(clockIn);
+              let maxElapsedBreakMinutes = 0;
+
+              for (const dayOffset of [-1, 0, 1]) {
+                const breakStartAt = new Date(baseDate);
+                breakStartAt.setDate(baseDate.getDate() + dayOffset);
+                breakStartAt.setHours(startHour, startMinute, 0, 0);
+
+                const breakEndAt = new Date(baseDate);
+                breakEndAt.setDate(baseDate.getDate() + dayOffset);
+                breakEndAt.setHours(endHour, endMinute, 0, 0);
+                if (breakEndAt <= breakStartAt) {
+                  breakEndAt.setDate(breakEndAt.getDate() + 1);
+                }
+
+                const elapsedThisWindow = overlapMinutes(clockIn, clockOut, breakStartAt, breakEndAt);
+                if (elapsedThisWindow > maxElapsedBreakMinutes) {
+                  maxElapsedBreakMinutes = elapsedThisWindow;
+                }
+              }
+
+              totalBreakMinutes += Math.min(shiftBreak.durationMinutes, maxElapsedBreakMinutes);
             }
           }
         }

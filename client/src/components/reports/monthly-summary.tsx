@@ -181,16 +181,49 @@ export function MonthlyTimeTable({ entries }: MonthlyTimeTableProps) {
   };
 
   const getWorkingHours = (entry: TimeEntry) => {
-    if (entry.status === "active" && entry.clockInTime) {
-      // Calculate current working hours for active entries
-      const now = new Date();
-      const clockIn = new Date(entry.clockInTime);
-      const diffMs = now.getTime() - clockIn.getTime();
-      const hours = diffMs / (1000 * 60 * 60);
-      return formatHours(hours.toFixed(2));
+    const storedHours = parseHours(entry.totalHours);
+    if (storedHours > 0) {
+      return formatHours(entry.totalHours);
     }
-    
-    return formatHours(entry.totalHours);
+
+    if (!entry.clockInTime || entry.clockOutTime) {
+      return formatHours(entry.totalHours);
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    if (entry.date !== today) {
+      return formatHours(entry.totalHours);
+    }
+
+    const now = new Date();
+    const clockIn = new Date(entry.clockInTime);
+
+    if (Number.isNaN(clockIn.getTime()) || now <= clockIn) {
+      return formatHours(entry.totalHours);
+    }
+
+    const overlapMinutes = (aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) => {
+      const start = Math.max(aStart.getTime(), bStart.getTime());
+      const end = Math.min(aEnd.getTime(), bEnd.getTime());
+      return Math.max(0, (end - start) / 60000);
+    };
+
+    const breakMinutes = getBreakEntries(entry).reduce((total, breakEntry) => {
+      if (!breakEntry.breakStart) return total;
+
+      const breakStart = new Date(breakEntry.breakStart);
+      const breakEnd = breakEntry.breakEnd ? new Date(breakEntry.breakEnd) : now;
+      if (Number.isNaN(breakStart.getTime()) || Number.isNaN(breakEnd.getTime())) {
+        return total;
+      }
+
+      return total + overlapMinutes(clockIn, now, breakStart, breakEnd);
+    }, 0);
+
+    const grossMinutes = (now.getTime() - clockIn.getTime()) / 60000;
+    const netHours = Math.max(0, (grossMinutes - breakMinutes) / 60);
+
+    return formatHours(netHours.toFixed(2));
   };
 
   if (sortedEntries.length === 0) {
