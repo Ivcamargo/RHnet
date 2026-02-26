@@ -145,18 +145,37 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+
+    form.reset({
+      clockInTime: entry.clockInTime ? formatToDateTimeLocal(entry.clockInTime) : '',
+      clockOutTime: entry.clockOutTime ? formatToDateTimeLocal(entry.clockOutTime) : '',
+      justification: '',
+    });
+    setShowHistory(false);
+    setSelectedFile(null);
+  }, [open, entry.id, entry.clockInTime, entry.clockOutTime, form]);
+
   const editMutation = useMutation({
-    mutationFn: ({ entryId, data }: { entryId: number; data: EditTimeEntryForm & { attachmentUrl?: string } }) =>
-      apiRequest(`/api/admin/time-entries/${entryId}`, {
+    mutationFn: async ({ entryId, data }: { entryId: number; data: EditTimeEntryForm & { attachmentUrl?: string } }) => {
+      const response = await apiRequest(`/api/admin/time-entries/${entryId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
+      });
+      return response.json();
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/time-entries", entry.id, "history"] }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["/api/admin/time-entries"], type: "active" });
+
       toast({
         title: "Registro alterado",
         description: "O registro de ponto foi alterado com sucesso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/time-entries"] });
       onOpenChange(false);
       form.reset();
       setSelectedFile(null);
