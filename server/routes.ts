@@ -118,6 +118,32 @@ function calculateHours(start: Date, end: Date): number {
   return Number((diffMs / (1000 * 60 * 60)).toFixed(2));
 }
 
+async function getLatestTimeEntryForUserOnDate(userId: string, date: string) {
+  const dayEntries = await storage.getTimeEntriesByUser(userId, date, date);
+  if (!dayEntries || dayEntries.length === 0) {
+    return null;
+  }
+
+  const toMillis = (value: any) => {
+    if (!value) return 0;
+    if (value instanceof Date) return value.getTime();
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const sorted = [...dayEntries].sort((a: any, b: any) => {
+    const byUpdated = toMillis(b.updatedAt) - toMillis(a.updatedAt);
+    if (byUpdated !== 0) return byUpdated;
+
+    const byCreated = toMillis(b.createdAt) - toMillis(a.createdAt);
+    if (byCreated !== 0) return byCreated;
+
+    return (b.id || 0) - (a.id || 0);
+  });
+
+  return sorted[0] || null;
+}
+
 // Helper function to get user's active shift for a specific date
 async function getUserShiftForDate(
   userId: string,
@@ -2862,6 +2888,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: "PERIOD_CLOSED"
         });
       }
+
+      const latestTodayEntry = await getLatestTimeEntryForUserOnDate(userId, today);
+      if (latestTodayEntry) {
+        return res.status(409).json({
+          message: "Já existe registro de ponto para hoje. Edite o registro existente.",
+          code: "ENTRY_ALREADY_EXISTS_FOR_DATE",
+          existingEntryId: latestTodayEntry.id,
+          status: latestTodayEntry.status,
+        });
+      }
       
       // Capture IP address (normalize x-forwarded-for to first IP)
       let ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
@@ -3240,6 +3276,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ 
           message: "Período fechado - não é possível criar entrada manual para esta data",
           code: "PERIOD_CLOSED"
+        });
+      }
+
+      const existingEntryOnDate = await getLatestTimeEntryForUserOnDate(userId, date);
+      if (existingEntryOnDate) {
+        return res.status(409).json({
+          message: "Já existe registro de ponto para esta data. Edite o registro existente.",
+          code: "ENTRY_ALREADY_EXISTS_FOR_DATE",
+          existingEntryId: existingEntryOnDate.id,
+          status: existingEntryOnDate.status,
         });
       }
       
@@ -3979,6 +4025,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = getBrazilianDateString();
 
       if (!activeEntry) {
+        const latestTodayEntry = await getLatestTimeEntryForUserOnDate(tokenData.userId, today);
+        if (latestTodayEntry) {
+          return res.status(409).json({
+            message: "Já existe registro de ponto para hoje. Edite o registro existente.",
+            code: "ENTRY_ALREADY_EXISTS_FOR_DATE",
+            existingEntryId: latestTodayEntry.id,
+            status: latestTodayEntry.status,
+          });
+        }
+
         // Clock in - create new entry
         const timeEntry = await storage.createTimeEntry({
           userId: tokenData.userId,
