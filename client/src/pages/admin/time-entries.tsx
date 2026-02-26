@@ -92,6 +92,21 @@ interface AuditHistoryEntry {
   };
 }
 
+function formatAuditTimestampUTC(timestamp: string): string {
+  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(timestamp);
+  const normalized = hasTimezone ? timestamp : `${timestamp}Z`;
+  const date = new Date(normalized);
+  return date.toLocaleString('pt-BR', {
+    timeZone: 'UTC',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
 function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogProps) {
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
@@ -275,7 +290,7 @@ function EditTimeEntryDialog({ entry, open, onOpenChange }: EditTimeEntryDialogP
                         <p className="text-xs text-gray-500">{audit.editor?.email}</p>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {format(parseISO(audit.createdAt), 'dd/MM/yyyy HH:mm')}
+                        {formatAuditTimestampUTC(audit.createdAt)} UTC
                       </p>
                     </div>
                     
