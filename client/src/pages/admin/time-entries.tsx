@@ -539,11 +539,11 @@ export default function AdminTimeEntries() {
   }, [uniqueEntries, employeeFilter]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <TopBar title="Administrar Registros de Ponto" />
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar title="Administrar Registros de Ponto" />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -854,7 +854,7 @@ export default function AdminTimeEntries() {
               />
             )}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
