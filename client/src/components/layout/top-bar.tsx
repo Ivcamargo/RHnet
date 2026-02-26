@@ -59,8 +59,8 @@ export default function TopBar({ title }: TopBarProps) {
   };
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm">
-      <div className="flex items-center">
+    <header className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[hsl(220,65%,18%)] to-[hsl(175,65%,45%)] shadow-sm gap-4">
+      <div className="flex items-center min-w-0 flex-1">
         <Button
           variant="ghost"
           size="sm"
@@ -70,11 +70,11 @@ export default function TopBar({ title }: TopBarProps) {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="flex flex-col">
-          <h2 className="text-xl font-semibold text-white" data-testid="page-title">{title}</h2>
+        <div className="flex flex-col min-w-0">
+          <h2 className="text-xl font-semibold text-white truncate" data-testid="page-title">{title}</h2>
           {user && (user as any).company && (
             <p
-              className="text-base md:text-lg font-black italic uppercase tracking-tight leading-none text-[#ffdd00]"
+              className="text-base md:text-lg font-black italic uppercase tracking-tight leading-none text-[#ffdd00] truncate"
               style={{
                 color: "#ffdd00",
                 textShadow:
@@ -88,7 +88,7 @@ export default function TopBar({ title }: TopBarProps) {
         </div>
       </div>
       
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 shrink-0">
         {/* Geolocation Status */}
         <div className={`flex items-center space-x-2 px-3 py-1 text-white rounded-full text-sm ${locationStatus.color}`}>
           <MapPin className="h-4 w-4" />

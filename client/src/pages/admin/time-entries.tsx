@@ -507,7 +507,8 @@ export default function AdminTimeEntries() {
     const grouped = new Map<string, TimeEntry>();
 
     for (const entry of entries) {
-      const key = `${entry.userId}|${entry.date}|${entry.clockInTime || 'no_clockin'}`;
+      const normalizedClockIn = entry.clockInTime ? formatToDateTimeLocal(entry.clockInTime) : "no_clockin";
+      const key = `${entry.userId}|${entry.date}|${normalizedClockIn}`;
       const current = grouped.get(key);
 
       if (!current) {
