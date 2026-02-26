@@ -73,7 +73,15 @@ export default function TopBar({ title }: TopBarProps) {
         <div className="flex flex-col">
           <h2 className="text-xl font-semibold text-white" data-testid="page-title">{title}</h2>
           {user && (user as any).company && (
-            <p className="text-sm text-white/90 font-medium" data-testid="company-name">
+            <p
+              className="text-base md:text-lg font-black italic uppercase tracking-tight leading-none"
+              style={{
+                color: "#ffdd00",
+                textShadow:
+                  "2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000, 2px 2px #000, -2px -2px #000",
+              }}
+              data-testid="company-name"
+            >
               {(user as any).company.name}
             </p>
           )}
