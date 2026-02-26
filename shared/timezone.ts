@@ -51,8 +51,9 @@ export function convertToLocal(utcDate: Date | string): Date {
  * Formata uma data para exibição no formato brasileiro
  */
 export function formatBrazilianTime(date: Date | string): string {
-  const localDate = convertToLocal(date);
-  return localDate.toLocaleTimeString('pt-BR', {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
@@ -63,16 +64,19 @@ export function formatBrazilianTime(date: Date | string): string {
  * Formata uma data para exibição no formato brasileiro
  */
 export function formatBrazilianDate(date: Date | string): string {
-  const localDate = convertToLocal(date);
-  return localDate.toLocaleDateString('pt-BR');
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+  });
 }
 
 /**
  * Formata data e hora completa no formato brasileiro
  */
 export function formatBrazilianDateTime(date: Date | string): string {
-  const localDate = convertToLocal(date);
-  return localDate.toLocaleString('pt-BR', {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
     day: '2-digit',
     month: '2-digit', 
     year: 'numeric',
