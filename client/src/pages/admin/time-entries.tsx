@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -437,6 +437,7 @@ export default function AdminTimeEntries() {
   const today = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState<string>(today);
   const [endDate, setEndDate] = useState<string>(today);
+  const [employeeFilter, setEmployeeFilter] = useState<string>("");
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -486,6 +487,17 @@ export default function AdminTimeEntries() {
     setSelectedEntry(entry);
     setEditDialogOpen(true);
   };
+
+  const filteredEntries = useMemo(() => {
+    const term = employeeFilter.trim().toLowerCase();
+    if (!term) return entries;
+
+    return entries.filter((entry) => {
+      const fullName = `${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim().toLowerCase();
+      const email = (entry.user?.email || '').toLowerCase();
+      return fullName.includes(term) || email.includes(term);
+    });
+  }, [entries, employeeFilter]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
@@ -537,6 +549,18 @@ export default function AdminTimeEntries() {
                         data-testid="input-end-date"
                       />
                     </div>
+                    <div className="flex-1 min-w-[240px]">
+                      <label className="block text-sm font-medium mb-2">
+                        Funcionário
+                      </label>
+                      <Input
+                        type="text"
+                        value={employeeFilter}
+                        onChange={(e) => setEmployeeFilter(e.target.value)}
+                        placeholder="Filtrar por nome ou e-mail"
+                        data-testid="input-employee-filter"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -547,18 +571,18 @@ export default function AdminTimeEntries() {
                 <Clock className="h-8 w-8 animate-spin mx-auto mb-2" />
                 <p className="text-gray-600 dark:text-gray-400">Carregando registros...</p>
               </div>
-            ) : entries.length === 0 ? (
+            ) : filteredEntries.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-8">
                   <Clock className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-600 dark:text-gray-400">
-                    Nenhum registro encontrado para esta data
+                    Nenhum registro encontrado para os filtros aplicados
                   </p>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid gap-4">
-                {entries.map((entry) => (
+                {filteredEntries.map((entry) => (
                   <Card key={entry.id} className="transition-shadow hover:shadow-md">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
