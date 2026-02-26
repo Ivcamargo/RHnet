@@ -74,7 +74,12 @@ export default function TopBar({ title }: TopBarProps) {
           <h2 className="text-xl font-semibold text-white" data-testid="page-title">{title}</h2>
           {user && (user as any).company && (
             <p
-              className="text-sm md:text-base font-semibold text-white/90 leading-tight"
+              className="text-base md:text-lg font-black italic uppercase tracking-tight leading-none"
+              style={{
+                color: "#ffdd00",
+                textShadow:
+                  "1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000, 1px 1px #000, -1px -1px #000",
+              }}
               data-testid="company-name"
             >
               {(user as any).company.name}

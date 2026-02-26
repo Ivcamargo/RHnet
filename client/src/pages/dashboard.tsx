@@ -27,7 +27,6 @@ import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import Sidebar from "@/components/layout/sidebar";
 import TopBar from "@/components/layout/top-bar";
-import logoImage from "@assets/generated_images/RHNet_company_logo_design_27776a18.png";
 
 interface HRDashboardData {
   unreadMessages: number;
@@ -291,17 +290,11 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Welcome Section with Logo Background */}
-          <div className="mb-8 relative">
-            <div 
-              className="absolute inset-0 opacity-5 bg-no-repeat bg-center bg-contain pointer-events-none"
-              style={{ backgroundImage: `url(${logoImage})` }}
-            />
-            <div className="relative z-10">
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                Bem-vindo ao RHNet
-              </h1>
-            </div>
+          {/* Welcome Section */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Bem-vindo ao RHNet
+            </h1>
           </div>
 
           {/* Time Clock Quick Access - Prioritized */}
