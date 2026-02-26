@@ -76,9 +76,9 @@ export default function TopBar({ title }: TopBarProps) {
             <p
               className="text-base md:text-lg font-black italic uppercase tracking-tight leading-none"
               style={{
-                color: "#ffdd00",
+                color: "#f4d447",
                 textShadow:
-                  "2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000, 2px 2px #000, -2px -2px #000",
+                  "1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000, 1px 1px #000, -1px -1px #000",
               }}
               data-testid="company-name"
             >
