@@ -539,7 +539,7 @@ export default function AdminTimeEntries() {
   }, [uniqueEntries, employeeFilter]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[hsl(220,20%,98%)] via-[hsl(175,20%,98%)] to-[hsl(220,15%,96%)] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar title="Administrar Registros de Ponto" />
