@@ -17,10 +17,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 interface TopBarProps {
   title: string;
-  hideTitle?: boolean;
 }
 
-export default function TopBar({ title, hideTitle = false }: TopBarProps) {
+export default function TopBar({ title }: TopBarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const queryClient = useQueryClient();
   const { location, error: locationError } = useGeolocation();
@@ -72,9 +71,7 @@ export default function TopBar({ title, hideTitle = false }: TopBarProps) {
         </Button>
 
         <div className="flex flex-col min-w-0">
-          {!hideTitle && (
-            <h2 className="text-xl font-semibold text-white truncate" data-testid="page-title">{title}</h2>
-          )}
+          <h2 className="text-xl font-semibold text-white truncate" data-testid="page-title">{title}</h2>
           {user && (user as any).company && (
             <p
               className="text-base md:text-lg font-black italic uppercase tracking-tight leading-none text-[#ffdd00] truncate"
