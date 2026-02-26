@@ -503,16 +503,25 @@ export default function AdminTimeEntries() {
     setEditDialogOpen(true);
   };
 
+  const uniqueEntries = useMemo(() => {
+    const seen = new Set<number>();
+    return entries.filter((entry) => {
+      if (seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    });
+  }, [entries]);
+
   const filteredEntries = useMemo(() => {
     const term = employeeFilter.trim().toLowerCase();
-    if (!term) return entries;
+    if (!term) return uniqueEntries;
 
-    return entries.filter((entry) => {
+    return uniqueEntries.filter((entry) => {
       const fullName = `${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim().toLowerCase();
       const email = (entry.user?.email || '').toLowerCase();
       return fullName.includes(term) || email.includes(term);
     });
-  }, [entries, employeeFilter]);
+  }, [uniqueEntries, employeeFilter]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
