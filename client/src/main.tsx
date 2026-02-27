@@ -5,15 +5,23 @@ import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('ServiceWorker registration successful:', registration.scope);
-      })
-      .catch((error) => {
-        console.log('ServiceWorker registration failed:', error);
-      });
+// Disable stale PWA caches to avoid serving outdated UI after deploys.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+
+      if ("caches" in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(
+          cacheKeys
+            .filter((key) => key.startsWith("rhnet-"))
+            .map((key) => caches.delete(key))
+        );
+      }
+    } catch (error) {
+      console.warn("Failed to clear legacy service worker caches:", error);
+    }
   });
 }

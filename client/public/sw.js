@@ -1,7 +1,5 @@
-const CACHE_NAME = 'rhnet-v3-no-api-cache';
+const CACHE_NAME = 'rhnet-v4-static-cache';
 const urlsToCache = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
@@ -37,6 +35,14 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - different strategies for APIs vs static assets
 self.addEventListener('fetch', (event) => {
+  // Always try network first for document navigation to avoid stale app shell.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   // Network-first strategy for API requests (always fetch fresh data)
   if (event.request.url.includes('/api/')) {
     event.respondWith(
@@ -87,11 +93,6 @@ self.addEventListener('fetch', (event) => {
 
           return response;
         }).catch(() => {
-          // Return cached app shell for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          
           return Promise.reject('no-match');
         });
       })
